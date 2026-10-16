@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>QWARDDLE v0.0.19</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <canvas id="game" class="inactive"></canvas>
+
+  <div id="menu" class="screenLayer">
+    <header class="menuHeader">
+      <div class="menuBrand">
+        <div class="menuTitle">QWARDDLE</div>
+        <div class="menuVersion">v0.0.19</div>
+      </div>
+      <div class="menuBuild">LOCAL TEST BUILD</div>
+    </header>
+
+    <main class="menuBody">
+      <section class="menuColumn">
+        <div class="menuSectionLabel">MAIN MENU</div>
+        <div class="menuButtons">
+          <button id="playBtn" class="menuButton primary">PLAY</button>
+          <button class="menuButton" disabled><span>SETTINGS</span><small>UNAVAILABLE</small></button>
+          <button class="menuButton" disabled><span>OTHER</span><small>UNAVAILABLE</small></button>
+        </div>
+        <div class="menuFooterHint">MOUSE AIM / WASD MOVE / ESC BACK</div>
+      </section>
+
+      <section class="demoPanel">
+        <div class="panelLabel">FIGHTER PREVIEW</div>
+        <canvas id="menuDemo"></canvas>
+      </section>
+    </main>
+  </div>
+
+  <div id="modeScreen" class="screenLayer hidden">
+    <header class="subHeader">
+      <div>
+        <div class="subKicker">PLAY</div>
+        <div class="subTitle">GAMEMODE</div>
+      </div>
+      <div class="subHint">ESC BACK</div>
+    </header>
+
+    <main class="modeShell">
+      <div class="modeIntro">CHOOSE HOW TO FIGHT</div>
+      <section class="modeGrid">
+        <button id="singleBtn" class="modeCard available">
+          <span class="modeIndex">01</span>
+          <span class="modeName">SINGLEPLAYER</span>
+          <small>TEST ARENA</small>
+        </button>
+        <button class="modeCard" disabled>
+          <span class="modeIndex">02</span>
+          <span class="modeName">LOCAL MULTIPLAYER</span>
+          <small>COMING LATER</small>
+        </button>
+        <button class="modeCard" disabled>
+          <span class="modeIndex">03</span>
+          <span class="modeName">ONLINE MULTIPLAYER</span>
+          <small>NOT YET</small>
+        </button>
+      </section>
+    </main>
+  </div>
+
+  <div id="customScreen" class="screenLayer hidden">
+    <header class="customHeader">
+      <div>
+        <div class="subKicker">SINGLEPLAYER</div>
+        <div class="customTitle">CUSTOMIZATION</div>
+      </div>
+      <div class="subHint">ESC BACK</div>
+    </header>
+
+    <main class="customLayout">
+      <nav class="customTabs" aria-label="Customization categories">
+        <button class="customTab active" data-tab="weapon">WEAPON</button>
+        <button class="customTab" data-tab="color">COLOR</button>
+      </nav>
+
+      <section class="customControls">
+        <div class="panelLabel">LOADOUT</div>
+        <section id="customItems" class="customItems"></section>
+      </section>
+
+      <section class="customPreviewWrap">
+        <div class="customPreview">
+          <div class="panelLabel">PREVIEW</div>
+          <canvas id="customDemo"></canvas>
+        </div>
+        <button id="continueBtn" class="continueButton">CONTINUE</button>
+      </section>
+    </main>
+  </div>
+
+  <script src="src/utils.js"></script>
+  <script src="src/config.js"></script>
+  <script src="src/input/KeyboardInput.js"></script>
+  <script src="src/input/PointerInput.js"></script>
+  <script src="src/world/Terrain.js"></script>
+  <script src="src/player/ProceduralLeg.js"></script>
+  <script src="src/player/FloatingHand.js"></script>
+  <script src="src/player/ProceduralArm.js"></script>
+  <script src="src/combat/Weapon.js"></script>
+  <script src="src/combat/Projectile.js"></script>
+  <script src="src/combat/ProjectileSystem.js"></script>
+  <script src="src/combat/WeaponMount.js"></script>
+  <script src="src/combat/Revolver.js"></script>
+  <script src="src/combat/WeaponRegistry.js"></script>
+  <script src="src/player/Player.js"></script>
+  <script src="src/actors/TargetFighter.js"></script>
+  <script src="src/game/RoundManager.js"></script>
+  <script src="src/game/CameraEffects.js"></script>
+  <script src="src/game/MenuDemo.js"></script>
+  <script src="src/game/CustomizationScreen.js"></script>
+  <script src="src/game/Game.js"></script>
+  <script src="src/game/App.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
