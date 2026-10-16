@@ -64,13 +64,31 @@ class CustomizationScreen {
   renderWeapons() {
     const grid = document.createElement('div');
     grid.className = 'itemGrid weaponGrid';
+
     for (const weapon of WeaponRegistry.list) {
-      grid.appendChild(this.makeCard(weapon.name, this.loadout.weapon === weapon.id, () => {
+      const button = document.createElement('button');
+      button.className = `itemCard weaponCard ${this.loadout.weapon === weapon.id ? 'selected' : ''}`.trim();
+
+      const name = document.createElement('span');
+      name.className = 'weaponCardName';
+      name.textContent = weapon.name;
+      button.appendChild(name);
+
+      if (weapon.description) {
+        const description = document.createElement('small');
+        description.className = 'weaponCardDescription';
+        description.textContent = weapon.description;
+        button.appendChild(description);
+      }
+
+      button.addEventListener('click', () => {
         this.loadout.weapon = weapon.id;
         this.syncPreview();
         this.renderItems();
-      }, 'weaponCard'));
+      });
+      grid.appendChild(button);
     }
+
     this.items.appendChild(grid);
   }
 
