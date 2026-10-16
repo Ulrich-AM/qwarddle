@@ -80,10 +80,7 @@ button:disabled small{color:#747474}
 .itemCard{min-height:62px;background:#5d5d5d;color:#ddd;font-weight:900;font-size:13px;padding:11px;cursor:pointer;text-align:left}
 .itemCard:hover{background:#a3a3a3;color:#222}
 .itemCard.selected{background:#dedede;color:#222}
-.weaponCard{min-height:104px;font-size:16px;display:flex;flex-direction:column;justify-content:flex-end;gap:8px}
-.weaponCardName{font-size:17px}
-.weaponCardDescription{font-size:9px;line-height:1.45;letter-spacing:.35px;color:#aaa;font-weight:700}
-.weaponCard.selected .weaponCardDescription,.weaponCard:hover .weaponCardDescription{color:#555}
+.weaponCard{min-height:104px;font-size:16px;display:flex;flex-direction:column;justify-content:flex-end;gap:8px}.weaponCardName{font-size:17px}.weaponCardDescription{font-size:9px;line-height:1.45;letter-spacing:.35px;color:#aaa;font-weight:700}.weaponCard.selected .weaponCardDescription,.weaponCard:hover .weaponCardDescription{color:#555}
 .partSelector{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:13px}
 .partCard{min-height:50px;font-size:11px;text-align:center}
 .swatchGrid{display:grid;grid-template-columns:repeat(4,minmax(42px,1fr));gap:7px;align-content:start}
