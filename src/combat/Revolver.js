@@ -72,15 +72,25 @@ class Revolver extends Weapon {
     return image;
   }
 
+  sourceSize(image) {
+    if (!image) return null;
+    const width = image.naturalWidth || image.width || 0;
+    const height = image.naturalHeight || image.height || 0;
+    return width > 0 && height > 0 ? { width, height } : null;
+  }
+
   imageReady(image) {
-    return !!image && image.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+    if (!image) return false;
+    if ('complete' in image && !image.complete) return false;
+    return !!this.sourceSize(image);
   }
 
   drawImageFitted(ctx, image, centerX, centerY, maxWidth, maxHeight = maxWidth) {
     if (!this.imageReady(image)) return false;
-    const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
-    const width = image.naturalWidth * scale;
-    const height = image.naturalHeight * scale;
+    const source = this.sourceSize(image);
+    const scale = Math.min(maxWidth / source.width, maxHeight / source.height);
+    const width = source.width * scale;
+    const height = source.height * scale;
     ctx.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
     return true;
   }
