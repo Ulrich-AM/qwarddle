@@ -43,6 +43,99 @@ class Revolver extends Weapon {
     this.chargedKnockback = 820;
     this.chargedHandRecoil = 720;
     this.chargedBodyRecoil = 940;
+
+    this.spriteRoot = 'assets/sprites/revolver/';
+    this.sprites = {
+      held:this.loadSprite('revolver.png'),
+      cylinder:this.loadSprite('revolver-cylinder.png'),
+      cylinderBullets:this.loadSprite('revolver-cylinder-bullets.png', () => this.buildCylinderMasks()),
+      round:this.loadSprite('revolver-round.png'),
+      chargedRound:this.loadSprite('revolver-roundcharged.png')
+    };
+
+    this.chamberColors = [
+      [0xff,0x00,0x00],
+      [0xff,0x00,0xe2],
+      [0x00,0x66,0xff],
+      [0x00,0xff,0x59],
+      [0xff,0xef,0x00],
+      [0xff,0x92,0x00]
+    ];
+    this.chamberMasks = [];
+    this.maskBuildFailed = false;
+  }
+
+  loadSprite(file, onload = null) {
+    const image = new Image();
+    image.onload = () => onload?.();
+    image.src = this.spriteRoot + file;
+    return image;
+  }
+
+  imageReady(image) {
+    return !!image && image.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+  }
+
+  drawImageFitted(ctx, image, centerX, centerY, maxWidth, maxHeight = maxWidth) {
+    if (!this.imageReady(image)) return false;
+    const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+    const width = image.naturalWidth * scale;
+    const height = image.naturalHeight * scale;
+    ctx.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
+    return true;
+  }
+
+  buildCylinderMasks() {
+    if (!this.imageReady(this.sprites.cylinderBullets)) return;
+
+    try {
+      const source = this.sprites.cylinderBullets;
+      const width = source.naturalWidth;
+      const height = source.naturalHeight;
+      const readCanvas = document.createElement('canvas');
+      readCanvas.width = width;
+      readCanvas.height = height;
+      const readCtx = readCanvas.getContext('2d', { willReadFrequently:true });
+      readCtx.drawImage(source, 0, 0);
+      const pixels = readCtx.getImageData(0, 0, width, height).data;
+
+      this.chamberMasks = this.chamberColors.map(([targetR,targetG,targetB]) => {
+        const makeMask = (shade) => {
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          const image = ctx.createImageData(width, height);
+
+          for (let p = 0; p < pixels.length; p += 4) {
+            if (
+              pixels[p] === targetR &&
+              pixels[p + 1] === targetG &&
+              pixels[p + 2] === targetB &&
+              pixels[p + 3] > 0
+            ) {
+              image.data[p] = shade;
+              image.data[p + 1] = shade;
+              image.data[p + 2] = shade;
+              image.data[p + 3] = pixels[p + 3];
+            }
+          }
+
+          ctx.putImageData(image, 0, 0);
+          return canvas;
+        };
+
+        return {
+          normal:makeMask(170),
+          charged:makeMask(255)
+        };
+      });
+    } catch (error) {
+      // Some browsers restrict pixel reads from file:// images. The cylinder
+      // still renders normally and the separate round sprites remain usable.
+      this.chamberMasks = [];
+      this.maskBuildFailed = true;
+    }
   }
 
   get ammo() { return this.rounds.length; }
@@ -200,37 +293,75 @@ class Revolver extends Weapon {
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(mount.angle + spin);
-    ctx.fillStyle = '#bcbcbc';
-    // Rectangle placeholder only. Swap this for the final revolver sprite later.
-    ctx.fillRect(-31, -17, 62, 34);
+
+    if (this.imageReady(this.sprites.held)) {
+      const desiredWidth = 78;
+      const scale = desiredWidth / this.sprites.held.naturalWidth;
+      const width = this.sprites.held.naturalWidth * scale;
+      const height = this.sprites.held.naturalHeight * scale;
+      // Pivot sits slightly left of center so the hand grips the revolver
+      // instead of pinning the sprite exactly through its middle.
+      ctx.drawImage(this.sprites.held, -width * 0.38, -height * 0.50, width, height);
+    } else {
+      ctx.fillStyle = '#bcbcbc';
+      ctx.fillRect(-31, -17, 62, 34);
+    }
+
     ctx.restore();
   }
 
-  renderHud(ctx, x = 28, y = 28) {
-    const big = 72;
+  renderHud(ctx, x = 22, y = 22) {
+    const panelW = 292;
+    const panelH = 98;
+    const cylinderSize = 78;
+    const cylinderX = x + 10;
+    const cylinderY = y + 10;
+
     ctx.save();
-    ctx.translate(x + big / 2, y + big / 2);
+    ctx.fillStyle = '#2d2d2d';
+    ctx.fillRect(x, y, panelW, panelH);
+
+    ctx.translate(cylinderX + cylinderSize / 2, cylinderY + cylinderSize / 2);
     ctx.rotate(this.hudAngle);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(-big / 2, -big / 2, big, big);
+
+    if (!this.drawImageFitted(ctx, this.sprites.cylinder, 0, 0, cylinderSize, cylinderSize)) {
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(-cylinderSize / 2, -cylinderSize / 2, cylinderSize, cylinderSize);
+    }
+
+    if (this.chamberMasks.length === this.capacity) {
+      for (let i = 0; i < this.rounds.length; i++) {
+        const masks = this.chamberMasks[i];
+        const mask = this.rounds[i] === 'charged' ? masks.charged : masks.normal;
+        this.drawImageFitted(ctx, mask, 0, 0, cylinderSize, cylinderSize);
+      }
+    }
     ctx.restore();
 
-    const normalSize = 12;
-    const chargedSize = 16;
-    const gap = 10;
-    const startX = x + big + 22;
-    const centerY = y + big / 2;
+    const roundsStartX = cylinderX + cylinderSize + 18;
+    const roundY = y + 34;
+    const slotGap = 29;
 
     for (let i = 0; i < this.rounds.length; i++) {
       const charged = this.rounds[i] === 'charged';
-      const size = charged ? chargedSize : normalSize;
-      const slotX = startX + i * (normalSize + gap);
-      ctx.save();
-      ctx.translate(slotX + normalSize / 2, centerY);
-      if (charged) ctx.rotate(Math.PI / 4);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(-size / 2, -size / 2, size, size);
-      ctx.restore();
+      const image = charged ? this.sprites.chargedRound : this.sprites.round;
+      const slotX = roundsStartX + i * slotGap;
+      if (!this.drawImageFitted(ctx, image, slotX + 11, roundY, 22, 28)) {
+        const size = charged ? 15 : 11;
+        ctx.save();
+        ctx.translate(slotX + 11, roundY);
+        if (charged) ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = '#ededed';
+        ctx.fillRect(-size / 2, -size / 2, size, size);
+        ctx.restore();
+      }
     }
+
+    ctx.fillStyle = '#8f8f8f';
+    ctx.font = '900 9px Arial, sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText('Q RELOAD', roundsStartX, y + 68);
+    ctx.fillText('E CHARGE', roundsStartX + 74, y + 68);
+    ctx.restore();
   }
 }
