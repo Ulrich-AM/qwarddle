@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>QWARDDLE — v0.0.18</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <canvas id="game" class="inactive"></canvas>
+
+  <div id="menu" class="screenLayer">
+    <header class="menuHeader"><div class="menuTitle">QWARDDLE</div></header>
+    <main class="menuBody">
+      <section class="menuButtons">
+        <button id="playBtn" class="menuButton">PLAY</button>
+        <button class="menuButton" disabled>SETTINGS</button>
+        <button class="menuButton" disabled>OTHER</button>
+      </section>
+      <section class="demoPanel"><canvas id="menuDemo"></canvas></section>
+    </main>
+  </div>
+
+  <div id="modeScreen" class="screenLayer hidden">
+    <header class="subHeader"><div class="subTitle">GAMEMODE</div></header>
+    <main class="modeGrid">
+      <button id="singleBtn" class="modeCard">SINGLEPLAYER</button>
+      <button class="modeCard" disabled>MULTIPLAYER<br>LOCAL</button>
+      <button class="modeCard" disabled>MULTIPLAYER<br>ONLINE</button>
+    </main>
+  </div>
+
+  <div id="customScreen" class="screenLayer hidden">
+    <main class="customLayout">
+      <nav class="customTabs">
+        <button class="customTab active" data-tab="weapon">WEAPON</button>
+        <button class="customTab" data-tab="color">COLOR</button>
+      </nav>
+      <section id="customItems" class="customItems"></section>
+      <section class="customPreviewWrap">
+        <div class="customPreview"><canvas id="customDemo"></canvas></div>
+        <button id="continueBtn" class="continueButton">CONTINUE</button>
+      </section>
+    </main>
+  </div>
+
+  <script src="src/utils.js"></script>
+  <script src="src/config.js"></script>
+  <script src="src/input/KeyboardInput.js"></script>
+  <script src="src/input/PointerInput.js"></script>
+  <script src="src/world/Terrain.js"></script>
+  <script src="src/player/ProceduralLeg.js"></script>
+  <script src="src/player/FloatingHand.js"></script>
+  <script src="src/player/ProceduralArm.js"></script>
+  <script src="src/combat/Weapon.js"></script>
+  <script src="src/combat/Projectile.js"></script>
+  <script src="src/combat/ProjectileSystem.js"></script>
+  <script src="src/combat/WeaponMount.js"></script>
+  <script src="src/combat/Revolver.js"></script>
+  <script src="src/combat/WeaponRegistry.js"></script>
+  <script src="src/player/Player.js"></script>
+  <script src="src/actors/TargetFighter.js"></script>
+  <script src="src/game/RoundManager.js"></script>
+  <script src="src/game/CameraEffects.js"></script>
+  <script src="src/game/MenuDemo.js"></script>
+  <script src="src/game/CustomizationScreen.js"></script>
+  <script src="src/game/Game.js"></script>
+  <script src="src/game/App.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
