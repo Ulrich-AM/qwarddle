@@ -144,6 +144,17 @@ class Terrain {
     return 0;
   }
 
+  circleIntersectsSolid(x, y, radius = 0) {
+    for (const rect of this.rectangles) {
+      const closestX = MathEx.clamp(x, rect.x, rect.x + rect.w);
+      const closestY = MathEx.clamp(y, rect.y, rect.y + rect.h);
+      const dx = x - closestX;
+      const dy = y - closestY;
+      if (dx * dx + dy * dy <= radius * radius) return true;
+    }
+    return false;
+  }
+
   draw(ctx) {
     const huge = 12000;
 
