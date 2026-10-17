@@ -44,6 +44,8 @@ class ProjectileSystem {
         }
       }
 
+      if (projectile.nonCombat) continue;
+
       for (const target of targets) {
         if (!target || target.dead || !target.hitbox || !target.takeHit) continue;
         if (projectile.hitTargets?.has(target)) continue;
