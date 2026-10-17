@@ -25,6 +25,6 @@ Customization mapping:
 - ARMS -> generated arm segments + hand color layer
 - LEGS -> generated leg segments + both foot color layers
 
-The procedural arm and leg segments remain generated and keep their dark outline pass.
+The procedural arm and leg segments remain generated without extra outlines.
 
 If any sprite is missing, the old placeholder geometry remains as a fallback.
