@@ -69,34 +69,9 @@ class Terrain {
   }
 
   rebuildRaster() {
-    const canvas = document.createElement('canvas');
-    canvas.width = this.worldWidth;
-    canvas.height = this.worldHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-
-    const outline = Math.max(0, Math.round(this.map?.outlineSize ?? 10));
-    const outlineColor = this.map?.outlineColor || '#202020';
-    const fillColor = this.map?.groundColor || '#596057';
-
-    // Draw every expanded rectangle first. Drawing all fills afterwards erases
-    // internal seams where rectangles touch or overlap, leaving one merged shell.
-    ctx.fillStyle = outlineColor;
-    for (const rect of this.rectangles) {
-      ctx.fillRect(
-        rect.x - outline,
-        rect.y - outline,
-        rect.w + outline * 2,
-        rect.h + outline * 2
-      );
-    }
-
-    ctx.fillStyle = fillColor;
-    for (const rect of this.rectangles) {
-      ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
-    }
-
-    this.raster = canvas;
+    // Rectangle maps are tiny in primitive count. Drawing them directly avoids
+    // allocating a huge offscreen canvas now that arenas are roughly 2x larger.
+    this.raster = null;
   }
 
   hasGroundAt(x) {
@@ -173,7 +148,10 @@ class Terrain {
   }
 
   draw(ctx) {
-    const huge = 12000;
+    const huge = 16000;
+    const outline = Math.max(0, Math.round(this.map?.outlineSize ?? 10));
+    const outlineColor = this.map?.outlineColor || '#202020';
+    const fillColor = this.map?.groundColor || '#596057';
 
     ctx.fillStyle = '#526d7a';
     ctx.fillRect(-huge, this.waterY, huge * 2, huge);
@@ -181,11 +159,21 @@ class Terrain {
     ctx.fillStyle = '#607e8c';
     ctx.fillRect(-huge, this.waterY, huge * 2, 12);
 
-    if (this.raster) {
-      ctx.save();
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(this.raster, 0, 0);
-      ctx.restore();
+    // Expanded shells first, fills second. This keeps touching rectangles
+    // visually merged without needing a world-sized cached bitmap.
+    ctx.fillStyle = outlineColor;
+    for (const rect of this.rectangles) {
+      ctx.fillRect(
+        rect.x - outline,
+        rect.y - outline,
+        rect.w + outline * 2,
+        rect.h + outline * 2
+      );
+    }
+
+    ctx.fillStyle = fillColor;
+    for (const rect of this.rectangles) {
+      ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
     }
   }
 }
