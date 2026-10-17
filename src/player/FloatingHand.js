@@ -135,10 +135,18 @@ class FloatingHand {
 
   render(ctx, player, debug = false, showAimPointer = true) {
     const size = this.cfg.handSize;
-    const handSprite = player.characterSprites?.hand;
+    const handSprites = player.characterSprites?.hand;
 
-    if (player.spriteReady?.(handSprite)) {
-      player.drawSpriteCentered(ctx, handSprite, this.x, this.y, size * 1.45, size * 1.45);
+    if (player.drawCharacterPart?.(
+      ctx,
+      handSprites,
+      player.appearance?.hand || this.color,
+      this.x,
+      this.y,
+      size * 1.45,
+      size * 1.45
+    )) {
+      // Layered sprite rendered.
     } else {
       ctx.fillStyle = '#202020';
       ctx.fillRect(this.x - size / 2 - 2, this.y - size / 2 - 2, size + 4, size + 4);
