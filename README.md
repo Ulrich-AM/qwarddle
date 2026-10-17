@@ -52,7 +52,7 @@ Map definitions use this shape:
 }
 ```
 
-Rectangle collision currently uses flat top surfaces. Visual rectangles may touch or overlap freely.
+Map rectangles are now full solid collision geometry for the player's standing body. Sides block horizontal movement, tops catch falls, and undersides catch jumps. Visual rectangles may touch or overlap freely.
 
 ## Customization
 
@@ -70,16 +70,26 @@ The revolver still uses a six-slot ordered ammo chain.
 - LMB fires the next round.
 - Each shot performs the revolver spin/cooldown.
 - Q fills empty chambers with normal rounds without replacing charged rounds.
-- E dumps the cylinder and loads six charged rounds.
+- E requires full charge, consumes it, dumps the cylinder, and loads six charged rounds.
 - Charged rounds deal more damage and produce extreme recoil.
 
-The held revolver sprite and its cylinder/ammo HUD sprites are active.
+The held revolver sprite remains active. The separate `revolver-cylinder.png` sprite has been removed. Revolver projectiles are outlined circles, with different colors for normal and charged rounds.
 
 ## Wand
 
 - LMB: larger spinning star, low damage, phases through map solids.
-- Q: large pass-through star, one angle-based ricochet, then a six-star radial burst on the next wall impact.
+- Q: requires full charge, then fires a large pass-through star with one angle-based ricochet and a twelve-star radial burst on the next wall impact.
 - E: three larger lightly-homing stars that fade after about three seconds.
+
+## Combat HUD
+
+The bottom-left HUD uses five bars:
+
+- ATTACK1, ATTACK2, ATTACK3: small white readiness bars.
+- HEALTH: red.
+- CHARGE: yellow.
+
+Charge rises passively during a match at a weapon-specific rate and gains a small bonus when that weapon hits an enemy.
 
 ## Language files
 
