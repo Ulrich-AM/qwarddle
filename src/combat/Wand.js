@@ -218,8 +218,8 @@ class Wand extends Weapon {
     this.primarySpeed = 720;
     this.smallStarSize = 32;
     this.largeStarSize = 68;
-    this.qCooldown = 1.5;
-    this.eCooldown = 1.0;
+    this.qCooldown = 1.0;
+    this.eCooldown = 1.5;
     this.chargeRate = 7;
     this.chargeOnHit = 2;
     this.qCooldownRemaining = 0;
@@ -281,38 +281,9 @@ class Wand extends Weapon {
     return true;
   }
 
-  // Q slot. The large star ignores fighters physically, damages each fighter
-  // once while passing through, ricochets once, then bursts on the second impact.
+  // Q slot. Three lightly-homing stars in a small fan around the aim direction.
   reload({ mount, projectiles, game }) {
-    if (!projectiles || this.qCooldownRemaining > 0 || !game?.hasFullCharge()) return false;
-
-    const muzzle = this.muzzle(mount, 54);
-    const speed = 540;
-    projectiles.spawn(new WandBouncingStar({
-      system:projectiles,
-      smallSprite:this.sprites.small,
-      x:muzzle.x,
-      y:muzzle.y,
-      vx:mount.dirX * speed,
-      vy:mount.dirY * speed,
-      damage:6,
-      knockback:0,
-      life:7,
-      size:this.largeStarSize,
-      color:'#ffe56b',
-      sprite:this.sprites.large,
-      spinSpeed:6,
-      onHit:() => game?.gainCharge(this.chargeOnHit)
-    }));
-
-    game.consumeFullCharge();
-    this.qCooldownRemaining = this.qCooldown;
-    return true;
-  }
-
-  // E slot. Three lightly-homing stars in a small fan around the aim direction.
-  special({ mount, projectiles, game }) {
-    if (!projectiles || this.eCooldownRemaining > 0) return false;
+    if (!projectiles || this.qCooldownRemaining > 0) return false;
 
     const muzzle = this.muzzle(mount);
     const base = Math.atan2(mount.dirY, mount.dirX);
@@ -339,6 +310,35 @@ class Wand extends Weapon {
       }));
     }
 
+    this.qCooldownRemaining = this.qCooldown;
+    return true;
+  }
+
+  // E slot. The large star ignores fighters physically, damages each fighter
+  // once while passing through, ricochets once, then bursts on the second impact.
+  special({ mount, projectiles, game }) {
+    if (!projectiles || this.eCooldownRemaining > 0 || !game?.hasFullCharge()) return false;
+
+    const muzzle = this.muzzle(mount, 54);
+    const speed = 540;
+    projectiles.spawn(new WandBouncingStar({
+      system:projectiles,
+      smallSprite:this.sprites.small,
+      x:muzzle.x,
+      y:muzzle.y,
+      vx:mount.dirX * speed,
+      vy:mount.dirY * speed,
+      damage:6,
+      knockback:0,
+      life:7,
+      size:this.largeStarSize,
+      color:'#ffe56b',
+      sprite:this.sprites.large,
+      spinSpeed:6,
+      onHit:() => game?.gainCharge(this.chargeOnHit)
+    }));
+
+    game.consumeFullCharge();
     this.eCooldownRemaining = this.eCooldown;
     return true;
   }
@@ -347,9 +347,9 @@ class Wand extends Weapon {
     const primary = this.cooldown > 0
       ? MathEx.clamp(1 - this.cooldownRemaining / this.cooldown, 0, 1)
       : 1;
-    const qCooldown = MathEx.clamp(1 - this.qCooldownRemaining / this.qCooldown, 0, 1);
-    const attack2 = game?.hasFullCharge() ? qCooldown : 0;
-    const attack3 = MathEx.clamp(1 - this.eCooldownRemaining / this.eCooldown, 0, 1);
+    const attack2 = MathEx.clamp(1 - this.qCooldownRemaining / this.qCooldown, 0, 1);
+    const eCooldown = MathEx.clamp(1 - this.eCooldownRemaining / this.eCooldown, 0, 1);
+    const attack3 = game?.hasFullCharge() ? eCooldown : 0;
     return [primary, attack2, attack3];
   }
 
