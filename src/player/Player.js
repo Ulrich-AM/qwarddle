@@ -135,8 +135,14 @@ class Player {
     this.worldWidth = width;
   }
 
-  supportBaseY(x = this.x) {
-    const ground = this.terrain.groundYAt ? this.terrain.groundYAt(x) : this.terrain.yAt(x);
+  supportBaseY(x = this.x, referenceY = null) {
+    let ground = null;
+    if (referenceY != null && this.terrain.surfaceYAt) {
+      ground = this.terrain.surfaceYAt(x, referenceY);
+    }
+    if (ground == null) {
+      ground = this.terrain.groundYAt ? this.terrain.groundYAt(x) : this.terrain.yAt(x);
+    }
     const y = ground == null ? this.terrain.yAt(x) : ground;
     return y - this.cfg.bodyH / 2 - this.cfg.bodyHeight;
   }
@@ -217,9 +223,9 @@ class Player {
     }
   }
 
-  placeAt(x) {
+  placeAt(x, referenceY = null) {
     this.x = x;
-    this.y = this.supportBaseY();
+    this.y = this.supportBaseY(x, referenceY);
     this.vx = 0;
     this.vy = 0;
     this.prevVx = 0;
@@ -572,8 +578,57 @@ class Player {
     }
   }
 
+  resolveBodyPenetration(maxIterations = 4) {
+    const rectangles = this.terrain.rectangles || [];
+    let corrected = false;
+
+    for (let iteration = 0; iteration < maxIterations; iteration++) {
+      let movedThisPass = false;
+
+      for (const rect of rectangles) {
+        const box = this.collisionBox();
+        const rectRight = rect.x + rect.w;
+        const rectBottom = rect.y + rect.h;
+
+        if (box.right <= rect.x || box.left >= rectRight ||
+            box.bottom <= rect.y || box.top >= rectBottom) {
+          continue;
+        }
+
+        const pushLeft = box.right - rect.x;
+        const pushRight = rectRight - box.left;
+        const pushUp = box.bottom - rect.y;
+        const pushDown = rectBottom - box.top;
+        const minimum = Math.min(pushLeft, pushRight, pushUp, pushDown);
+
+        if (minimum === pushLeft) {
+          this.x -= pushLeft + 0.01;
+          if (this.vx > 0) this.vx = 0;
+        } else if (minimum === pushRight) {
+          this.x += pushRight + 0.01;
+          if (this.vx < 0) this.vx = 0;
+        } else if (minimum === pushUp) {
+          this.y -= pushUp + 0.01;
+          if (this.vy > 0) this.vy = 0;
+          this.onGround = true;
+        } else {
+          this.y += pushDown + 0.01;
+          if (this.vy < 0) this.vy = 0;
+        }
+
+        movedThisPass = true;
+        corrected = true;
+      }
+
+      if (!movedThisPass) break;
+    }
+
+    return corrected;
+  }
+
   update(dt, pointer) {
     this.time += dt;
+    this.resolveBodyPenetration();
     if (this.tempHealthTime > 0) {
       this.tempHealthTime = Math.max(0, this.tempHealthTime - dt);
       if (this.tempHealthTime <= 0) this.tempHealth = 0;
@@ -625,6 +680,7 @@ class Player {
     const previousY = this.y;
     this.y += this.vy * dt;
     this.resolveVerticalBodyCollision(previousY);
+    this.resolveBodyPenetration();
 
     const acceleration = (this.vx - this.prevVx) / Math.max(dt, 0.0001);
     const velocityLean = (this.vx / this.cfg.runSpeed) * this.cfg.accelLean;
