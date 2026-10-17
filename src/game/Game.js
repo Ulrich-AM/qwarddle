@@ -215,6 +215,12 @@ class Game {
     });
   }
 
+  removeStatusVisual(actor, key) {
+    this.statusEmitters = this.statusEmitters.filter((emitter) => {
+      return !(emitter.actor === actor && emitter.key === key);
+    });
+  }
+
   updateStatusVisuals(dt) {
     for (const emitter of this.statusEmitters) {
       emitter.time -= dt;
