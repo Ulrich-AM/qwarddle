@@ -15,6 +15,7 @@ class Revolver extends Weapon {
     this.projectileSpeed = 1080;
     this.capacity = 6;
     this.rounds = Array(this.capacity).fill('normal');
+    this.chamberCursor = 0;
 
     // Each shot spins the held revolver once. This animation IS the fire cooldown.
     this.shotSpinDuration = 0.19;
@@ -200,6 +201,7 @@ class Revolver extends Weapon {
 
     const roundType = this.rounds.shift();
     const charged = roundType === 'charged';
+    this.chamberCursor = (this.chamberCursor + 1) % this.capacity;
     const hand = mount.position();
     const x = hand.x + dirX * this.muzzleOffset;
     const y = hand.y + dirY * this.muzzleOffset;
@@ -309,7 +311,8 @@ class Revolver extends Weapon {
     }
 
     for (let i = 0; i < this.rounds.length; i++) {
-      const masks = this.chamberMasks[i];
+      const chamberIndex = (this.chamberCursor + i) % this.capacity;
+      const masks = this.chamberMasks[chamberIndex];
       if (!masks) continue;
       const mask = this.rounds[i] === 'charged' ? masks.charged : masks.normal;
       this.drawImageFitted(ctx, mask, 0, 0, cylinderSize, cylinderSize);
