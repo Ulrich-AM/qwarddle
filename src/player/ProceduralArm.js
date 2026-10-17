@@ -116,21 +116,11 @@ class ProceduralArm {
     const shoulder = this.shoulder(player);
     const elbow = this.elbow;
 
-    this.drawSegment(
-      ctx,
-      shoulder,
-      elbow,
-      this.cfg.armWidthUpper,
-      player.appearance?.armUpper || '#76b887'
-    );
-
-    this.drawSegment(
-      ctx,
-      elbow,
-      hand,
-      this.cfg.armWidthLower,
-      player.appearance?.armLower || '#69a9b7'
-    );
+    // Outline the arm as one connected silhouette, then paint both segments.
+    player.drawPixelLine(ctx, shoulder, elbow, this.cfg.armWidthUpper + 4, '#202020');
+    player.drawPixelLine(ctx, elbow, hand, this.cfg.armWidthLower + 4, '#202020');
+    player.drawPixelLine(ctx, shoulder, elbow, this.cfg.armWidthUpper, player.appearance?.armUpper || '#76b887');
+    player.drawPixelLine(ctx, elbow, hand, this.cfg.armWidthLower, player.appearance?.armLower || '#69a9b7');
 
     if (debug) {
       ctx.fillStyle = '#7f7';
