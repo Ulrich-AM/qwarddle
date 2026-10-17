@@ -69,6 +69,7 @@ class MenuDemo {
     this.canvas.width = Math.round(this.width * dpr);
     this.canvas.height = Math.round(this.height * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.ctx.imageSmoothingEnabled = false;
     // The customization preview uses a tighter virtual stage so the real
     // character can be shown large without clipping out of the canvas.
     this.logicalWidth = this.stationaryShowcase ? 300 : 410;
