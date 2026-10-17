@@ -1,11 +1,10 @@
 # Revolver sprites
 
-The held revolver sprite is active again.
+The held revolver sprite is active. The separate cylinder base sprite has been removed.
 
 Files:
 
 - `revolver.png` - held weapon and loadout icon
-- `revolver-cylinder.png` - cylinder UI
 - `revolver-cylinder-bullets.png` - six-color chamber source map
 - `revolver-round.png` - normal round UI
 - `revolver-roundcharged.png` - charged round UI
