@@ -17,7 +17,7 @@ This patch moves QWARDDLE from one hard-coded island toward reusable match maps.
 - Maps are made from axis-aligned rectangles.
 - Touching or overlapping map rectangles render as one merged outlined silhouette.
 - Added a map-selection screen before customization.
-- The map registry now uses the exported ENCLOSED, PLATFORM, SUNKEN, and CASTLE maps.
+- The map registry uses the exported ENCLOSED, PLATFORM, SUNKEN, and CASTLE maps at roughly 2x their original dimensions. PLATFORM and CASTLE geometry were recentered to remove small left-right asymmetries.
 - Spawn points now come from the selected map.
 - The old hand-coded sloped island was removed.
 - The held revolver sprite is active again.
@@ -53,7 +53,7 @@ Map definitions use this shape:
 }
 ```
 
-Map rectangles are now full solid collision geometry for the player's standing body. Sides block horizontal movement, tops catch falls, and undersides catch jumps. Visual rectangles may touch or overlap freely.
+Map rectangles are full solid collision geometry for the player's standing body. Sides block horizontal movement, tops catch falls, and undersides catch jumps. A depenetration pass also ejects characters that somehow begin a frame overlapping a block, preventing them from walking around inside solids. Visual rectangles may touch or overlap freely.
 
 ## Current maps
 
@@ -102,6 +102,14 @@ The held revolver sprite remains active. The separate `revolver-cylinder.png` sp
 - Q: three larger lightly-homing stars that fade after about three seconds.
 - E: requires full charge, then fires a large pass-through star with one angle-based ricochet and a twelve-star radial burst on the next wall impact.
 
+## Ragdolls
+
+- Character death creates a floppy constrained-particle ragdoll.
+- Equipped weapons are released and simulated separately.
+- Water applies drag and buoyancy so corpses and dropped weapons bob near the surface.
+- Ragdolls fade during the end of their lifetime before removal.
+- R triggers a temporary player death test and automatic revival.
+
 ## Combat HUD
 
 The bottom-left HUD uses five bars:
@@ -127,5 +135,5 @@ Additional languages can follow the same structure. The built-in English fallbac
 - LMB: fire
 - Q: reload
 - E: charged load
-- R: reset arena
+- R: ragdoll death test, then revive
 - Esc: back
