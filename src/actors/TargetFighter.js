@@ -34,7 +34,7 @@ class TargetFighter extends Player {
     this.worldWidth = worldWidth;
     super.reset(worldWidth);
     const spawn = this.terrain.spawn?.(1);
-    if (spawn) this.placeAt(spawn.x);
+    if (spawn) this.placeAt(spawn.x, spawn.y);
     else {
       const left = this.terrain.islandLeft ?? 0;
       const right = this.terrain.islandRight ?? worldWidth;
