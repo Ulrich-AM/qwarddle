@@ -300,9 +300,9 @@ class Sake extends Weapon {
     if (outcome === 0) {
       player.addBuff('sake-melee', 5, { melee:1.25 });
     } else if (outcome === 1) {
-      player.addBuff('sake-defense', 5, { defense:0.8 });
+      player.addBuff('sake-defense', 5, { defense:0.75 });
     } else {
-      player.heal(8);
+      player.addBuff('sake-regen', 5, { regen:8 / 5 });
     }
 
     game.addStatusVisual(
@@ -345,7 +345,7 @@ class Sake extends Weapon {
     this.beginPose('chug', 1.05);
 
     player.addBuff('sake-drunk', this.drunkDuration, {
-      defense:2 / 3,
+      defense:0.5,
       damage:1.5,
       melee:1.5,
       move:1.5,
