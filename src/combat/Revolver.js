@@ -253,12 +253,12 @@ class Revolver extends Weapon {
     this.reloadStartHudAngle = this.hudAngle;
     this.reloadSpinAngle = 0;
     this.cooldownRemaining = Math.max(this.cooldownRemaining, this.reloadDuration);
-    player?.grantTemporaryHealth?.(15, 5.0);
-    player?.addBuff?.('revolver-reload-defense', 5, { defense:0.75 });
+    player?.grantTemporaryHealth?.(15, 1.0);
+    player?.addBuff?.('revolver-reload-defense', 1, { defense:0.75 });
     game?.addStatusVisual?.(
       player,
       'assets/sprites/characters/enlightned-particle.png',
-      5,
+      1,
       'revolver-reload',
       { rate:0.12, size:22, drift:16 }
     );
