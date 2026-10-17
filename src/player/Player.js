@@ -188,6 +188,35 @@ class Player {
     return { x:px - uy * h * bend, y:py + ux * h * bend };
   }
 
+  constrainLegReach(index) {
+    const leg = this.legs[index];
+    const hip = this.hipFor(index);
+    const maxReach = (this.cfg.upperLeg + this.cfg.lowerLeg) * 0.94;
+    const dx = leg.foot.x - hip.x;
+    const dy = leg.foot.y - hip.y;
+    const distance = MathEx.hypot(dx, dy);
+
+    if (distance <= maxReach || distance <= 0.001) return;
+
+    const nx = dx / distance;
+    const ny = dy / distance;
+    leg.foot.x = hip.x + nx * maxReach;
+    leg.foot.y = hip.y + ny * maxReach;
+
+    const outwardSpeed = leg.foot.vx * nx + leg.foot.vy * ny;
+    if (outwardSpeed > 0) {
+      leg.foot.vx -= outwardSpeed * nx;
+      leg.foot.vy -= outwardSpeed * ny;
+    }
+
+    // A planted foot should not immediately snap back to an impossible point on
+    // the next frame. Move its safety anchor with the constrained foot instead.
+    if (leg.state === 'plant') {
+      leg.plantX = leg.foot.x;
+      leg.plantY = leg.foot.y;
+    }
+  }
+
   placeAt(x) {
     this.x = x;
     this.y = this.supportBaseY();
@@ -608,6 +637,8 @@ class Player {
     );
 
     this.updateFootStates(dt, moving, speed01, direction);
+    this.constrainLegReach(0);
+    this.constrainLegReach(1);
     this.updateKnees(dt, speed01);
     this.hand.update(dt, this, pointer);
     this.arm.update(dt, this, this.hand);
