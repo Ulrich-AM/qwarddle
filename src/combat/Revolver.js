@@ -260,7 +260,7 @@ class Revolver extends Weapon {
       'assets/sprites/characters/enlightned-particle.png',
       1,
       'revolver-reload',
-      { rate:0.12, size:22, drift:16 }
+      { rate:0.12, size:22, drift:16, opacity:0.45 }
     );
     return true;
   }
