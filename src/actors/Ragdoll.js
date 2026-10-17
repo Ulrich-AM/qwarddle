@@ -1,7 +1,7 @@
 'use strict';
 
 class Ragdoll {
-  constructor({ actor, terrain, lifetime = 4.2 } = {}) {
+  constructor({ actor, terrain, lifetime = 4.2, dropWeapon = true } = {}) {
     this.actor = actor;
     this.terrain = terrain;
     this.cfg = actor.cfg;
@@ -35,7 +35,7 @@ class Ragdoll {
     this.knee1 = this.makePoint(leg1?.knee?.x ?? actor.x + 10, leg1?.knee?.y ?? actor.y + 38, baseVx, baseVy, 8);
     this.foot1 = this.makePoint(leg1?.foot?.x ?? actor.x + 12, leg1?.foot?.y ?? actor.y + 70, leg1?.foot?.vx ?? baseVx, leg1?.foot?.vy ?? baseVy, 12);
 
-    this.weapon = this.createDroppedWeapon(actor);
+    this.weapon = dropWeapon ? this.createDroppedWeapon(actor) : null;
   }
 
   makePoint(x, y, vx, vy, radius) {
