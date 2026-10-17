@@ -122,11 +122,17 @@ class CustomizationScreen {
       button.title = copy.name;
       button.setAttribute('aria-label', copy.name);
 
-      const image = document.createElement('img');
-      image.className = 'weaponTileSprite';
-      image.src = weapon.sprite;
-      image.alt = '';
-      button.appendChild(image);
+      if (weapon.sprite) {
+        const image = document.createElement('img');
+        image.className = 'weaponTileSprite';
+        image.src = weapon.sprite;
+        image.alt = '';
+        button.appendChild(image);
+      } else {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'weaponPlaceholder';
+        button.appendChild(placeholder);
+      }
 
       button.addEventListener('mouseenter', () => this.showWeaponInfo(weapon));
       button.addEventListener('mouseleave', () => this.hideWeaponInfo());
