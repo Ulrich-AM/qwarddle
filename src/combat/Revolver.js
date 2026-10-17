@@ -247,13 +247,21 @@ class Revolver extends Weapon {
     return this.fireDirection(context, context.mount.dirX, context.mount.dirY);
   }
 
-  reload({ player }) {
+  reload({ player, game }) {
     if (this.isBusy() || this.rounds.length >= this.capacity) return false;
     this.reloadRemaining = this.reloadDuration;
     this.reloadStartHudAngle = this.hudAngle;
     this.reloadSpinAngle = 0;
     this.cooldownRemaining = Math.max(this.cooldownRemaining, this.reloadDuration);
     player?.grantTemporaryHealth?.(15, 5.0);
+    player?.addBuff?.('revolver-reload-defense', 5, { defense:0.75 });
+    game?.addStatusVisual?.(
+      player,
+      'assets/sprites/characters/enlightned-particle.png',
+      5,
+      'revolver-reload',
+      { rate:0.12, size:22, drift:16 }
+    );
     return true;
   }
 
