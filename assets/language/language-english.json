@@ -46,7 +46,7 @@
         {
           "input": "E",
           "name": "CHARGED LOAD",
-          "description": "Dump the cylinder and load six charged rounds with extreme recoil."
+          "description": "At full charge, dump the cylinder and load six charged rounds with extreme recoil."
         }
       ]
     },
@@ -62,7 +62,7 @@
         {
           "input": "Q",
           "name": "BOUNCING STAR",
-          "description": "Fire a large star that ricochets once based on its impact angle, then bursts into six smaller stars on its next wall impact."
+          "description": "At full charge, fire a large star that ricochets once, then bursts into twelve smaller stars on its next wall impact."
         },
         {
           "input": "E",
