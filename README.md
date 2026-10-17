@@ -17,7 +17,7 @@ This patch moves QWARDDLE from one hard-coded island toward reusable match maps.
 - Maps are made from axis-aligned rectangles.
 - Touching or overlapping map rectangles render as one merged outlined silhouette.
 - Added a map-selection screen before customization.
-- The map registry uses the exported ENCLOSED, PLATFORM, SUNKEN, and CASTLE maps at roughly 2x their original dimensions. PLATFORM and CASTLE geometry were recentered to remove small left-right asymmetries.
+- The map registry uses the exported ENCLOSED, PLATFORM, SUNKEN, and CASTLE maps at roughly 1.25x their original dimensions. PLATFORM and CASTLE geometry were recentered to remove small left-right asymmetries. Map outline thickness remains 10 px.
 - Spawn points now come from the selected map.
 - The old hand-coded sloped island was removed.
 - The held revolver sprite is active again.
@@ -69,17 +69,16 @@ The old TRAINING BLOCKS and SPLIT LEVELS maps have been removed.
 Future art can be placed in:
 
 - `assets/sprites/throwing-knife/`
-- `assets/sprites/sake/`
 - `assets/sprites/flail/`
 - `assets/sprites/hats/`
 
-These are asset staging areas only. Their gameplay/cosmetic systems are not registered yet.
+These are asset staging areas only. Their gameplay/cosmetic systems are not registered yet. Sake is now an active weapon rather than a staging-only folder.
 
 ## Customization
 
 Current choices:
 
-- Weapons: REVOLVER, WAND
+- Weapons: REVOLVER, WAND, SAKE
 - Color groups: BODY, ARMS, LEGS
 
 The body uses `qward-body.png` plus `qward-body-color.png`. Generated limbs, hands, and feet use the selected group colors.
@@ -90,7 +89,7 @@ The revolver still uses a six-slot ordered ammo chain.
 
 - LMB fires the next round.
 - Each shot performs the revolver spin/cooldown.
-- Q fills empty chambers with normal rounds without replacing charged rounds.
+- Q fills empty chambers with normal rounds without replacing charged rounds and grants 15 temporary health plus 25% damage reduction for 5 seconds.
 - E requires full charge, consumes it, dumps the cylinder, and loads six charged rounds.
 - Charged rounds deal more damage and produce extreme recoil.
 
@@ -101,6 +100,15 @@ The held revolver sprite remains active. The separate `revolver-cylinder.png` sp
 - LMB: larger spinning star, low damage, phases through map solids.
 - Q: three larger lightly-homing stars that fade after about three seconds.
 - E: requires full charge, then fires a large pass-through star with one angle-based ricochet and a twelve-star radial burst on the next wall impact.
+
+## Sake
+
+- LMB, Drink: 5 second cooldown. Equally chooses +25% melee damage for 5 seconds, 25% damage reduction for 5 seconds, or 8 health regenerated over 5 seconds. Drinking stores a mouthful.
+- Q after drinking, Sake Spit: green outlined cone, damage plus knockback, 4 second cooldown.
+- Q without a mouthful, Sake Spill: tips the gourd and leaves a #e2a417 puddle that damages and briefly ragdolls enemies, 5 second cooldown.
+- E, Chug: 25 second cooldown. For 15 seconds, damage, defense, movement, and jump strength are increased by 50%, with drunken swirls and small random left/right movement.
+- Drunk LMB, Gourd Throw: 3 second cooldown. Throws toward the cursor, causes 3 seconds of bleed on fighter hits, and creates fading #bf7950 shard hazards on surface impacts.
+- When drunk state ends, the fighter creates a stronger green outlined vomit puddle with longer knockdown.
 
 ## Ragdolls
 
@@ -132,8 +140,8 @@ Additional languages can follow the same structure. The built-in English fallbac
 - W / Space / Up: jump
 - Shift: run
 - Mouse: aim
-- LMB: fire
-- Q: reload
-- E: charged load
+- LMB: attack 1
+- Q: attack 2
+- E: attack 3
 - R: ragdoll death test, then revive
 - Esc: back
