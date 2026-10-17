@@ -58,11 +58,13 @@ class TargetFighter extends Player {
   takeHit(projectile) {
     if (this.dead) return;
     this.takeDamage(projectile.damage);
-    const speed = MathEx.hypot(projectile.vx, projectile.vy) || 1;
-    const dx = projectile.vx / speed;
-    const dy = projectile.vy / speed;
-    this.vx += dx * projectile.knockback;
-    this.vy += dy * projectile.knockback * 0.16 - 55;
+    if (!projectile.noPhysicalHit) {
+      const speed = MathEx.hypot(projectile.vx, projectile.vy) || 1;
+      const dx = projectile.vx / speed;
+      const dy = projectile.vy / speed;
+      this.vx += dx * projectile.knockback;
+      this.vy += dy * projectile.knockback * 0.16 - 55;
+    }
     this.hitFlash = 0.11;
     if (this.health <= 0) {
       this.dead = true;
