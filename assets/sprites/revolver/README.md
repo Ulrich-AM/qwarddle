@@ -1,18 +1,18 @@
 # Revolver sprites
 
-Drop the revolver sprite files in this folder.
+Revolver art lives in this folder.
 
-Expected files:
+Main files:
 
 - `revolver.png` - revolver sprite held by the player
 - `revolver-cylinder.png` - revolver cylinder UI sprite
-- `revolver-cylinder-bullets.png` - cylinder bullet occupancy mask
+- `revolver-cylinder-bullets.png` - six-color source map for chamber regions
 - `revolver-round.png` - normal round UI sprite
 - `revolver-roundcharged.png` - charged round UI sprite
 
-## Cylinder bullet mask colors
+## Cylinder source-map colors
 
-The `revolver-cylinder-bullets.png` sprite uses exact RGB colors to identify the six chamber regions:
+`revolver-cylinder-bullets.png` uses these exact colors to identify each chamber:
 
 - `#ff0000` = bullet 1
 - `#ff00e2` = bullet 2
@@ -21,4 +21,9 @@ The `revolver-cylinder-bullets.png` sprite uses exact RGB colors to identify the
 - `#ffef00` = bullet 5
 - `#ff9200` = bullet 6
 
-These colors are intended as masks/region identifiers, not final UI colors. The game can recolor occupied chambers at render time based on ammo type.
+The runtime display colors are:
+
+- NORMAL loaded chamber = `#aeb7c3`
+- CHARGED loaded chamber = `#ff0000`
+
+The `chambers/` directory contains transparent per-chamber masks derived from the source map. QWARDDLE uses those masks instead of reading pixels at runtime, so the cylinder works reliably when `index.html` is opened directly through `file://`.
