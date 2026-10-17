@@ -106,19 +106,23 @@ class Player {
     if (!baseReady && !colorReady) return false;
 
     const reference = baseReady ? sprites.base : sprites.color;
-    const scale = Math.min(maxWidth / reference.naturalWidth, maxHeight / reference.naturalHeight);
-    const width = reference.naturalWidth * scale;
-    const height = reference.naturalHeight * scale;
-    const x = centerX - width / 2;
-    const y = centerY - height / 2;
+    const rawScale = Math.min(maxWidth / reference.naturalWidth, maxHeight / reference.naturalHeight);
+    const scale = rawScale >= 1 ? Math.max(1, Math.floor(rawScale)) : rawScale;
+    const width = Math.max(1, Math.round(reference.naturalWidth * scale));
+    const height = Math.max(1, Math.round(reference.naturalHeight * scale));
+    const x = Math.round(centerX - width / 2);
+    const y = Math.round(centerY - height / 2);
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
 
     if (colorReady) {
       const tinted = this.tintedCharacterLayer(sprites.color, tint);
       if (tinted) ctx.drawImage(tinted, x, y, width, height);
     }
 
-    // Draw the outline/base last so its pixels always stay crisp over the tint.
     if (baseReady) ctx.drawImage(sprites.base, x, y, width, height);
+    ctx.restore();
     return true;
   }
 
@@ -579,17 +583,19 @@ class Player {
     const leg = this.legs[index];
     const knee = leg.knee;
     const foot = leg.foot;
-    const footRadius = 10;
+    const footRadius = 12;
     const visualFoot = { x:foot.x, y:foot.y - footRadius };
 
-    // One silhouette outline for the entire leg first, then both colored bones.
-    this.drawPixelLine(ctx, hip, knee, 14, '#202020');
-    this.drawPixelLine(ctx, knee, visualFoot, 13, '#202020');
+    // Build one chunky silhouette first. Joint and foot circles overlap the line
+    // ends so the black outline reads as one continuous limb.
+    this.drawPixelLine(ctx, hip, knee, 18, '#202020');
+    this.drawPixelLine(ctx, knee, visualFoot, 17, '#202020');
+    this.drawPixelCircle(ctx, knee.x, knee.y, 9, '#202020', 2);
+    this.drawPixelCircle(ctx, visualFoot.x, visualFoot.y, footRadius + 5, '#202020', 2);
+
     this.drawPixelLine(ctx, hip, knee, 10, this.appearance[`legUpper${index}`]);
     this.drawPixelLine(ctx, knee, visualFoot, 9, this.appearance[`legLower${index}`]);
-
-    // Feet are intentionally simple circles now, attached directly to the leg.
-    this.drawPixelCircle(ctx, visualFoot.x, visualFoot.y, footRadius + 3, '#202020', 2);
+    this.drawPixelCircle(ctx, knee.x, knee.y, 5, this.appearance[`legLower${index}`], 2);
     this.drawPixelCircle(ctx, visualFoot.x, visualFoot.y, footRadius, this.appearance[`foot${index}`], 2);
 
     if (debug) {
@@ -625,8 +631,9 @@ class Player {
       : 0;
 
     ctx.save();
-    ctx.translate(this.x + sway, this.y);
-    ctx.rotate(this.bodyAngle);
+    // Pixel body art stays axis-aligned and snaps to integer coordinates.
+    // Rotating a low-res sprite is what caused the soft/blurred appearance.
+    ctx.translate(Math.round(this.x + sway), Math.round(this.y));
     if (!this.drawCharacterPart(
       ctx,
       this.characterSprites.body,
