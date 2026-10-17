@@ -18,6 +18,13 @@ class Player {
     this.cfg = config;
     this.appearance = { ...Player.defaultAppearance(), ...(appearance || {}) };
 
+    this.spriteRoot = 'assets/sprites/characters/';
+    this.characterSprites = {
+      body:this.loadCharacterSprite(['body.png', 'head-body.png']),
+      hand:this.loadCharacterSprite(['hand.png']),
+      foot:this.loadCharacterSprite(['foot.png'])
+    };
+
     this.x = 0;
     this.y = 0;
     this.vx = 0;
@@ -42,6 +49,33 @@ class Player {
     this.hand = new FloatingHand({ terrain:this.terrain, config:this.cfg });
     this.arm = new ProceduralArm({ config:this.cfg });
     this.weaponMount = new WeaponMount({ hand:this.hand });
+  }
+
+  loadCharacterSprite(candidates) {
+    const image = new Image();
+    let index = 0;
+
+    const tryNext = () => {
+      if (index >= candidates.length) return;
+      image.src = this.spriteRoot + candidates[index++];
+    };
+
+    image.onerror = tryNext;
+    tryNext();
+    return image;
+  }
+
+  spriteReady(image) {
+    return !!image && image.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+  }
+
+  drawSpriteCentered(ctx, image, centerX, centerY, maxWidth, maxHeight = maxWidth) {
+    if (!this.spriteReady(image)) return false;
+    const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+    const width = image.naturalWidth * scale;
+    const height = image.naturalHeight * scale;
+    ctx.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
+    return true;
   }
 
   setAppearance(appearance) {
@@ -465,9 +499,17 @@ class Player {
   }
 
   drawSegment(ctx, a, b, width, color) {
+    ctx.lineCap = 'round';
+
+    ctx.strokeStyle = '#202020';
+    ctx.lineWidth = width + 4;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
-    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
@@ -487,8 +529,20 @@ class Player {
     ctx.translate(foot.x, foot.y);
     const footAngle = leg.state === 'plant' ? Math.atan(this.terrain.slopeAt(foot.x)) : 0;
     ctx.rotate(footAngle);
-    ctx.fillStyle = this.appearance[`foot${index}`];
-    ctx.fillRect(-this.cfg.footW / 2, -this.cfg.footH, this.cfg.footW, this.cfg.footH);
+
+    if (!this.drawSpriteCentered(
+      ctx,
+      this.characterSprites.foot,
+      0,
+      -this.cfg.footH * 0.5,
+      this.cfg.footW * 1.35,
+      this.cfg.footH * 2.2
+    )) {
+      ctx.fillStyle = '#202020';
+      ctx.fillRect(-this.cfg.footW / 2 - 2, -this.cfg.footH - 2, this.cfg.footW + 4, this.cfg.footH + 4);
+      ctx.fillStyle = this.appearance[`foot${index}`];
+      ctx.fillRect(-this.cfg.footW / 2, -this.cfg.footH, this.cfg.footW, this.cfg.footH);
+    }
     ctx.restore();
 
     if (debug) {
@@ -526,8 +580,12 @@ class Player {
     ctx.save();
     ctx.translate(this.x + sway, this.y);
     ctx.rotate(this.bodyAngle);
-    ctx.fillStyle = this.appearance.body;
-    ctx.fillRect(-this.cfg.bodyW / 2, -this.cfg.bodyH / 2, this.cfg.bodyW, this.cfg.bodyH);
+    if (!this.drawSpriteCentered(ctx, this.characterSprites.body, 0, 0, this.cfg.bodyW * 1.22, this.cfg.bodyH * 1.22)) {
+      ctx.fillStyle = '#202020';
+      ctx.fillRect(-this.cfg.bodyW / 2 - 2, -this.cfg.bodyH / 2 - 2, this.cfg.bodyW + 4, this.cfg.bodyH + 4);
+      ctx.fillStyle = this.appearance.body;
+      ctx.fillRect(-this.cfg.bodyW / 2, -this.cfg.bodyH / 2, this.cfg.bodyW, this.cfg.bodyH);
+    }
     ctx.restore();
 
     // No face for now. Hand is visible over the body; the equipped weapon is
