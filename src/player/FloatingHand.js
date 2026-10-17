@@ -134,25 +134,11 @@ class FloatingHand {
   }
 
   render(ctx, player, debug = false, showAimPointer = true) {
-    const size = this.cfg.handSize;
-    const handSprites = player.characterSprites?.hand;
+    const radius = this.cfg.handSize * 0.52;
 
-    if (player.drawCharacterPart?.(
-      ctx,
-      handSprites,
-      player.appearance?.hand || this.color,
-      this.x,
-      this.y,
-      size * 1.45,
-      size * 1.45
-    )) {
-      // Layered sprite rendered.
-    } else {
-      ctx.fillStyle = '#202020';
-      ctx.fillRect(this.x - size / 2 - 2, this.y - size / 2 - 2, size + 4, size + 4);
-      ctx.fillStyle = this.color;
-      ctx.fillRect(this.x - size / 2, this.y - size / 2, size, size);
-    }
+    // Hands match the feet: one simple pixel circle attached to the outlined arm.
+    player.drawPixelCircle(ctx, this.x, this.y, radius + 3, '#202020', 2);
+    player.drawPixelCircle(ctx, this.x, this.y, radius, player.appearance?.hand || this.color, 2);
 
     if (showAimPointer) {
       ctx.fillStyle = 'rgba(255,255,255,0.80)';
