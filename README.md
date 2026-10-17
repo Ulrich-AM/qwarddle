@@ -18,6 +18,10 @@ This patch is the first real UI and sprite pass.
 - Added the revolver cylinder HUD sprite.
 - Added support for the six-color cylinder bullet-region mask.
 - Added the normal and charged round HUD sprites.
+- Cylinder chamber fills now use `#aeb7c3` for NORMAL and `#ff0000` for CHARGED.
+- Chamber occupancy uses six derived transparent masks, avoiding local `file://` canvas-readback issues.
+- Added `assets/sprites/characters/` for body, hand, and foot sprites.
+- Procedural arm and leg segments now receive a dark outline so they match the sprite style.
 - The revolver keeps geometry fallbacks if an image is missing or still loading.
 - Reworked the main menu into a more compact, intentional grayscale layout.
 - Reworked the gamemode screen so the three modes no longer occupy giant empty cards.
