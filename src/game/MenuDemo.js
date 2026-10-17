@@ -7,8 +7,29 @@ class MenuDemoInput {
 }
 
 class MenuDemoTerrain {
-  constructor() { this.width = 440; this.height = 300; this.floor = 258; }
-  resize(width, height) { this.width = width; this.height = height; this.floor = height - 34; }
+  constructor() {
+    this.width = 440;
+    this.height = 300;
+    this.floor = 258;
+    this.rectangles = [];
+    this.rebuildFloor();
+  }
+
+  rebuildFloor() {
+    this.rectangles = [{
+      x:0,
+      y:this.floor,
+      w:this.width,
+      h:Math.max(80, this.height - this.floor + 120)
+    }];
+  }
+
+  resize(width, height) {
+    this.width = width;
+    this.height = height;
+    this.floor = height - 34;
+    this.rebuildFloor();
+  }
   hasGroundAt() { return true; }
   clampGroundX(x, margin = 0) { return MathEx.clamp(x, margin, this.width - margin); }
   groundYAt() { return this.floor; }
@@ -25,6 +46,7 @@ class MenuDemo {
     this.stationaryShowcase = stationaryShowcase;
     this.active = true;
     this.last = performance.now();
+    this.frameInterval = 1 / 60;
     this.time = 0;
     this.nextDecision = 0;
     this.input = new MenuDemoInput();
@@ -53,6 +75,11 @@ class MenuDemo {
 
     this.resize();
     new ResizeObserver(() => this.resize()).observe(canvas);
+  }
+
+  setActive(active) {
+    this.active = !!active;
+    this.last = performance.now();
   }
 
   setAppearance(appearance) { this.player.setAppearance(appearance); }
@@ -152,7 +179,19 @@ class MenuDemo {
   }
 
   frame = (now) => {
-    const dt = Math.min(0.035, (now - this.last) / 1000 || 0);
+    if (!this.active) {
+      this.last = now;
+      requestAnimationFrame(this.frame);
+      return;
+    }
+
+    const elapsed = (now - this.last) / 1000 || 0;
+    if (elapsed < this.frameInterval) {
+      requestAnimationFrame(this.frame);
+      return;
+    }
+
+    const dt = Math.min(0.035, elapsed);
     this.last = now;
     this.update(dt);
     this.render();
