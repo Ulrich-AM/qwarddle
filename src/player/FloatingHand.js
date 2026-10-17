@@ -135,8 +135,16 @@ class FloatingHand {
 
   render(ctx, player, debug = false, showAimPointer = true) {
     const size = this.cfg.handSize;
-    ctx.fillStyle = this.color;
-    ctx.fillRect(this.x - size / 2, this.y - size / 2, size, size);
+    const handSprite = player.characterSprites?.hand;
+
+    if (player.spriteReady?.(handSprite)) {
+      player.drawSpriteCentered(ctx, handSprite, this.x, this.y, size * 1.45, size * 1.45);
+    } else {
+      ctx.fillStyle = '#202020';
+      ctx.fillRect(this.x - size / 2 - 2, this.y - size / 2 - 2, size + 4, size + 4);
+      ctx.fillStyle = this.color;
+      ctx.fillRect(this.x - size / 2, this.y - size / 2, size, size);
+    }
 
     if (showAimPointer) {
       ctx.fillStyle = 'rgba(255,255,255,0.80)';
