@@ -134,10 +134,11 @@ class FloatingHand {
   }
 
   render(ctx, player, debug = false, showAimPointer = true) {
-    const radius = this.cfg.handSize * 0.52;
+    const radius = this.cfg.handSize * 0.56;
 
-    // Hands match the feet: one simple pixel circle attached to the outlined arm.
-    player.drawPixelCircle(ctx, this.x, this.y, radius + 3, '#202020', 2);
+    // The larger black ring overlaps the lower-arm silhouette so the hand reads
+    // as the rounded end of one connected limb rather than a separate sticker.
+    player.drawPixelCircle(ctx, this.x, this.y, radius + 5, '#202020', 2);
     player.drawPixelCircle(ctx, this.x, this.y, radius, player.appearance?.hand || this.color, 2);
 
     if (showAimPointer) {
