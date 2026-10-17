@@ -51,6 +51,7 @@ class ProjectileSystem {
 
         target.takeHit(projectile);
         projectile.hitTargets?.add(target);
+        projectile.onHit?.(target, projectile);
 
         if (!projectile.pierceTargets) {
           projectile.dead = true;
