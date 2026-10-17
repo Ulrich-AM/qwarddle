@@ -78,8 +78,8 @@ The held revolver sprite remains active. The separate `revolver-cylinder.png` sp
 ## Wand
 
 - LMB: larger spinning star, low damage, phases through map solids.
-- Q: requires full charge, then fires a large pass-through star with one angle-based ricochet and a twelve-star radial burst on the next wall impact.
-- E: three larger lightly-homing stars that fade after about three seconds.
+- Q: three larger lightly-homing stars that fade after about three seconds.
+- E: requires full charge, then fires a large pass-through star with one angle-based ricochet and a twelve-star radial burst on the next wall impact.
 
 ## Combat HUD
 
