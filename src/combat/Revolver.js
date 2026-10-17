@@ -45,24 +45,28 @@ class Revolver extends Weapon {
     this.chargedBodyRecoil = 940;
 
     this.spriteRoot = 'assets/sprites/revolver/';
+    this.normalChamberColor = '#aeb7c3';
+    this.chargedChamberColor = '#ff0000';
     this.sprites = {
       held:this.loadSprite('revolver.png'),
       cylinder:this.loadSprite('revolver-cylinder.png'),
-      cylinderBullets:this.loadSprite('revolver-cylinder-bullets.png', () => this.buildCylinderMasks()),
+      // Kept as the editable/source map. Runtime uses derived per-chamber masks
+      // below so opening index.html through file:// never depends on canvas readback.
+      cylinderBullets:this.loadSprite('revolver-cylinder-bullets.png'),
       round:this.loadSprite('revolver-round.png'),
       chargedRound:this.loadSprite('revolver-roundcharged.png')
     };
 
-    this.chamberColors = [
-      [0xff,0x00,0x00],
-      [0xff,0x00,0xe2],
-      [0x00,0x66,0xff],
-      [0x00,0xff,0x59],
-      [0xff,0xef,0x00],
-      [0xff,0x92,0x00]
-    ];
-    this.chamberMasks = [];
-    this.maskBuildFailed = false;
+    this.chamberMasks = Array(this.capacity).fill(null);
+    for (let i = 0; i < this.capacity; i++) {
+      const chamberIndex = i;
+      this.loadSprite(`chambers/chamber-${i + 1}.png`, (image) => {
+        this.chamberMasks[chamberIndex] = {
+          normal:this.tintMask(image, this.normalChamberColor),
+          charged:this.tintMask(image, this.chargedChamberColor)
+        };
+      });
+    }
   }
 
   loadSprite(file, onload = null) {
@@ -95,57 +99,22 @@ class Revolver extends Weapon {
     return true;
   }
 
-  buildCylinderMasks() {
-    if (!this.imageReady(this.sprites.cylinderBullets)) return;
+  tintMask(image, color) {
+    if (!this.imageReady(image)) return null;
 
-    try {
-      const source = this.sprites.cylinderBullets;
-      const width = source.naturalWidth;
-      const height = source.naturalHeight;
-      const readCanvas = document.createElement('canvas');
-      readCanvas.width = width;
-      readCanvas.height = height;
-      const readCtx = readCanvas.getContext('2d', { willReadFrequently:true });
-      readCtx.drawImage(source, 0, 0);
-      const pixels = readCtx.getImageData(0, 0, width, height).data;
+    const source = this.sourceSize(image);
+    const canvas = document.createElement('canvas');
+    canvas.width = source.width;
+    canvas.height = source.height;
 
-      this.chamberMasks = this.chamberColors.map(([targetR,targetG,targetB]) => {
-        const makeMask = (shade) => {
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          const image = ctx.createImageData(width, height);
-
-          for (let p = 0; p < pixels.length; p += 4) {
-            if (
-              pixels[p] === targetR &&
-              pixels[p + 1] === targetG &&
-              pixels[p + 2] === targetB &&
-              pixels[p + 3] > 0
-            ) {
-              image.data[p] = shade;
-              image.data[p + 1] = shade;
-              image.data[p + 2] = shade;
-              image.data[p + 3] = pixels[p + 3];
-            }
-          }
-
-          ctx.putImageData(image, 0, 0);
-          return canvas;
-        };
-
-        return {
-          normal:makeMask(170),
-          charged:makeMask(255)
-        };
-      });
-    } catch (error) {
-      // Some browsers restrict pixel reads from file:// images. The cylinder
-      // still renders normally and the separate round sprites remain usable.
-      this.chamberMasks = [];
-      this.maskBuildFailed = true;
-    }
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(image, 0, 0);
+    ctx.globalCompositeOperation = 'source-in';
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, source.width, source.height);
+    ctx.globalCompositeOperation = 'source-over';
+    return canvas;
   }
 
   get ammo() { return this.rounds.length; }
@@ -339,12 +308,11 @@ class Revolver extends Weapon {
       ctx.fillRect(-cylinderSize / 2, -cylinderSize / 2, cylinderSize, cylinderSize);
     }
 
-    if (this.chamberMasks.length === this.capacity) {
-      for (let i = 0; i < this.rounds.length; i++) {
-        const masks = this.chamberMasks[i];
-        const mask = this.rounds[i] === 'charged' ? masks.charged : masks.normal;
-        this.drawImageFitted(ctx, mask, 0, 0, cylinderSize, cylinderSize);
-      }
+    for (let i = 0; i < this.rounds.length; i++) {
+      const masks = this.chamberMasks[i];
+      if (!masks) continue;
+      const mask = this.rounds[i] === 'charged' ? masks.charged : masks.normal;
+      this.drawImageFitted(ctx, mask, 0, 0, cylinderSize, cylinderSize);
     }
     ctx.restore();
 
