@@ -102,16 +102,8 @@ class ProceduralArm {
     }
   }
 
-  drawOutlinedSegment(ctx, a, b, width, color) {
+  drawSegment(ctx, a, b, width, color) {
     ctx.lineCap = 'round';
-
-    ctx.strokeStyle = '#202020';
-    ctx.lineWidth = width + 4;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
     ctx.beginPath();
@@ -124,7 +116,7 @@ class ProceduralArm {
     const shoulder = this.shoulder(player);
     const elbow = this.elbow;
 
-    this.drawOutlinedSegment(
+    this.drawSegment(
       ctx,
       shoulder,
       elbow,
@@ -132,7 +124,7 @@ class ProceduralArm {
       player.appearance?.armUpper || '#76b887'
     );
 
-    this.drawOutlinedSegment(
+    this.drawSegment(
       ctx,
       elbow,
       hand,
