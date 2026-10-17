@@ -1,23 +1,44 @@
 'use strict';
 
-// One simple island test map. Terrain coordinates are now independent from the
-// browser window so the camera can zoom out and look beyond the arena.
 class Terrain {
-  constructor() {
-    this.worldWidth = 2200;
-    this.worldHeight = 980;
+  constructor(map = MapRegistry.list[0]) {
     this.viewWidth = 1280;
     this.viewHeight = 720;
+    this.map = null;
+    this.worldWidth = 2200;
+    this.worldHeight = 980;
+    this.height = this.worldHeight;
+    this.waterY = 760;
+    this.islandLeft = 0;
+    this.islandRight = this.worldWidth;
+    this.groundIntervals = [];
+    this.raster = null;
+    this.setMap(map);
+  }
 
-    this.waterY = 650;
-    this.islandLeft = 190;
-    this.islandRight = 2010;
-    this.baseYValue = 590;
+  setMap(map) {
+    this.map = map || MapRegistry.list[0];
+    this.worldWidth = Math.max(320, Math.round(this.map.width || 2200));
+    this.worldHeight = Math.max(240, Math.round(this.map.height || 980));
+    this.height = this.worldHeight;
+    this.waterY = Number.isFinite(this.map.waterY) ? this.map.waterY : this.worldHeight + 200;
+    this.rectangles = (this.map.rectangles || []).map((rect) => ({
+      x:Math.round(rect.x || 0),
+      y:Math.round(rect.y || 0),
+      w:Math.max(1, Math.round(rect.w || 1)),
+      h:Math.max(1, Math.round(rect.h || 1))
+    }));
 
-    // Keep the old slope as part of the island so locomotion still gets tested.
-    this.rise = 115;
-    this.slopeStartValue = 1220;
-    this.slopeEndValue = 1620;
+    if (this.rectangles.length) {
+      this.islandLeft = Math.min(...this.rectangles.map((rect) => rect.x));
+      this.islandRight = Math.max(...this.rectangles.map((rect) => rect.x + rect.w));
+    } else {
+      this.islandLeft = 0;
+      this.islandRight = this.worldWidth;
+    }
+
+    this.rebuildGroundIntervals();
+    this.rebuildRaster();
   }
 
   resize(width, height) {
@@ -25,86 +46,118 @@ class Terrain {
     this.viewHeight = height;
   }
 
-  baseY() { return this.baseYValue; }
-  slopeStart() { return this.slopeStartValue; }
-  slopeEnd() { return this.slopeEndValue; }
+  spawn(index = 0) {
+    const spawn = this.map?.spawns?.[index] || this.map?.spawns?.[0];
+    if (spawn) return { x:spawn.x, y:spawn.y };
+    return { x:this.worldWidth * (index ? 0.7 : 0.3), y:this.worldHeight * 0.5 };
+  }
+
+  rebuildGroundIntervals() {
+    const intervals = this.rectangles
+      .map((rect) => [rect.x, rect.x + rect.w])
+      .sort((a,b) => a[0] - b[0]);
+
+    this.groundIntervals = [];
+    for (const interval of intervals) {
+      const previous = this.groundIntervals[this.groundIntervals.length - 1];
+      if (!previous || interval[0] > previous[1]) {
+        this.groundIntervals.push(interval.slice());
+      } else {
+        previous[1] = Math.max(previous[1], interval[1]);
+      }
+    }
+  }
+
+  rebuildRaster() {
+    const canvas = document.createElement('canvas');
+    canvas.width = this.worldWidth;
+    canvas.height = this.worldHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    const outline = Math.max(0, Math.round(this.map?.outlineSize ?? 10));
+    const outlineColor = this.map?.outlineColor || '#202020';
+    const fillColor = this.map?.groundColor || '#596057';
+
+    // Draw every expanded rectangle first. Drawing all fills afterwards erases
+    // internal seams where rectangles touch or overlap, leaving one merged shell.
+    ctx.fillStyle = outlineColor;
+    for (const rect of this.rectangles) {
+      ctx.fillRect(
+        rect.x - outline,
+        rect.y - outline,
+        rect.w + outline * 2,
+        rect.h + outline * 2
+      );
+    }
+
+    ctx.fillStyle = fillColor;
+    for (const rect of this.rectangles) {
+      ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    }
+
+    this.raster = canvas;
+  }
 
   hasGroundAt(x) {
-    return x >= this.islandLeft && x <= this.islandRight;
+    return this.groundYAt(x) != null;
   }
 
   clampGroundX(x, margin = 0) {
-    return MathEx.clamp(x, this.islandLeft + margin, this.islandRight - margin);
+    if (!this.groundIntervals.length) return MathEx.clamp(x, margin, this.worldWidth - margin);
+    if (this.hasGroundAt(x)) return x;
+
+    let best = this.groundIntervals[0][0] + margin;
+    let bestDistance = Infinity;
+
+    for (const [left,right] of this.groundIntervals) {
+      const a = left + margin;
+      const b = right - margin;
+      for (const candidate of [a,b]) {
+        const distance = Math.abs(candidate - x);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = candidate;
+        }
+      }
+    }
+    return best;
   }
 
-  // Returns null when there is no solid island beneath this X.
+  // Rectangle maps currently expose flat top surfaces. If rectangles overlap,
+  // the highest top surface wins.
   groundYAt(x) {
-    if (!this.hasGroundAt(x)) return null;
-    const base = this.baseY();
-    const x1 = this.slopeStart();
-    const x2 = this.slopeEnd();
-    if (x <= x1) return base;
-    if (x >= x2) return base - this.rise;
-    const t = (x - x1) / (x2 - x1);
-    return base - this.rise * t;
+    let ground = null;
+    for (const rect of this.rectangles) {
+      if (x < rect.x || x > rect.x + rect.w) continue;
+      if (ground == null || rect.y < ground) ground = rect.y;
+    }
+    return ground;
   }
 
-  // Compatibility helper for older systems. Off-island queries return a deep
-  // underwater floor, never the water surface itself.
   yAt(x) {
     const ground = this.groundYAt(x);
     return ground == null ? this.waterY + 360 : ground;
   }
 
-  slopeAt(x) {
-    if (!this.hasGroundAt(x)) return 0;
-    return x > this.slopeStart() && x < this.slopeEnd()
-      ? -this.rise / (this.slopeEnd() - this.slopeStart())
-      : 0;
+  slopeAt() {
+    return 0;
   }
 
   draw(ctx) {
     const huge = 12000;
 
-    // Water extends far past the map on purpose: the camera has no map clamp.
     ctx.fillStyle = '#526d7a';
     ctx.fillRect(-huge, this.waterY, huge * 2, huge);
 
-    // Subtle second band makes it read as water without adding fancy effects.
     ctx.fillStyle = '#607e8c';
-    ctx.fillRect(-huge, this.waterY, huge * 2, 16);
+    ctx.fillRect(-huge, this.waterY, huge * 2, 12);
 
-    const left = this.islandLeft;
-    const right = this.islandRight;
-    const x1 = this.slopeStart();
-    const x2 = this.slopeEnd();
-    const base = this.baseY();
-    const top = base - this.rise;
-
-    // Island top + chunky cliff sides. No outlines.
-    ctx.fillStyle = '#3b4146';
-    ctx.beginPath();
-    ctx.moveTo(left, base);
-    ctx.lineTo(x1, base);
-    ctx.lineTo(x2, top);
-    ctx.lineTo(right, top);
-    ctx.lineTo(right + 54, this.waterY + 120);
-    ctx.lineTo(left - 54, this.waterY + 120);
-    ctx.closePath();
-    ctx.fill();
-
-    // A lighter top strip keeps the playable surface readable at the zoomed-out scale.
-    ctx.fillStyle = '#596057';
-    ctx.beginPath();
-    ctx.moveTo(left, base - 8);
-    ctx.lineTo(x1, base - 8);
-    ctx.lineTo(x2, top - 8);
-    ctx.lineTo(right, top - 8);
-    ctx.lineTo(right, top);
-    ctx.lineTo(x2, top);
-    ctx.lineTo(x1, base);
-    ctx.lineTo(left, base);
-    ctx.closePath();
-    ctx.fill();
+    if (this.raster) {
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(this.raster, 0, 0);
+      ctx.restore();
+    }
   }
 }
