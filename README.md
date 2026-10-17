@@ -89,7 +89,7 @@ The revolver still uses a six-slot ordered ammo chain.
 
 - LMB fires the next round.
 - Each shot performs the revolver spin/cooldown.
-- Q fills empty chambers with normal rounds without replacing charged rounds and grants 15 temporary health plus 25% damage reduction for 5 seconds.
+- Q fills empty chambers with normal rounds without replacing charged rounds and grants 15 temporary health plus 25% damage reduction for 1 second.
 - E requires full charge, consumes it, dumps the cylinder, and loads six charged rounds.
 - Charged rounds deal more damage and produce extreme recoil.
 
@@ -103,12 +103,16 @@ The held revolver sprite remains active. The separate `revolver-cylinder.png` sp
 
 ## Sake
 
-- LMB, Drink: 5 second cooldown. Equally chooses +25% melee damage for 5 seconds, 25% damage reduction for 5 seconds, or 8 health regenerated over 5 seconds. Drinking stores a mouthful.
-- Q after drinking, Sake Spit: green outlined cone, damage plus knockback, 4 second cooldown.
-- Q without a mouthful, Sake Spill: tips the gourd and leaves a #e2a417 puddle that damages and briefly ragdolls enemies, 5 second cooldown.
-- E, Chug: 25 second cooldown. For 15 seconds, damage, defense, movement, and jump strength are increased by 50%, with drunken swirls and small random left/right movement.
-- Drunk LMB, Gourd Throw: 3 second cooldown. Throws toward the cursor, causes 3 seconds of bleed on fighter hits, and creates fading #bf7950 shard hazards on surface impacts.
-- When drunk state ends, the fighter creates a stronger green outlined vomit puddle with longer knockdown.
+- LMB, Drink: 5 second cooldown. The hand pulls the gourd toward the mouth and tips it while drinking.
+- Each Drink fills one of 8 drunk-meter slots and gives one equal 1/3 result: +25% melee damage for 5 seconds, 25% damage reduction for 5 seconds, or 8 health regenerated over 5 seconds.
+- Filling all 8 slots automatically enters the 15 second drunk state and resets the meter.
+- Q during the 5 second mouthful window, Sake Spit: randomized fading droplets in a messy cone, damage plus knockback, 4 second cooldown.
+- Q without an active mouthful, Sake Spill: tips the gourd and emits falling droplets before leaving a #e2a417 slipping puddle, 5 second cooldown.
+- E, Chug: 25 second cooldown. Uses the same hand-to-mouth pose and enters the drunk state immediately.
+- Drunk state: +50% damage, defense, movement, and jump strength, drunken swirls, and small random horizontal movement. Q and E are disabled.
+- Drunk LMB, Gourd Throw: 3 second cooldown. Throws toward the cursor, causes 3 seconds of bleed on fighter hits, and bursts larger thick-outlined #bf7950 shards outward on terrain impact.
+- Shards stop dealing damage once they fade to 50% opacity. The held gourd fades back into the hand after a throw.
+- There is no automatic vomit effect when the drunk state ends.
 
 ## Ragdolls
 
