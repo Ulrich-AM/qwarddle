@@ -17,12 +17,13 @@ This patch moves QWARDDLE from one hard-coded island toward reusable match maps.
 - Maps are made from axis-aligned rectangles.
 - Touching or overlapping map rectangles render as one merged outlined silhouette.
 - Added a map-selection screen before customization.
-- Added two starter rectangle maps in `src/world/MapRegistry.js`.
+- The map registry now uses the exported ENCLOSED, PLATFORM, SUNKEN, and CASTLE maps.
 - Spawn points now come from the selected map.
 - The old hand-coded sloped island was removed.
 - The held revolver sprite is active again.
 - Body sprites render without rotation, use snapped coordinates, and disable smoothing for sharper pixel art.
 - Arm and leg outlines are thicker and overlap their joints.
+- Procedural feet have a hard reach cap so the legs cannot stretch beyond the two-bone chain.
 - Hands and feet are generated pixel circles whose outlines merge into the limb silhouette.
 - The standalone map editor exports the same rectangle/spawn JSON shape used by the runtime map registry.
 
@@ -53,6 +54,26 @@ Map definitions use this shape:
 ```
 
 Map rectangles are now full solid collision geometry for the player's standing body. Sides block horizontal movement, tops catch falls, and undersides catch jumps. Visual rectangles may touch or overlap freely.
+
+## Current maps
+
+- ENCLOSED
+- PLATFORM
+- SUNKEN
+- CASTLE
+
+The old TRAINING BLOCKS and SPLIT LEVELS maps have been removed.
+
+## Sprite staging areas
+
+Future art can be placed in:
+
+- `assets/sprites/throwing-knife/`
+- `assets/sprites/sake/`
+- `assets/sprites/flail/`
+- `assets/sprites/hats/`
+
+These are asset staging areas only. Their gameplay/cosmetic systems are not registered yet.
 
 ## Customization
 
