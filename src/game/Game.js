@@ -30,6 +30,12 @@ class Game {
     this.dummyRagdoll = null;
     this.playerRespawnRemaining = 0;
     this.dummyRespawnRemaining = 0;
+    this.dummyKnockdown = null;
+    this.dummyKnockdownRemaining = 0;
+
+    this.hazards = [];
+    this.statusEmitters = [];
+    this.statusParticles = [];
 
     this.lastTime = performance.now();
     this.accumulator = 0;
@@ -48,6 +54,10 @@ class Game {
     this.projectiles.clear();
     this.playerRagdoll = null;
     this.dummyRagdoll = null;
+    this.dummyKnockdown = null;
+    this.hazards.length = 0;
+    this.statusEmitters.length = 0;
+    this.statusParticles.length = 0;
   }
 
   applyLoadout(loadout) {
@@ -108,8 +118,13 @@ class Game {
     this.dummyRagdoll = null;
     this.playerRespawnRemaining = 0;
     this.dummyRespawnRemaining = 0;
+    this.dummyKnockdown = null;
+    this.dummyKnockdownRemaining = 0;
     this.charge = 0;
     this.projectiles.clear();
+    this.hazards.length = 0;
+    this.statusEmitters.length = 0;
+    this.statusParticles.length = 0;
 
     this.spawnPlayer();
     this.dummy.resetTarget(this.terrain.worldWidth);
@@ -164,7 +179,126 @@ class Game {
   }
 
   getTargetableActors() {
-    return this.dummy && !this.dummy.dead ? [this.dummy] : [];
+    return this.dummy && !this.dummy.dead && !this.dummyKnockdown ? [this.dummy] : [];
+  }
+
+  getHazardActors() {
+    const actors = [];
+    if (!this.playerRagdoll) actors.push(this.player);
+    if (this.dummy && !this.dummy.dead && !this.dummyKnockdown) actors.push(this.dummy);
+    return actors;
+  }
+
+  addHazard(hazard) {
+    if (hazard) this.hazards.push(hazard);
+    return hazard;
+  }
+
+  addStatusVisual(actor, spritePath, duration, key = '', options = {}) {
+    if (!actor || !spritePath || duration <= 0) return;
+
+    this.statusEmitters = this.statusEmitters.filter((emitter) => {
+      return !(emitter.actor === actor && emitter.key === key);
+    });
+
+    const image = new Image();
+    image.src = spritePath;
+    this.statusEmitters.push({
+      actor,
+      key,
+      image,
+      time:duration,
+      spawnTimer:0,
+      rate:options.rate ?? 0.12,
+      size:options.size ?? 22,
+      drift:options.drift ?? 18
+    });
+  }
+
+  updateStatusVisuals(dt) {
+    for (const emitter of this.statusEmitters) {
+      emitter.time -= dt;
+      emitter.spawnTimer -= dt;
+      if (emitter.time <= 0) continue;
+
+      if (emitter.spawnTimer <= 0) {
+        emitter.spawnTimer += emitter.rate;
+        const actor = emitter.actor;
+        const life = 0.72 + Math.random() * 0.45;
+        this.statusParticles.push({
+          image:emitter.image,
+          x:actor.x + (Math.random() - 0.5) * this.config.bodyW * 1.6,
+          y:actor.y + (Math.random() - 0.5) * this.config.bodyH * 1.1,
+          vx:(Math.random() - 0.5) * emitter.drift,
+          vy:-22 - Math.random() * 28,
+          life,
+          maxLife:life,
+          size:emitter.size * (0.75 + Math.random() * 0.45)
+        });
+      }
+    }
+    this.statusEmitters = this.statusEmitters.filter((emitter) => emitter.time > 0);
+
+    for (const particle of this.statusParticles) {
+      particle.life -= dt;
+      particle.x += particle.vx * dt;
+      particle.y += particle.vy * dt;
+      particle.vy -= 7 * dt;
+    }
+    this.statusParticles = this.statusParticles.filter((particle) => particle.life > 0);
+  }
+
+  renderStatusVisuals(ctx) {
+    for (const particle of this.statusParticles) {
+      const alpha = MathEx.clamp(particle.life / particle.maxLife, 0, 1);
+      ctx.save();
+      ctx.globalAlpha *= alpha;
+      ctx.translate(Math.round(particle.x), Math.round(particle.y));
+      ctx.imageSmoothingEnabled = false;
+
+      if (particle.image?.complete && particle.image.naturalWidth > 0) {
+        const scale = particle.size / Math.max(particle.image.naturalWidth, particle.image.naturalHeight);
+        const w = Math.max(1, Math.round(particle.image.naturalWidth * scale));
+        const h = Math.max(1, Math.round(particle.image.naturalHeight * scale));
+        ctx.drawImage(particle.image, -Math.round(w / 2), -Math.round(h / 2), w, h);
+      } else {
+        ctx.fillStyle = '#f2f2f2';
+        ctx.fillRect(-3, -3, 6, 6);
+      }
+      ctx.restore();
+    }
+  }
+
+  knockDownActor(actor, duration = 0.8) {
+    if (!actor || actor.health <= 0) return;
+
+    if (actor === this.dummy && !this.dummyKnockdown && !this.dummy.dead) {
+      this.dummyKnockdown = new Ragdoll({
+        actor:this.dummy,
+        terrain:this.terrain,
+        lifetime:Math.max(1.2, duration + 0.4),
+        dropWeapon:false
+      });
+      this.dummyKnockdownRemaining = duration;
+      this.dummy.applyStun?.(duration);
+      return;
+    }
+
+    actor.applyStun?.(duration);
+  }
+
+  recoverDummyKnockdown() {
+    if (!this.dummyKnockdown) return;
+    const body = this.dummyKnockdown.body;
+    const health = this.dummy.health;
+    const x = MathEx.clamp(body.x, 40, this.terrain.worldWidth - 40);
+    this.dummy.placeAt(x, body.y + this.config.bodyHeight + this.config.bodyH);
+    this.dummy.health = health;
+    this.dummy.vx = body.vx * 0.18;
+    this.dummy.vy = 0;
+    this.dummy.weaponMount.unequip();
+    this.dummyKnockdown = null;
+    this.dummyKnockdownRemaining = 0;
   }
 
   gainCharge(amount) {
@@ -198,6 +332,17 @@ class Game {
       this.dummyRespawnRemaining -= dt;
       if (this.dummyRespawnRemaining <= 0) this.respawnDummy();
     }
+
+    if (this.dummyKnockdown) {
+      this.dummyKnockdown.update(dt);
+      this.dummyKnockdownRemaining -= dt;
+      if (this.dummyKnockdownRemaining <= 0) this.recoverDummyKnockdown();
+    }
+  }
+
+  updateHazards(dt) {
+    for (const hazard of this.hazards) hazard.update?.(dt, this);
+    this.hazards = this.hazards.filter((hazard) => !hazard.dead);
   }
 
   update(dt) {
@@ -223,7 +368,7 @@ class Game {
       if (this.input.consumePressed('special')) this.player.weaponMount.special(weaponContext);
     }
 
-    if (!this.dummy.dead) {
+    if (!this.dummy.dead && !this.dummyKnockdown) {
       const lookAt = this.playerRagdoll?.body || this.player;
       this.dummy.updateTarget(dt, { x:lookAt.x, y:lookAt.y });
     }
@@ -234,13 +379,20 @@ class Game {
       targets:this.getTargetableActors()
     });
 
-    if (!this.dummyRagdoll && this.dummy.dead) this.killDummy();
+    this.updateHazards(dt);
+    this.updateStatusVisuals(dt);
+
+    if (!this.dummyRagdoll && this.dummy.dead) {
+      this.dummyKnockdown = null;
+      this.dummyKnockdownRemaining = 0;
+      this.killDummy();
+    }
 
     if (!this.playerRagdoll && (this.player.health <= 0 || this.actorTouchesWater(this.player))) {
       this.killPlayer(false);
     }
 
-    if (!this.dummyRagdoll && !this.dummy.dead && this.actorTouchesWater(this.dummy)) {
+    if (!this.dummyRagdoll && !this.dummyKnockdown && !this.dummy.dead && this.actorTouchesWater(this.dummy)) {
       this.killDummy();
     }
 
@@ -302,13 +454,18 @@ class Game {
     this.camera.begin(ctx);
     this.terrain.draw(ctx);
 
+    for (const hazard of this.hazards) hazard.render?.(ctx);
+
     if (this.dummyRagdoll) this.dummyRagdoll.render(ctx);
+    else if (this.dummyKnockdown) this.dummyKnockdown.render(ctx);
     else this.dummy.renderTarget(ctx);
 
     this.projectiles.render(ctx);
 
     if (this.playerRagdoll) this.playerRagdoll.render(ctx);
     else this.player.render(ctx, false);
+
+    this.renderStatusVisuals(ctx);
 
     this.camera.end(ctx);
 
