@@ -21,12 +21,16 @@ This patch is the first real UI and sprite pass.
 - Cylinder chamber fills now use `#aeb7c3` for NORMAL and `#ff0000` for CHARGED.
 - Chamber occupancy uses six derived transparent masks, avoiding local `file://` canvas-readback issues.
 - Added `assets/sprites/characters/` for body, hand, and foot sprites.
-- Procedural arm and leg segments remain clean solid-color generated lines without extra outlines.
+- Procedural arms and legs now use one connected pixel-style outline beneath the whole limb.
+- Hands and feet are generated outlined pixel circles. Foot sprites were removed.
 - The revolver keeps geometry fallbacks if an image is missing or still loading.
 - Reworked the main menu into a more compact, intentional grayscale layout.
 - Reworked the gamemode screen so the three modes no longer occupy giant empty cards.
-- Reworked customization with a clear header, smaller tabs, a dedicated loadout panel, and a larger preview area.
-- Weapon cards now show their registry description.
+- Simplified the beta menus so they only show choices a player actually needs.
+- Weapon selection is now a square sprite grid.
+- Hovering or focusing a weapon opens a compact moveset window.
+- Player-facing UI and weapon copy now live in `assets/language/language-english.json`.
+- The registry only stores weapon IDs and sprite paths instead of presentation copy.
 - Grouped the revolver cylinder and ammunition into one compact in-game HUD block.
 - Added `index.html` as the actual entry point.
 
@@ -103,3 +107,12 @@ Character art lives in `assets/sprites/characters/` and uses three base + color-
 - `qward-foot.png` + `qward-foot-color.png`
 
 The `-color` layers use `#ff0000` as the recolorable region. CHEST tints the body layer, ARMS tint the procedural arms and hand layer, and LEGS tint the procedural legs and foot layers.
+
+
+## Language files
+
+English text lives in `assets/language/language-english.json`.
+
+The file contains menu labels, customization labels, weapon names, descriptions, and movesets. Additional languages can follow the same shape, for example `language-tagalog.json`.
+
+When QWARDDLE is served through HTTP, the JSON file is loaded directly. When `index.html` is opened through `file://`, the game uses the matching built-in English fallback so the no-server workflow still works.
