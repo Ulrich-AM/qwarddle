@@ -52,12 +52,12 @@ class SakeDropletProjectile extends Projectile {
 
 class SakeGourdProjectile extends Projectile {
   constructor({ game, sprite, gravity = 900, ...options } = {}) {
-    super({ ...options, width:30, height:30 });
+    super({ ...options, width:48, height:48 });
     this.game = game;
     this.sprite = sprite;
     this.gravity = gravity;
     this.handlesTerrain = true;
-    this.hitRadius = 15;
+    this.hitRadius = 24;
     this.spin = 0;
   }
 
@@ -91,7 +91,7 @@ class SakeGourdProjectile extends Projectile {
     ctx.imageSmoothingEnabled = false;
 
     if (this.sprite?.complete && this.sprite.naturalWidth > 0) {
-      const desired = 42;
+      const desired = 82;
       const scale = desired / Math.max(this.sprite.naturalWidth, this.sprite.naturalHeight);
       const w = Math.max(1, Math.round(this.sprite.naturalWidth * scale));
       const h = Math.max(1, Math.round(this.sprite.naturalHeight * scale));
@@ -453,7 +453,8 @@ class Sake extends Weapon {
       player,
       'assets/sprites/characters/enlightned-particle.png',
       5,
-      'sake-drink'
+      'sake-drink',
+      { opacity:0.45 }
     );
 
     if (this.drunkMeter >= this.drunkMeterMax) {
@@ -509,7 +510,7 @@ class Sake extends Weapon {
     for (let i = 0; i < count; i++) {
       const angle = base + (Math.random() - 0.5) * spread * 2;
       const speed = 390 + Math.random() * 330;
-      const life = 0.42 + Math.random() * 0.48;
+      const life = 0.84 + Math.random() * 0.96;
       const size = 10 + Math.random() * 8;
 
       projectiles.spawn(new SakeDropletProjectile({
@@ -707,7 +708,7 @@ class Sake extends Weapon {
     ctx.imageSmoothingEnabled = false;
 
     if (this.imageReady(this.sprites.gourd)) {
-      const desired = 66;
+      const desired = 82;
       const scale = desired / Math.max(this.sprites.gourd.naturalWidth, this.sprites.gourd.naturalHeight);
       const w = Math.max(1, Math.round(this.sprites.gourd.naturalWidth * scale));
       const h = Math.max(1, Math.round(this.sprites.gourd.naturalHeight * scale));
