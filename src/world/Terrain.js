@@ -135,6 +135,23 @@ class Terrain {
     return ground;
   }
 
+  // Finds the top surface closest to a reference Y instead of always taking
+  // the highest platform. Procedural feet use this so walking beside/under an
+  // elevated platform does not make them snap upward onto it.
+  surfaceYAt(x, referenceY) {
+    let best = null;
+    let bestDistance = Infinity;
+    for (const rect of this.rectangles) {
+      if (x < rect.x || x > rect.x + rect.w) continue;
+      const distance = Math.abs(rect.y - referenceY);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = rect.y;
+      }
+    }
+    return best;
+  }
+
   yAt(x) {
     const ground = this.groundYAt(x);
     return ground == null ? this.waterY + 360 : ground;
