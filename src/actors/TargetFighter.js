@@ -33,9 +33,13 @@ class TargetFighter extends Player {
   resetTarget(worldWidth) {
     this.worldWidth = worldWidth;
     super.reset(worldWidth);
-    const left = this.terrain.islandLeft ?? 0;
-    const right = this.terrain.islandRight ?? worldWidth;
-    this.placeAt(left + (right - left) * 0.78);
+    const spawn = this.terrain.spawn?.(1);
+    if (spawn) this.placeAt(spawn.x);
+    else {
+      const left = this.terrain.islandLeft ?? 0;
+      const right = this.terrain.islandRight ?? worldWidth;
+      this.placeAt(left + (right - left) * 0.78);
+    }
     this.health = this.maxHealth;
     this.tempHealth = 0;
     this.tempHealthTime = 0;
