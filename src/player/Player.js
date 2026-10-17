@@ -314,7 +314,8 @@ class Player {
       damage:multipliers.damage ?? 1,
       melee:multipliers.melee ?? 1,
       move:multipliers.move ?? 1,
-      jump:multipliers.jump ?? 1
+      jump:multipliers.jump ?? 1,
+      regen:multipliers.regen ?? 0
     });
   }
 
@@ -673,6 +674,7 @@ class Player {
     this.resolveBodyPenetration();
 
     for (const [id, buff] of this.buffs) {
+      if (buff.regen > 0 && this.health > 0) this.heal(buff.regen * dt);
       buff.time = Math.max(0, buff.time - dt);
       if (buff.time <= 0) this.buffs.delete(id);
     }
