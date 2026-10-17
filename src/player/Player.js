@@ -449,6 +449,91 @@ class Player {
     }
   }
 
+  collisionBox(x = this.x, y = this.y) {
+    const halfW = this.cfg.bodyW * 0.5;
+    const topOffset = this.cfg.bodyH * 0.5;
+    const bottomOffset = this.cfg.bodyH * 0.5 + this.cfg.bodyHeight;
+    return {
+      left:x - halfW,
+      right:x + halfW,
+      top:y - topOffset,
+      bottom:y + bottomOffset
+    };
+  }
+
+  bodyHasSupport() {
+    const box = this.collisionBox();
+    const inset = 5;
+    for (const rect of this.terrain.rectangles || []) {
+      if (box.right - inset <= rect.x || box.left + inset >= rect.x + rect.w) continue;
+      if (Math.abs(box.bottom - rect.y) <= 2.5) return true;
+    }
+    return false;
+  }
+
+  resolveHorizontalBodyCollision(previousX) {
+    const previous = this.collisionBox(previousX, this.y);
+    let current = this.collisionBox();
+
+    for (const rect of this.terrain.rectangles || []) {
+      // Merely standing on a floor does not count as horizontal penetration.
+      if (current.bottom <= rect.y + 1 || current.top >= rect.y + rect.h - 1) continue;
+
+      if (this.vx > 0 && previous.right <= rect.x + 0.5 && current.right > rect.x) {
+        this.x = rect.x - this.cfg.bodyW * 0.5;
+        this.vx = 0;
+        current = this.collisionBox();
+      } else if (this.vx < 0 && previous.left >= rect.x + rect.w - 0.5 && current.left < rect.x + rect.w) {
+        this.x = rect.x + rect.w + this.cfg.bodyW * 0.5;
+        this.vx = 0;
+        current = this.collisionBox();
+      }
+    }
+  }
+
+  resolveVerticalBodyCollision(previousY) {
+    const previous = this.collisionBox(this.x, previousY);
+    let current = this.collisionBox();
+    const inset = 4;
+
+    if (this.vy >= 0) {
+      let landingTop = Infinity;
+      for (const rect of this.terrain.rectangles || []) {
+        if (current.right - inset <= rect.x || current.left + inset >= rect.x + rect.w) continue;
+        if (previous.bottom <= rect.y + 0.5 && current.bottom >= rect.y) {
+          landingTop = Math.min(landingTop, rect.y);
+        }
+      }
+
+      if (landingTop < Infinity) {
+        const impact = this.vy;
+        const wasGrounded = this.onGround;
+        this.y = landingTop - (this.cfg.bodyH * 0.5 + this.cfg.bodyHeight);
+        this.vy = 0;
+        this.onGround = true;
+        if (!wasGrounded) {
+          this.landingPulse = MathEx.clamp((impact - 120) / 430, 0, 1);
+          if (this.cfg.landingSnap >= 0.5) this.snapFeetOnLanding();
+        }
+      }
+      return;
+    }
+
+    let ceilingBottom = -Infinity;
+    for (const rect of this.terrain.rectangles || []) {
+      if (current.right - inset <= rect.x || current.left + inset >= rect.x + rect.w) continue;
+      const rectBottom = rect.y + rect.h;
+      if (previous.top >= rectBottom - 0.5 && current.top <= rectBottom) {
+        ceilingBottom = Math.max(ceilingBottom, rectBottom);
+      }
+    }
+
+    if (ceilingBottom > -Infinity) {
+      this.y = ceilingBottom + this.cfg.bodyH * 0.5;
+      this.vy = 0;
+    }
+  }
+
   update(dt, pointer) {
     this.time += dt;
     if (this.tempHealthTime > 0) {
@@ -481,52 +566,27 @@ class Player {
     const speed01 = MathEx.clamp(Math.abs(this.vx) / this.cfg.runSpeed, 0, 1);
     const direction = Math.sign(this.vx) || this.facing;
 
+    const previousX = this.x;
     this.x += this.vx * dt;
     this.x = MathEx.clamp(this.x, this.cfg.bodyW / 2 + 16, this.worldWidth - this.cfg.bodyW / 2 - 16);
+    this.resolveHorizontalBodyCollision(previousX);
 
-    const hasGround = this.terrain.hasGroundAt ? this.terrain.hasGroundAt(this.x) : true;
-    if (!hasGround && this.onGround) {
+    // Grounded state is now based on actual contact under the collision body,
+    // not whichever rectangle happens to be highest at the player's X.
+    if (this.onGround && !this.bodyHasSupport()) {
       this.onGround = false;
       this.releaseFeetToAir();
     }
 
-    const swingInfo = this.currentSwingInfo();
-    const gaitLift = this.onGround && swingInfo && !swingInfo.landing
-      ? MathEx.hump(swingInfo.t) * this.cfg.bodyBob * speed01
-      : 0;
-
     this.landingPulse = Math.max(0, this.landingPulse - dt * 5.2);
     this.stepPulse = Math.max(0, this.stepPulse - dt * 8.0);
 
-    if (this.onGround && hasGround) {
-      const squash = this.landingPulse * this.cfg.landingSquash;
-      const targetY = this.supportBaseY() - gaitLift + squash + this.stepPulse * 1.1;
-      this.vy += ((targetY - this.y) * this.cfg.supportSpring - this.vy * this.cfg.supportDamping) * dt;
-    } else {
-      this.vy += this.cfg.gravity * dt;
-    }
+    if (!this.onGround) this.vy += this.cfg.gravity * dt;
+    else this.vy = 0;
+
+    const previousY = this.y;
     this.y += this.vy * dt;
-
-    if (!this.onGround && hasGround && this.vy >= 0 && this.y >= this.supportBaseY()) {
-      const impact = this.vy;
-      this.onGround = true;
-      this.landingPulse = MathEx.clamp((impact - 120) / 430, 0, 1);
-      if (this.cfg.landingSnap >= 0.5) this.snapFeetOnLanding();
-    }
-
-    const groundY = this.terrain.groundYAt ? this.terrain.groundYAt(this.x) : this.terrain.yAt(this.x);
-    if (groundY != null) {
-      const bodyFloor = groundY - this.cfg.bodyH / 2 - 7;
-      if (this.y > bodyFloor) {
-        this.y = bodyFloor;
-        this.vy = Math.min(0, this.vy);
-        if (!this.onGround) {
-          this.onGround = true;
-          this.landingPulse = 1;
-          if (this.cfg.landingSnap >= 0.5) this.snapFeetOnLanding();
-        }
-      }
-    }
+    this.resolveVerticalBodyCollision(previousY);
 
     const acceleration = (this.vx - this.prevVx) / Math.max(dt, 0.0001);
     const velocityLean = (this.vx / this.cfg.runSpeed) * this.cfg.accelLean;
