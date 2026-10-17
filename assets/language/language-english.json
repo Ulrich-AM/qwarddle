@@ -62,7 +62,7 @@
         {
           "input": "Q",
           "name": "BOUNCING STAR",
-          "description": "Fire a large star that bounces twice, then bursts into six smaller stars on its third impact."
+          "description": "Fire a large star that ricochets once based on its impact angle, then bursts into six smaller stars on its next wall impact."
         },
         {
           "input": "E",
