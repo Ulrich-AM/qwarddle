@@ -130,7 +130,7 @@ class WandBouncingStar extends WandStarProjectile {
         damage:5,
         knockback:130,
         life:2.4,
-        size:22,
+        size:32,
         color:'#fff3a6',
         sprite:this.smallSprite,
         spinSpeed:10,
@@ -141,57 +141,41 @@ class WandBouncingStar extends WandStarProjectile {
 
   resolveBounce(prevX, prevY, rect) {
     const r = this.hitRadius;
-    const left = rect.x;
-    const right = rect.x + rect.w;
-    const top = rect.y;
-    const bottom = rect.y + rect.h;
+    const closestX = MathEx.clamp(this.x, rect.x, rect.x + rect.w);
+    const closestY = MathEx.clamp(this.y, rect.y, rect.y + rect.h);
+    let nx = this.x - closestX;
+    let ny = this.y - closestY;
+    let length = MathEx.hypot(nx, ny);
 
-    if (prevY + r <= top && this.y + r >= top) {
-      this.y = top - r - 1;
-      this.vy = -Math.abs(this.vy);
-      return;
-    }
-    if (prevY - r >= bottom && this.y - r <= bottom) {
-      this.y = bottom + r + 1;
-      this.vy = Math.abs(this.vy);
-      return;
-    }
-    if (prevX + r <= left && this.x + r >= left) {
-      this.x = left - r - 1;
-      this.vx = -Math.abs(this.vx);
-      return;
-    }
-    if (prevX - r >= right && this.x - r <= right) {
-      this.x = right + r + 1;
-      this.vx = Math.abs(this.vx);
-      return;
+    if (length > 0.001) {
+      nx /= length;
+      ny /= length;
+      this.x = closestX + nx * (r + 1);
+      this.y = closestY + ny * (r + 1);
+    } else {
+      // If the center crossed fully into a block in one fixed step, use the
+      // incoming direction to choose the face that was approached.
+      if (Math.abs(this.vx) > Math.abs(this.vy)) {
+        nx = this.vx > 0 ? -1 : 1;
+        ny = 0;
+      } else {
+        nx = 0;
+        ny = this.vy > 0 ? -1 : 1;
+      }
+      this.x = prevX + nx * 2;
+      this.y = prevY + ny * 2;
     }
 
-    const distances = [
-      { side:'left', value:Math.abs(this.x - left) },
-      { side:'right', value:Math.abs(this.x - right) },
-      { side:'top', value:Math.abs(this.y - top) },
-      { side:'bottom', value:Math.abs(this.y - bottom) }
-    ].sort((a,b) => a.value - b.value);
-
-    switch (distances[0].side) {
-      case 'left':
-        this.x = left - r - 1;
-        this.vx = -Math.abs(this.vx);
-        break;
-      case 'right':
-        this.x = right + r + 1;
-        this.vx = Math.abs(this.vx);
-        break;
-      case 'top':
-        this.y = top - r - 1;
-        this.vy = -Math.abs(this.vy);
-        break;
-      default:
-        this.y = bottom + r + 1;
-        this.vy = Math.abs(this.vy);
-        break;
+    // Reflect the velocity across the collision normal. This preserves the
+    // incoming angle instead of forcing a canned horizontal/vertical bounce.
+    let dot = this.vx * nx + this.vy * ny;
+    if (dot > 0) {
+      nx = -nx;
+      ny = -ny;
+      dot = -dot;
     }
+    this.vx -= 2 * dot * nx;
+    this.vy -= 2 * dot * ny;
   }
 
   update(dt, context = {}) {
@@ -206,7 +190,7 @@ class WandBouncingStar extends WandStarProjectile {
       if (!this.circleTouchesRect(rect)) continue;
 
       this.terrainBounces += 1;
-      if (this.terrainBounces >= 3) {
+      if (this.terrainBounces >= 2) {
         this.burst();
         return;
       }
@@ -231,6 +215,8 @@ class Wand extends Weapon {
     });
 
     this.primarySpeed = 720;
+    this.smallStarSize = 32;
+    this.largeStarSize = 68;
     this.qCooldown = 1.5;
     this.eCooldown = 1.0;
     this.qCooldownRemaining = 0;
@@ -280,7 +266,7 @@ class Wand extends Weapon {
       damage:this.damage,
       knockback:this.knockback,
       life:3.2,
-      size:22,
+      size:this.smallStarSize,
       color:'#fff3a6',
       sprite:this.sprites.small,
       spinSpeed:11,
@@ -292,7 +278,7 @@ class Wand extends Weapon {
   }
 
   // Q slot. The large star ignores fighters physically, damages each fighter
-  // once while passing through, bounces twice, then bursts on the third impact.
+  // once while passing through, ricochets once, then bursts on the second impact.
   reload({ mount, projectiles }) {
     if (!projectiles || this.qCooldownRemaining > 0) return false;
 
@@ -308,7 +294,7 @@ class Wand extends Weapon {
       damage:6,
       knockback:0,
       life:7,
-      size:46,
+      size:this.largeStarSize,
       color:'#ffe56b',
       sprite:this.sprites.large,
       spinSpeed:6
@@ -337,7 +323,7 @@ class Wand extends Weapon {
         damage:4,
         knockback:85,
         life:3,
-        size:20,
+        size:this.smallStarSize,
         color:'#fff3a6',
         sprite:this.sprites.small,
         spinSpeed:9,
@@ -356,17 +342,20 @@ class Wand extends Weapon {
     ctx.translate(Math.round(p.x), Math.round(p.y));
 
     const step = Math.PI / 16;
-    ctx.rotate(Math.round(mount.angle / step) * step);
-    if (mount.dirX < 0) ctx.scale(1, -1);
+    // wand.png is drawn tip-up. Rotate that local -Y axis onto the aim vector so
+    // the actual tip, rather than the side of the sprite, always points outward.
+    const artAngle = mount.angle + Math.PI * 0.5;
+    ctx.rotate(Math.round(artAngle / step) * step);
     ctx.imageSmoothingEnabled = false;
 
     if (this.imageReady(this.sprites.wand)) {
-      const desired = 68;
+      const desired = 72;
       const rawScale = desired / Math.max(this.sprites.wand.naturalWidth, this.sprites.wand.naturalHeight);
       const scale = rawScale >= 1 ? Math.max(1, Math.floor(rawScale)) : rawScale;
       const width = Math.max(1, Math.round(this.sprites.wand.naturalWidth * scale));
       const height = Math.max(1, Math.round(this.sprites.wand.naturalHeight * scale));
-      ctx.drawImage(this.sprites.wand, -Math.round(width * 0.22), -Math.round(height * 0.5), width, height);
+      // Keep the hand near the lower end of the wand while the tip extends along aim.
+      ctx.drawImage(this.sprites.wand, -Math.round(width * 0.5), -Math.round(height * 0.78), width, height);
     } else {
       ctx.fillStyle = '#202020';
       ctx.fillRect(-8, -4, 50, 8);
