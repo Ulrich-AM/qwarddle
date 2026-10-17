@@ -12,7 +12,8 @@ class Game {
     this.config = createGameConfig();
     this.input = new KeyboardInput();
     this.pointer = new PointerInput(canvas);
-    this.terrain = new Terrain();
+    this.selectedMapId = MapRegistry.list[0]?.id || null;
+    this.terrain = new Terrain(MapRegistry.get(this.selectedMapId));
     this.camera = new CameraEffects();
     this.rounds = new RoundManager();
     this.player = new Player({ input:this.input, terrain:this.terrain, config:this.config });
@@ -29,6 +30,14 @@ class Game {
     this.resize();
     this.reset();
     this.bindEvents();
+  }
+
+  applyMap(mapId) {
+    this.selectedMapId = MapRegistry.get(mapId).id;
+    this.terrain.setMap(MapRegistry.get(this.selectedMapId));
+    this.player.resize(this.terrain.worldWidth);
+    this.dummy.worldWidth = this.terrain.worldWidth;
+    this.projectiles.clear();
   }
 
   applyLoadout(loadout) {
@@ -62,6 +71,7 @@ class Game {
     this.canvas.width = this.width * this.dpr;
     this.canvas.height = this.height * this.dpr;
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.ctx.imageSmoothingEnabled = false;
     this.terrain.resize(this.width, this.height);
     this.camera.resize(this.width, this.height);
     this.player.resize(this.terrain.worldWidth);
@@ -72,7 +82,8 @@ class Game {
 
   reset() {
     this.player.reset(this.terrain.worldWidth);
-    this.player.placeAt(this.terrain.worldWidth * 0.42);
+    const spawn = this.terrain.spawn(0);
+    this.player.placeAt(spawn.x);
     this.player.setAppearance(this.loadout.appearance);
     this.player.weaponMount.equip(WeaponRegistry.create(this.loadout.weapon));
     this.camera.reset(this.player);
