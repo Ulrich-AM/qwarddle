@@ -102,24 +102,43 @@ class ProceduralArm {
     }
   }
 
+  drawOutlinedSegment(ctx, a, b, width, color) {
+    ctx.lineCap = 'round';
+
+    ctx.strokeStyle = '#202020';
+    ctx.lineWidth = width + 4;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  }
+
   render(ctx, player, hand, debug = false) {
     const shoulder = this.shoulder(player);
     const elbow = this.elbow;
 
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = player.appearance?.armUpper || '#76b887';
-    ctx.lineWidth = this.cfg.armWidthUpper;
-    ctx.beginPath();
-    ctx.moveTo(shoulder.x, shoulder.y);
-    ctx.lineTo(elbow.x, elbow.y);
-    ctx.stroke();
+    this.drawOutlinedSegment(
+      ctx,
+      shoulder,
+      elbow,
+      this.cfg.armWidthUpper,
+      player.appearance?.armUpper || '#76b887'
+    );
 
-    ctx.strokeStyle = player.appearance?.armLower || '#69a9b7';
-    ctx.lineWidth = this.cfg.armWidthLower;
-    ctx.beginPath();
-    ctx.moveTo(elbow.x, elbow.y);
-    ctx.lineTo(hand.x, hand.y);
-    ctx.stroke();
+    this.drawOutlinedSegment(
+      ctx,
+      elbow,
+      hand,
+      this.cfg.armWidthLower,
+      player.appearance?.armLower || '#69a9b7'
+    );
 
     if (debug) {
       ctx.fillStyle = '#7f7';
