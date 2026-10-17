@@ -44,13 +44,14 @@ class Revolver extends Weapon {
     this.chargedKnockback = 820;
     this.chargedHandRecoil = 720;
     this.chargedBodyRecoil = 940;
+    this.chargeRate = 5.5;
+    this.chargeOnHit = 4;
 
     this.spriteRoot = 'assets/sprites/revolver/';
     this.normalChamberColor = '#aeb7c3';
     this.chargedChamberColor = '#ff0000';
     this.sprites = {
       held:this.loadSprite('revolver.png'),
-      cylinder:this.loadSprite('revolver-cylinder.png'),
       // Kept as the editable/source map. Runtime uses derived per-chamber masks
       // below so opening index.html through file:// never depends on canvas readback.
       cylinderBullets:this.loadSprite('revolver-cylinder-bullets.png'),
@@ -192,7 +193,7 @@ class Revolver extends Weapon {
     this.cooldownRemaining = this.shotSpinDuration;
   }
 
-  fireDirection({ mount, projectiles, player }, dirX, dirY) {
+  fireDirection({ mount, projectiles, player, game }, dirX, dirY) {
     if (!projectiles || !this.canFire()) return false;
 
     const length = MathEx.hypot(dirX, dirY) || 1;
@@ -213,9 +214,13 @@ class Revolver extends Weapon {
       damage:charged ? this.chargedDamage : this.damage,
       knockback:charged ? this.chargedKnockback : this.knockback,
       life:1.8,
-      width:charged ? 40 : 34,
-      height:charged ? 24 : 20,
-      color:charged ? '#ffffff' : '#e6e6e6'
+      width:charged ? 24 : 18,
+      height:charged ? 24 : 18,
+      color:charged ? '#ff5656' : '#e6e6e6',
+      shape:'circle',
+      outlineColor:'#202020',
+      outlineWidth:4,
+      onHit:() => game?.gainCharge(this.chargeOnHit)
     }));
 
     this.advanceCylinderVisual();
@@ -252,13 +257,14 @@ class Revolver extends Weapon {
     return true;
   }
 
-  special() {
-    if (this.isBusy()) return false;
+  special({ game } = {}) {
+    if (this.isBusy() || !game?.hasFullCharge()) return false;
     const alreadyFullCharged = this.rounds.length === this.capacity && this.rounds.every((round) => round === 'charged');
     if (alreadyFullCharged) return false;
 
     // Dump every currently loaded round immediately. The two-turn spin is the
     // visible charged reload; all six charged rounds appear when it completes.
+    game.consumeFullCharge();
     this.rounds.length = 0;
     this.chargePending = true;
     this.chargeRemaining = this.chargeDuration;
@@ -304,58 +310,17 @@ class Revolver extends Weapon {
     ctx.restore();
   }
 
-  renderHud(ctx, x = 18, y = 18) {
-    const panelW = 244;
-    const panelH = 76;
-    const cylinderSize = 58;
-    const cylinderX = x + 9;
-    const cylinderY = y + 9;
-
-    ctx.save();
-    ctx.fillStyle = '#292929';
-    ctx.fillRect(x, y, panelW, panelH);
-
-    ctx.save();
-    ctx.translate(cylinderX + cylinderSize / 2, cylinderY + cylinderSize / 2);
-    ctx.rotate(this.hudAngle);
-
-    if (!this.drawImageFitted(ctx, this.sprites.cylinder, 0, 0, cylinderSize, cylinderSize)) {
-      ctx.fillStyle = '#d7d7d7';
-      ctx.fillRect(-cylinderSize / 2, -cylinderSize / 2, cylinderSize, cylinderSize);
-    }
-
-    for (let i = 0; i < this.rounds.length; i++) {
-      const chamberIndex = (this.chamberCursor + i) % this.capacity;
-      const masks = this.chamberMasks[chamberIndex];
-      if (!masks) continue;
-      const mask = this.rounds[i] === 'charged' ? masks.charged : masks.normal;
-      this.drawImageFitted(ctx, mask, 0, 0, cylinderSize, cylinderSize);
-    }
-    ctx.restore();
-
-    const roundsStartX = cylinderX + cylinderSize + 18;
-    const roundY = y + panelH / 2;
-    const slotGap = 25;
-
-    // Six fixed slots make the queue readable. Empty chambers are just faint boxes.
-    for (let i = 0; i < this.capacity; i++) {
-      const slotX = roundsStartX + i * slotGap;
-      if (i >= this.rounds.length) {
-        ctx.strokeStyle = '#555';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(slotX + 4, roundY - 11, 13, 22);
-        continue;
-      }
-
-      const charged = this.rounds[i] === 'charged';
-      const image = charged ? this.sprites.chargedRound : this.sprites.round;
-      if (!this.drawImageFitted(ctx, image, slotX + 10, roundY, 20, 26)) {
-        ctx.fillStyle = charged ? this.chargedChamberColor : this.normalChamberColor;
-        ctx.fillRect(slotX + 4, roundY - 9, 12, 18);
-      }
-    }
-
-    ctx.restore();
+  attackReadiness(game) {
+    const attack1 = this.rounds.length > 0
+      ? MathEx.clamp(1 - this.shotSpinRemaining / this.shotSpinDuration, 0, 1)
+      : 0;
+    const attack2 = this.reloadRemaining > 0
+      ? MathEx.clamp(1 - this.reloadRemaining / this.reloadDuration, 0, 1)
+      : (this.rounds.length < this.capacity && this.chargeRemaining <= 0 ? 1 : 0);
+    const attack3 = this.chargeRemaining > 0
+      ? MathEx.clamp(1 - this.chargeRemaining / this.chargeDuration, 0, 1)
+      : (game?.hasFullCharge() && !this.isBusy() ? 1 : 0);
+    return [attack1, attack2, attack3];
   }
 
 }
