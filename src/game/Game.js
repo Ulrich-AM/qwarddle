@@ -85,7 +85,7 @@ class Game {
   reset() {
     this.player.reset(this.terrain.worldWidth);
     const spawn = this.terrain.spawn(0);
-    this.player.placeAt(spawn.x);
+    this.player.placeAt(spawn.x, spawn.y);
     this.player.setAppearance(this.loadout.appearance);
     this.player.weaponMount.equip(WeaponRegistry.create(this.loadout.weapon));
     this.charge = 0;
