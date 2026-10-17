@@ -55,6 +55,8 @@ class App {
     this.hideScreens();
     this.menu.classList.remove('hidden');
     this.game.setActive(false);
+    this.menuDemo.setActive(true);
+    this.customDemo.setActive(false);
   }
 
   showMode() {
@@ -62,6 +64,8 @@ class App {
     this.hideScreens();
     this.modeScreen.classList.remove('hidden');
     this.game.setActive(false);
+    this.menuDemo.setActive(false);
+    this.customDemo.setActive(false);
   }
 
   showMaps() {
@@ -69,6 +73,8 @@ class App {
     this.hideScreens();
     this.mapScreen.classList.remove('hidden');
     this.game.setActive(false);
+    this.menuDemo.setActive(false);
+    this.customDemo.setActive(false);
   }
 
   showCustomize() {
@@ -76,6 +82,8 @@ class App {
     this.hideScreens();
     this.customScreen.classList.remove('hidden');
     this.game.setActive(false);
+    this.menuDemo.setActive(false);
+    this.customDemo.setActive(true);
   }
 
   showGame(loadout = null) {
@@ -83,6 +91,8 @@ class App {
     this.hideScreens();
     this.game.applyMap(this.selectedMapId);
     if (loadout) this.game.applyLoadout(loadout);
+    this.menuDemo.setActive(false);
+    this.customDemo.setActive(false);
     this.game.setActive(true);
     this.game.reset();
   }
