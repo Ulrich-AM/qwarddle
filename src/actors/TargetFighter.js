@@ -68,17 +68,12 @@ class TargetFighter extends Player {
     this.hitFlash = 0.11;
     if (this.health <= 0) {
       this.dead = true;
-      this.respawn = 0.9;
     }
   }
 
   updateTarget(dt, lookAt) {
     this.hitFlash = Math.max(0, this.hitFlash - dt);
-    if (this.dead) {
-      this.respawn -= dt;
-      if (this.respawn <= 0) this.resetTarget(this.worldWidth);
-      return;
-    }
+    if (this.dead) return;
     this.aim.x = lookAt?.x ?? this.x - 120;
     this.aim.y = lookAt?.y ?? this.y;
     super.update(dt, this.aim);
