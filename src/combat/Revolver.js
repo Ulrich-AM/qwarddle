@@ -72,7 +72,7 @@ class Revolver extends Weapon {
 
   loadSprite(file, onload = null) {
     const image = new Image();
-    image.onload = () => onload?.();
+    image.onload = () => onload?.(image);
     image.src = this.spriteRoot + file;
     return image;
   }
@@ -274,6 +274,10 @@ class Revolver extends Weapon {
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(mount.angle + spin);
+
+    // Keep the artwork visually upright when aiming left. Rotating a right-facing
+    // gun by PI alone would turn the sprite upside down.
+    if (mount.dirX < 0) ctx.scale(1, -1);
 
     if (this.imageReady(this.sprites.held)) {
       const desiredWidth = 78;
