@@ -98,6 +98,7 @@ class WandBouncingStar extends WandStarProjectile {
     this.system = system;
     this.smallSprite = smallSprite;
     this.terrainBounces = 0;
+    this.bounceLock = 0;
     this.handlesTerrain = true;
     this.hitRadius = this.size * 0.46;
   }
@@ -194,8 +195,9 @@ class WandBouncingStar extends WandStarProjectile {
   update(dt, context = {}) {
     const prevX = this.x;
     const prevY = this.y;
+    this.bounceLock = Math.max(0, this.bounceLock - dt);
     super.update(dt, context);
-    if (this.dead) return;
+    if (this.dead || this.bounceLock > 0) return;
 
     const rectangles = context.terrain?.rectangles || [];
     for (const rect of rectangles) {
@@ -208,6 +210,7 @@ class WandBouncingStar extends WandStarProjectile {
       }
 
       this.resolveBounce(prevX, prevY, rect);
+      this.bounceLock = 0.055;
       return;
     }
   }
@@ -301,7 +304,7 @@ class Wand extends Weapon {
       vx:mount.dirX * speed,
       vy:mount.dirY * speed,
       damage:6,
-      knockback:80,
+      knockback:0,
       life:7,
       size:46,
       color:'#ffe56b',
