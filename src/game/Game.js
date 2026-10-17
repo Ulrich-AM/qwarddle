@@ -25,6 +25,12 @@ class Game {
     this.player.setAppearance(this.loadout.appearance);
     this.player.weaponMount.equip(WeaponRegistry.create(this.loadout.weapon));
 
+    this.ragdollLifetime = 4.2;
+    this.playerRagdoll = null;
+    this.dummyRagdoll = null;
+    this.playerRespawnRemaining = 0;
+    this.dummyRespawnRemaining = 0;
+
     this.lastTime = performance.now();
     this.accumulator = 0;
     this.fixedStep = 1 / 120;
@@ -40,6 +46,8 @@ class Game {
     this.player.resize(this.terrain.worldWidth);
     this.dummy.worldWidth = this.terrain.worldWidth;
     this.projectiles.clear();
+    this.playerRagdoll = null;
+    this.dummyRagdoll = null;
   }
 
   applyLoadout(loadout) {
@@ -61,8 +69,10 @@ class Game {
   bindEvents() {
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('keydown', (event) => {
-      if (!this.active) return;
-      if (event.code === 'KeyR' && !event.repeat) this.reset();
+      if (!this.active || event.repeat) return;
+      if (event.code === 'KeyR' && !this.playerRagdoll) {
+        this.killPlayer(true);
+      }
     });
   }
 
@@ -77,24 +87,80 @@ class Game {
     this.terrain.resize(this.width, this.height);
     this.camera.resize(this.width, this.height);
     this.player.resize(this.terrain.worldWidth);
-    if (this.dummy) {
-      this.dummy.worldWidth = this.terrain.worldWidth;
-    }
+    this.dummy.worldWidth = this.terrain.worldWidth;
   }
 
-  reset() {
+  spawnPlayer() {
     this.player.reset(this.terrain.worldWidth);
     const spawn = this.terrain.spawn(0);
     this.player.placeAt(spawn.x, spawn.y);
     this.player.setAppearance(this.loadout.appearance);
     this.player.weaponMount.equip(WeaponRegistry.create(this.loadout.weapon));
-    this.charge = 0;
+    this.player.health = this.player.maxHealth;
     this.camera.reset(this.player);
 
     const startScreen = this.camera.worldToScreen(this.player.x + 180, this.player.y - 20);
     this.pointer.resetTo(startScreen.x, startScreen.y);
+  }
+
+  reset() {
+    this.playerRagdoll = null;
+    this.dummyRagdoll = null;
+    this.playerRespawnRemaining = 0;
+    this.dummyRespawnRemaining = 0;
+    this.charge = 0;
     this.projectiles.clear();
+
+    this.spawnPlayer();
     this.dummy.resetTarget(this.terrain.worldWidth);
+  }
+
+  respawnPlayer() {
+    this.playerRagdoll = null;
+    this.playerRespawnRemaining = 0;
+    this.charge = 0;
+    this.projectiles.clear();
+    this.spawnPlayer();
+  }
+
+  respawnDummy() {
+    this.dummyRagdoll = null;
+    this.dummyRespawnRemaining = 0;
+    this.dummy.resetTarget(this.terrain.worldWidth);
+  }
+
+  killPlayer(testDeath = false) {
+    if (this.playerRagdoll) return;
+
+    const ragdoll = new Ragdoll({
+      actor:this.player,
+      terrain:this.terrain,
+      lifetime:this.ragdollLifetime
+    });
+
+    if (testDeath) {
+      ragdoll.body.vy -= 180;
+      ragdoll.body.vx += this.player.facing * 80;
+      ragdoll.body.av += this.player.facing * 2.4;
+    }
+
+    this.player.health = 0;
+    this.playerRagdoll = ragdoll;
+    this.playerRespawnRemaining = this.ragdollLifetime;
+    this.player.weaponMount.unequip();
+    this.charge = 0;
+  }
+
+  killDummy() {
+    if (this.dummyRagdoll) return;
+    this.dummy.dead = true;
+    this.dummyRagdoll = new Ragdoll({
+      actor:this.dummy,
+      terrain:this.terrain,
+      lifetime:this.ragdollLifetime
+    });
+    this.dummyRespawnRemaining = this.ragdollLifetime;
+    this.dummy.weaponMount.unequip();
   }
 
   getTargetableActors() {
@@ -115,35 +181,70 @@ class Game {
     return true;
   }
 
+  actorTouchesWater(actor) {
+    if (!actor || actor.dead) return false;
+    return actor.collisionBox().bottom >= this.terrain.waterY + 8;
+  }
+
+  updateRagdolls(dt) {
+    if (this.playerRagdoll) {
+      this.playerRagdoll.update(dt);
+      this.playerRespawnRemaining -= dt;
+      if (this.playerRespawnRemaining <= 0) this.respawnPlayer();
+    }
+
+    if (this.dummyRagdoll) {
+      this.dummyRagdoll.update(dt);
+      this.dummyRespawnRemaining -= dt;
+      if (this.dummyRespawnRemaining <= 0) this.respawnDummy();
+    }
+  }
+
   update(dt) {
     let pointerWorld = this.camera.screenToWorld(this.pointer.x, this.pointer.y);
-    this.camera.update(dt, this.player, pointerWorld);
+    const cameraSubject = this.playerRagdoll?.body || this.player;
+    this.camera.update(dt, cameraSubject, pointerWorld);
     pointerWorld = this.camera.screenToWorld(this.pointer.x, this.pointer.y);
-    this.player.update(dt, pointerWorld);
 
-    const activeWeapon = this.player.weaponMount.weapon;
-    if (activeWeapon?.chargeRate > 0) this.gainCharge(activeWeapon.chargeRate * dt);
+    if (!this.playerRagdoll) {
+      this.player.update(dt, pointerWorld);
 
-    const weaponContext = {
-      projectiles:this.projectiles,
-      player:this.player,
-      game:this
-    };
+      const activeWeapon = this.player.weaponMount.weapon;
+      if (activeWeapon?.chargeRate > 0) this.gainCharge(activeWeapon.chargeRate * dt);
 
-    // Revolver is intentionally semi-auto: one LMB press = one chamber.
-    if (this.pointer.consumePressed(0)) this.player.weaponMount.primary(weaponContext);
-    if (this.input.consumePressed('reload')) this.player.weaponMount.reload(weaponContext);
-    if (this.input.consumePressed('special')) this.player.weaponMount.special(weaponContext);
+      const weaponContext = {
+        projectiles:this.projectiles,
+        player:this.player,
+        game:this
+      };
 
-    this.dummy.updateTarget(dt, { x:this.player.x, y:this.player.y });
+      if (this.pointer.consumePressed(0)) this.player.weaponMount.primary(weaponContext);
+      if (this.input.consumePressed('reload')) this.player.weaponMount.reload(weaponContext);
+      if (this.input.consumePressed('special')) this.player.weaponMount.special(weaponContext);
+    }
+
+    if (!this.dummy.dead) {
+      const lookAt = this.playerRagdoll?.body || this.player;
+      this.dummy.updateTarget(dt, { x:lookAt.x, y:lookAt.y });
+    }
+
     this.projectiles.update(dt, {
       width:this.terrain.worldWidth,
       height:this.terrain.worldHeight,
       targets:this.getTargetableActors()
     });
 
-    // Temporary water hazard until the proper death/round layer exists.
-    if (this.player.y > this.terrain.waterY + 230) this.reset();
+    if (!this.dummyRagdoll && this.dummy.dead) this.killDummy();
+
+    if (!this.playerRagdoll && (this.player.health <= 0 || this.actorTouchesWater(this.player))) {
+      this.killPlayer(false);
+    }
+
+    if (!this.dummyRagdoll && !this.dummy.dead && this.actorTouchesWater(this.dummy)) {
+      this.killDummy();
+    }
+
+    this.updateRagdolls(dt);
   }
 
   drawBar(ctx, x, y, width, height, ratio, fill, label) {
@@ -177,12 +278,14 @@ class Game {
     const attack2Y = attack3Y - attackGap;
     const attack1Y = attack2Y - attackGap;
 
-    const weapon = this.player.weaponMount.weapon;
-    const readiness = weapon?.attackReadiness?.(this) || [1, 1, 1];
+    const weapon = this.playerRagdoll ? null : this.player.weaponMount.weapon;
+    const readiness = this.playerRagdoll
+      ? [0, 0, 0]
+      : (weapon?.attackReadiness?.(this) || [1, 1, 1]);
 
-    this.drawBar(ctx, x, attack1Y, attackW, attackH, readiness[0] ?? 1, '#f2f2f2', 'attack1');
-    this.drawBar(ctx, x, attack2Y, attackW, attackH, readiness[1] ?? 1, '#f2f2f2', 'attack2');
-    this.drawBar(ctx, x, attack3Y, attackW, attackH, readiness[2] ?? 1, '#f2f2f2', 'attack3');
+    this.drawBar(ctx, x, attack1Y, attackW, attackH, readiness[0] ?? 0, '#f2f2f2', 'attack1');
+    this.drawBar(ctx, x, attack2Y, attackW, attackH, readiness[1] ?? 0, '#f2f2f2', 'attack2');
+    this.drawBar(ctx, x, attack3Y, attackW, attackH, readiness[2] ?? 0, '#f2f2f2', 'attack3');
 
     const healthRatio = this.player.maxHealth > 0 ? this.player.health / this.player.maxHealth : 0;
     const chargeRatio = this.maxCharge > 0 ? this.charge / this.maxCharge : 0;
@@ -198,13 +301,20 @@ class Game {
 
     this.camera.begin(ctx);
     this.terrain.draw(ctx);
-    this.dummy.renderTarget(ctx);
+
+    if (this.dummyRagdoll) this.dummyRagdoll.render(ctx);
+    else this.dummy.renderTarget(ctx);
+
     this.projectiles.render(ctx);
-    this.player.render(ctx, false);
+
+    if (this.playerRagdoll) this.playerRagdoll.render(ctx);
+    else this.player.render(ctx, false);
+
     this.camera.end(ctx);
 
-    // Weapon-specific queue/status stays top-left, shared bars stay bottom-left.
-    this.player.weaponMount.weapon?.renderHud?.(ctx, 22, 22);
+    if (!this.playerRagdoll) {
+      this.player.weaponMount.weapon?.renderHud?.(ctx, 22, 22);
+    }
     this.renderCombatHud(ctx);
   }
 
