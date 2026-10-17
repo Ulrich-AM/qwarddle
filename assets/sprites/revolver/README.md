@@ -1,9 +1,10 @@
-# Revolver HUD sprites
+# Revolver sprites
 
-The held revolver sprite has been removed for now. The in-world gun uses temporary block geometry.
+The held revolver sprite is active again.
 
-HUD files:
+Files:
 
+- `revolver.png` - held weapon and loadout icon
 - `revolver-cylinder.png` - cylinder UI
 - `revolver-cylinder-bullets.png` - six-color chamber source map
 - `revolver-round.png` - normal round UI
