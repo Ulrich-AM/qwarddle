@@ -49,7 +49,6 @@ class Revolver extends Weapon {
     this.normalChamberColor = '#aeb7c3';
     this.chargedChamberColor = '#ff0000';
     this.sprites = {
-      held:this.loadSprite('revolver.png'),
       cylinder:this.loadSprite('revolver-cylinder.png'),
       // Kept as the editable/source map. Runtime uses derived per-chamber masks
       // below so opening index.html through file:// never depends on canvas readback.
@@ -272,25 +271,18 @@ class Revolver extends Weapon {
     const p = mount.position();
     const spin = this.shotSpinAngle + this.reloadSpinAngle + this.chargeSpinAngle;
     ctx.save();
-    ctx.translate(p.x, p.y);
+    ctx.translate(Math.round(p.x), Math.round(p.y));
     ctx.rotate(mount.angle + spin);
 
-    // Keep the artwork visually upright when aiming left. Rotating a right-facing
-    // gun by PI alone would turn the sprite upside down.
+    // Temporary block-gun placeholder. The held revolver sprite was removed
+    // until the final weapon art direction is settled.
     if (mount.dirX < 0) ctx.scale(1, -1);
-
-    if (this.imageReady(this.sprites.held)) {
-      const desiredWidth = 78;
-      const scale = desiredWidth / this.sprites.held.naturalWidth;
-      const width = this.sprites.held.naturalWidth * scale;
-      const height = this.sprites.held.naturalHeight * scale;
-      // Pivot sits slightly left of center so the hand grips the revolver
-      // instead of pinning the sprite exactly through its middle.
-      ctx.drawImage(this.sprites.held, -width * 0.38, -height * 0.50, width, height);
-    } else {
-      ctx.fillStyle = '#bcbcbc';
-      ctx.fillRect(-31, -17, 62, 34);
-    }
+    ctx.fillStyle = '#202020';
+    ctx.fillRect(-20, -9, 48, 22);
+    ctx.fillRect(-4, 9, 13, 20);
+    ctx.fillStyle = '#b8b8b8';
+    ctx.fillRect(-17, -6, 42, 16);
+    ctx.fillRect(-1, 9, 8, 16);
 
     ctx.restore();
   }
