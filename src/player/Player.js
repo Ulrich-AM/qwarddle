@@ -552,14 +552,6 @@ class Player {
 
   drawSegment(ctx, a, b, width, color) {
     ctx.lineCap = 'round';
-
-    ctx.strokeStyle = '#202020';
-    ctx.lineWidth = width + 4;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
     ctx.beginPath();
@@ -588,8 +580,8 @@ class Player {
       this.appearance[`foot${index}`],
       0,
       -this.cfg.footH * 0.5,
-      this.cfg.footW * 1.35,
-      this.cfg.footH * 2.2
+      this.cfg.footW * 1.80,
+      this.cfg.footH * 3.00
     )) {
       ctx.fillStyle = '#202020';
       ctx.fillRect(-this.cfg.footW / 2 - 2, -this.cfg.footH - 2, this.cfg.footW + 4, this.cfg.footH + 4);
