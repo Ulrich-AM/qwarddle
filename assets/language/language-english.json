@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "name": "English",
+    "code": "en"
+  },
+  "ui": {
+    "menu": {
+      "play": "PLAY"
+    },
+    "mode": {
+      "title": "PLAY",
+      "solo": "SOLO",
+      "local": "LOCAL",
+      "online": "ONLINE"
+    },
+    "customize": {
+      "title": "CUSTOMIZE",
+      "weapons": "WEAPONS",
+      "colors": "COLORS",
+      "continue": "FIGHT",
+      "body": "BODY",
+      "arms": "ARMS",
+      "legs": "LEGS",
+      "moveset": "MOVESET"
+    }
+  },
+  "weapons": {
+    "revolver": {
+      "name": "REVOLVER",
+      "description": "A six-shot revolver built around timing, recoil, and loaded-round order.",
+      "moves": [
+        {
+          "input": "LEFT CLICK",
+          "name": "FIRE",
+          "description": "Fire the next round. The revolver must finish its spin before it can fire again."
+        },
+        {
+          "input": "Q",
+          "name": "RELOAD",
+          "description": "Fill empty chambers with normal rounds without replacing charged rounds."
+        },
+        {
+          "input": "E",
+          "name": "CHARGED LOAD",
+          "description": "Dump the cylinder and load six charged rounds with extreme recoil."
+        }
+      ]
+    }
+  }
+}
