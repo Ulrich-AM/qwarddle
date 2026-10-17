@@ -15,6 +15,8 @@ class Weapon {
     Object.assign(this, { id, name, damage, cooldown, knockback, recoil, muzzleOffset });
     this.cooldownRemaining = 0;
     this.mount = null;
+    this.chargeRate = 0;
+    this.chargeOnHit = 0;
   }
 
   onEquip(mount) { this.mount = mount; }
@@ -34,5 +36,13 @@ class Weapon {
 
   primary(/* context */) { return false; }
   secondary(/* context */) { return false; }
+
+  attackReadiness(/* game */) {
+    const primary = this.cooldown > 0
+      ? MathEx.clamp(1 - this.cooldownRemaining / this.cooldown, 0, 1)
+      : 1;
+    return [primary, 1, 1];
+  }
+
   render(/* ctx, context */) {}
 }
