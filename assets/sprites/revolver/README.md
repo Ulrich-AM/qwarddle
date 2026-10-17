@@ -1,29 +1,26 @@
-# Revolver sprites
+# Revolver HUD sprites
 
-Revolver art lives in this folder.
+The held revolver sprite has been removed for now. The in-world gun uses temporary block geometry.
 
-Main files:
+HUD files:
 
-- `revolver.png` - revolver sprite held by the player
-- `revolver-cylinder.png` - revolver cylinder UI sprite
-- `revolver-cylinder-bullets.png` - six-color source map for chamber regions
-- `revolver-round.png` - normal round UI sprite
-- `revolver-roundcharged.png` - charged round UI sprite
+- `revolver-cylinder.png` - cylinder UI
+- `revolver-cylinder-bullets.png` - six-color chamber source map
+- `revolver-round.png` - normal round UI
+- `revolver-roundcharged.png` - charged round UI
 
 ## Cylinder source-map colors
 
-`revolver-cylinder-bullets.png` uses these exact colors to identify each chamber:
+- `#ff0000` = chamber 1
+- `#ff00e2` = chamber 2
+- `#0066ff` = chamber 3
+- `#00ff59` = chamber 4
+- `#ffef00` = chamber 5
+- `#ff9200` = chamber 6
 
-- `#ff0000` = bullet 1
-- `#ff00e2` = bullet 2
-- `#0066ff` = bullet 3
-- `#00ff59` = bullet 4
-- `#ffef00` = bullet 5
-- `#ff9200` = bullet 6
+Runtime chamber colors:
 
-The runtime display colors are:
+- NORMAL = `#aeb7c3`
+- CHARGED = `#ff0000`
 
-- NORMAL loaded chamber = `#aeb7c3`
-- CHARGED loaded chamber = `#ff0000`
-
-The `chambers/` directory contains transparent per-chamber masks derived from the source map. QWARDDLE uses those masks instead of reading pixels at runtime, so the cylinder works reliably when `index.html` is opened directly through `file://`.
+The `chambers/` directory contains transparent per-chamber masks derived from the source map so direct `file://` play does not depend on canvas pixel readback.
