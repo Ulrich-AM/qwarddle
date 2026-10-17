@@ -141,6 +141,16 @@ class Player {
     return y - this.cfg.bodyH / 2 - this.cfg.bodyHeight;
   }
 
+  footSurfaceY(x, referenceY = null) {
+    const ref = referenceY ?? this.collisionBox().bottom;
+    if (this.terrain.surfaceYAt) {
+      const y = this.terrain.surfaceYAt(x, ref);
+      if (y != null) return y;
+    }
+    const ground = this.terrain.groundYAt ? this.terrain.groundYAt(x) : this.terrain.yAt(x);
+    return ground == null ? this.terrain.yAt(x) : ground;
+  }
+
   stanceOffset(index) {
     return (index ? 1 : -1) * this.cfg.stanceSpread * 0.5;
   }
@@ -290,8 +300,7 @@ class Player {
     const maxReach = this.cfg.upperLeg + this.cfg.lowerLeg - 4;
     for (let n = 0; n < 2; n++) {
       if (this.terrain.clampGroundX) x = this.terrain.clampGroundX(x, 2);
-      const groundY = this.terrain.groundYAt ? this.terrain.groundYAt(x) : this.terrain.yAt(x);
-      const safeGroundY = groundY == null ? this.terrain.yAt(x) : groundY;
+      const safeGroundY = this.footSurfaceY(x, this.collisionBox().bottom);
       const dy = safeGroundY - hip.y;
       const maxDX = Math.sqrt(Math.max(1, maxReach * maxReach - dy * dy));
       x = MathEx.clamp(x, hip.x - maxDX, hip.x + maxDX);
@@ -310,7 +319,7 @@ class Player {
     const targetX = this.predictedLandingX(index, direction, speed01);
     this.legs[index].beginSwing(
       targetX,
-      (this.terrain.groundYAt ? this.terrain.groundYAt(targetX) : this.terrain.yAt(targetX)) ?? this.terrain.yAt(targetX),
+      this.footSurfaceY(targetX, this.collisionBox().bottom),
       duration,
       this.cfg.stepHeight * (0.85 + 0.35 * speed01),
       false
@@ -326,7 +335,7 @@ class Player {
       const leg = this.legs[i];
       let x = this.clampFootXToReach(i, leg.foot.x);
       x = MathEx.clamp(x, this.x - 44, this.x + 44);
-      const gy = (this.terrain.groundYAt ? this.terrain.groundYAt(x) : this.terrain.yAt(x));
+      const gy = this.footSurfaceY(x, this.collisionBox().bottom);
       if (gy != null) leg.plant(x, gy);
       else leg.releaseToAir();
     }
@@ -405,7 +414,7 @@ class Player {
         const targetX = this.clampFootXToReach(worst, this.x + this.stanceOffset(worst));
         this.legs[worst].beginSwing(
           targetX,
-          (this.terrain.groundYAt ? this.terrain.groundYAt(targetX) : this.terrain.yAt(targetX)) ?? this.terrain.yAt(targetX),
+          this.footSurfaceY(targetX, this.collisionBox().bottom),
           this.cfg.stopSettleTime,
           this.cfg.stepHeight * 0.52,
           false
