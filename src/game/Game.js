@@ -203,7 +203,8 @@ class Game {
     this.player.render(ctx, false);
     this.camera.end(ctx);
 
-    // Shared combat HUD stays in screen space, independent of camera zoom.
+    // Weapon-specific queue/status stays top-left, shared bars stay bottom-left.
+    this.player.weaponMount.weapon?.renderHud?.(ctx, 22, 22);
     this.renderCombatHud(ctx);
   }
 
