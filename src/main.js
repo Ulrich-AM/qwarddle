@@ -1,4 +1,7 @@
 'use strict';
 
-const app = new App();
-app.start();
+Language.load('english').finally(() => {
+  Language.applyDocument();
+  const app = new App();
+  app.start();
+});
