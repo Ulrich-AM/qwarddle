@@ -323,4 +323,39 @@ class Revolver extends Weapon {
     return [attack1, attack2, attack3];
   }
 
+  renderHud(ctx, x = 22, y = 22) {
+    const slotW = 24;
+    const slotH = 32;
+    const gap = 7;
+    const pad = 7;
+    const totalW = pad * 2 + this.capacity * slotW + (this.capacity - 1) * gap;
+    const totalH = slotH + pad * 2;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(20,20,20,0.82)';
+    ctx.fillRect(x, y, totalW, totalH);
+
+    for (let i = 0; i < this.capacity; i++) {
+      const slotX = x + pad + i * (slotW + gap);
+      const slotY = y + pad;
+
+      ctx.strokeStyle = i === 0 ? '#f2f2f2' : '#555555';
+      ctx.lineWidth = i === 0 ? 2 : 1;
+      ctx.strokeRect(slotX, slotY, slotW, slotH);
+
+      if (i >= this.rounds.length) continue;
+
+      const charged = this.rounds[i] === 'charged';
+      const image = charged ? this.sprites.chargedRound : this.sprites.round;
+      if (!this.drawImageFitted(ctx, image, slotX + slotW * 0.5, slotY + slotH * 0.5, slotW - 4, slotH - 4)) {
+        ctx.fillStyle = charged ? '#ff5656' : '#e6e6e6';
+        ctx.beginPath();
+        ctx.arc(slotX + slotW * 0.5, slotY + slotH * 0.5, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    ctx.restore();
+  }
+
 }
