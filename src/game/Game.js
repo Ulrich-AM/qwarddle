@@ -211,7 +211,8 @@ class Game {
       spawnTimer:0,
       rate:options.rate ?? 0.12,
       size:options.size ?? 22,
-      drift:options.drift ?? 18
+      drift:options.drift ?? 18,
+      opacity:options.opacity ?? 1
     });
   }
 
@@ -239,7 +240,8 @@ class Game {
           vy:-22 - Math.random() * 28,
           life,
           maxLife:life,
-          size:emitter.size * (0.75 + Math.random() * 0.45)
+          size:emitter.size * (0.75 + Math.random() * 0.45),
+          opacity:emitter.opacity
         });
       }
     }
@@ -258,7 +260,7 @@ class Game {
     for (const particle of this.statusParticles) {
       const alpha = MathEx.clamp(particle.life / particle.maxLife, 0, 1);
       ctx.save();
-      ctx.globalAlpha *= alpha;
+      ctx.globalAlpha *= alpha * (particle.opacity ?? 1);
       ctx.translate(Math.round(particle.x), Math.round(particle.y));
       ctx.imageSmoothingEnabled = false;
 
