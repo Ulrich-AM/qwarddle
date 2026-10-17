@@ -295,22 +295,23 @@ class Revolver extends Weapon {
     ctx.restore();
   }
 
-  renderHud(ctx, x = 22, y = 22) {
-    const panelW = 292;
-    const panelH = 98;
-    const cylinderSize = 78;
-    const cylinderX = x + 10;
-    const cylinderY = y + 10;
+  renderHud(ctx, x = 18, y = 18) {
+    const panelW = 244;
+    const panelH = 76;
+    const cylinderSize = 58;
+    const cylinderX = x + 9;
+    const cylinderY = y + 9;
 
     ctx.save();
-    ctx.fillStyle = '#2d2d2d';
+    ctx.fillStyle = '#292929';
     ctx.fillRect(x, y, panelW, panelH);
 
+    ctx.save();
     ctx.translate(cylinderX + cylinderSize / 2, cylinderY + cylinderSize / 2);
     ctx.rotate(this.hudAngle);
 
     if (!this.drawImageFitted(ctx, this.sprites.cylinder, 0, 0, cylinderSize, cylinderSize)) {
-      ctx.fillStyle = '#f0f0f0';
+      ctx.fillStyle = '#d7d7d7';
       ctx.fillRect(-cylinderSize / 2, -cylinderSize / 2, cylinderSize, cylinderSize);
     }
 
@@ -324,29 +325,28 @@ class Revolver extends Weapon {
     ctx.restore();
 
     const roundsStartX = cylinderX + cylinderSize + 18;
-    const roundY = y + 34;
-    const slotGap = 29;
+    const roundY = y + panelH / 2;
+    const slotGap = 25;
 
-    for (let i = 0; i < this.rounds.length; i++) {
+    // Six fixed slots make the queue readable. Empty chambers are just faint boxes.
+    for (let i = 0; i < this.capacity; i++) {
+      const slotX = roundsStartX + i * slotGap;
+      if (i >= this.rounds.length) {
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(slotX + 4, roundY - 11, 13, 22);
+        continue;
+      }
+
       const charged = this.rounds[i] === 'charged';
       const image = charged ? this.sprites.chargedRound : this.sprites.round;
-      const slotX = roundsStartX + i * slotGap;
-      if (!this.drawImageFitted(ctx, image, slotX + 11, roundY, 22, 28)) {
-        const size = charged ? 15 : 11;
-        ctx.save();
-        ctx.translate(slotX + 11, roundY);
-        if (charged) ctx.rotate(Math.PI / 4);
-        ctx.fillStyle = '#ededed';
-        ctx.fillRect(-size / 2, -size / 2, size, size);
-        ctx.restore();
+      if (!this.drawImageFitted(ctx, image, slotX + 10, roundY, 20, 26)) {
+        ctx.fillStyle = charged ? this.chargedChamberColor : this.normalChamberColor;
+        ctx.fillRect(slotX + 4, roundY - 9, 12, 18);
       }
     }
 
-    ctx.fillStyle = '#8f8f8f';
-    ctx.font = '900 9px Arial, sans-serif';
-    ctx.textBaseline = 'top';
-    ctx.fillText('Q RELOAD', roundsStartX, y + 68);
-    ctx.fillText('E CHARGE', roundsStartX + 74, y + 68);
     ctx.restore();
   }
+
 }
