@@ -92,3 +92,14 @@ The game converts those colored regions into grayscale loaded-chamber overlays a
 - `src/game/` app/screens, camera, gameplay loop, customization
 - `src/world/` island/terrain queries
 - `src/input/` keyboard and pointer input
+
+
+## Character sprites
+
+Character art lives in `assets/sprites/characters/` and uses three base + color-layer pairs:
+
+- `qward-body.png` + `qward-body-color.png`
+- `qward-hand.png` + `qward-hand-color.png`
+- `qward-foot.png` + `qward-foot-color.png`
+
+The `-color` layers use `#ff0000` as the recolorable region. CHEST tints the body layer, ARMS tint the procedural arms and hand layer, and LEGS tint the procedural legs and foot layers.
