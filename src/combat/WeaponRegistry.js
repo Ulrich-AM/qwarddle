@@ -2,7 +2,11 @@
 
 const WeaponRegistry = Object.freeze({
   list: [
-    { id:'revolver', name:'REVOLVER', description:'Six shots. Q top-up reload. E loads six high-recoil charged rounds.' }
+    {
+      id:'revolver',
+      sprite:'assets/sprites/revolver/revolver.png',
+      languageKey:'weapons.revolver'
+    }
   ],
   create(id) {
     if (id === 'revolver') return new Revolver();
