@@ -1,80 +1,85 @@
-# QWARDDLE v0.0.19
+# QWARDDLE v0.0.20
 
-A tiny local-first 2D fighter prototype built with plain HTML, CSS, JavaScript, and Canvas 2D.
+A local-first 2D fighter prototype built with plain HTML, CSS, JavaScript, and Canvas 2D.
 
 Open `index.html` directly. No npm, bundler, or local server is required.
 
 ## Current flow
 
-MAIN MENU -> GAMEMODE -> SINGLEPLAYER CUSTOMIZATION -> ISLAND TEST MAP
+MAIN MENU -> SOLO -> MAP -> CUSTOMIZE -> FIGHT
 
-Local and online multiplayer are still intentionally disabled.
+Local and online multiplayer remain disabled for now.
 
-## v0.0.19
+## v0.0.20
 
-This patch is the first real UI and sprite pass.
+This patch moves QWARDDLE from one hard-coded island toward reusable match maps.
 
-- Added the real revolver held sprite.
-- Added the revolver cylinder HUD sprite.
-- Added support for the six-color cylinder bullet-region mask.
-- Added the normal and charged round HUD sprites.
-- Cylinder chamber fills now use `#aeb7c3` for NORMAL and `#ff0000` for CHARGED.
-- Chamber occupancy uses six derived transparent masks, avoiding local `file://` canvas-readback issues.
-- Added `assets/sprites/characters/` for body, hand, and foot sprites.
-- Procedural arms and legs now use one connected pixel-style outline beneath the whole limb.
-- Hands and feet are generated outlined pixel circles. Foot sprites were removed.
-- The revolver keeps geometry fallbacks if an image is missing or still loading.
-- Reworked the main menu into a more compact, intentional grayscale layout.
-- Reworked the gamemode screen so the three modes no longer occupy giant empty cards.
-- Simplified the beta menus so they only show choices a player actually needs.
-- Weapon selection is now a square sprite grid.
-- Hovering or focusing a weapon opens a compact moveset window.
-- Player-facing UI and weapon copy now live in `assets/language/language-english.json`.
-- The registry only stores weapon IDs and sprite paths instead of presentation copy.
-- Grouped the revolver cylinder and ammunition into one compact in-game HUD block.
-- Added `index.html` as the actual entry point.
+- Maps are made from axis-aligned rectangles.
+- Touching or overlapping map rectangles render as one merged outlined silhouette.
+- Added a map-selection screen before customization.
+- Added two starter rectangle maps in `src/world/MapRegistry.js`.
+- Spawn points now come from the selected map.
+- The old hand-coded sloped island was removed.
+- The held revolver PNG was removed for now and replaced with a blocky placeholder.
+- Body sprites render without rotation, use snapped coordinates, and disable smoothing for sharper pixel art.
+- Arm and leg outlines are thicker and overlap their joints.
+- Hands and feet are generated pixel circles whose outlines merge into the limb silhouette.
+- The standalone map editor exports the same rectangle/spawn JSON shape used by the runtime map registry.
+
+## Map format
+
+Map definitions use this shape:
+
+```json
+{
+  "version": 1,
+  "id": "my-map",
+  "name": "MY MAP",
+  "width": 2200,
+  "height": 980,
+  "waterY": 760,
+  "background": "#242a30",
+  "groundColor": "#596057",
+  "outlineColor": "#202020",
+  "outlineSize": 10,
+  "spawns": [
+    { "x": 560, "y": 500 },
+    { "x": 1640, "y": 500 }
+  ],
+  "rectangles": [
+    { "x": 300, "y": 560, "w": 1600, "h": 180 }
+  ]
+}
+```
+
+Rectangle collision currently uses flat top surfaces. Visual rectangles may touch or overlap freely.
 
 ## Customization
 
 Current choices:
 
 - Weapon: REVOLVER
-- Color groups: CHEST, ARMS, LEGS
+- Color groups: BODY, ARMS, LEGS
 
-The arm color applies to both arm segments and the hand. The leg color applies to both complete legs and feet.
+The body uses `qward-body.png` plus `qward-body-color.png`. Generated limbs, hands, and feet use the selected group colors.
 
 ## Revolver
 
-The revolver uses a six-slot ordered ammo chain rather than a single ammo number.
+The revolver still uses a six-slot ordered ammo chain.
 
-- 6-round capacity
-- LMB fires the next round in the chain.
-- Every shot spins the held revolver once. That spin is also the firing cooldown.
-- Q performs a fast top-up reload and preserves existing charged rounds.
-- E dumps the current cylinder and loads six charged rounds after a two-spin loading animation.
-- Charged rounds deal more damage and knockback and apply intentionally huge recoil to the player body.
-- Reloading with charged rounds remaining appends normal rounds after them rather than replacing them.
+- LMB fires the next round.
+- Each shot performs the revolver spin/cooldown.
+- Q fills empty chambers with normal rounds without replacing charged rounds.
+- E dumps the cylinder and loads six charged rounds.
+- Charged rounds deal more damage and produce extreme recoil.
 
-### Revolver sprite files
+The held weapon is temporary geometry for now. Cylinder and ammo HUD sprites remain active.
 
-Located in `assets/sprites/revolver/`:
+## Language files
 
-- `revolver.png`
-- `revolver-cylinder.png`
-- `revolver-cylinder-bullets.png`
-- `revolver-round.png`
-- `revolver-roundcharged.png`
+English text lives in `assets/language/language-english.json`.
 
-The cylinder bullet mask uses these exact chamber colors:
-
-- `#ff0000` = chamber 1
-- `#ff00e2` = chamber 2
-- `#0066ff` = chamber 3
-- `#00ff59` = chamber 4
-- `#ffef00` = chamber 5
-- `#ff9200` = chamber 6
-
-The game converts those colored regions into grayscale loaded-chamber overlays at runtime. If a browser prevents local canvas pixel reads, the base cylinder and separate ammunition sprites still render normally.
+Additional languages can follow the same structure. The built-in English fallback preserves direct `file://` launching.
 
 ## Controls
 
@@ -82,37 +87,8 @@ The game converts those colored regions into grayscale loaded-chamber overlays a
 - W / Space / Up: jump
 - Shift: run
 - Mouse: aim
-- LMB: revolver shot
-- Q: top-up reload
-- E: dump cylinder + load six charged rounds
+- LMB: fire
+- Q: reload
+- E: charged load
 - R: reset arena
 - Esc: back
-
-## Structure
-
-- `assets/sprites/` art assets
-- `src/player/` procedural body, leg, arm, and hand systems
-- `src/combat/` weapon mount, revolver, projectiles, registry
-- `src/game/` app/screens, camera, gameplay loop, customization
-- `src/world/` island/terrain queries
-- `src/input/` keyboard and pointer input
-
-
-## Character sprites
-
-Character art lives in `assets/sprites/characters/` and uses three base + color-layer pairs:
-
-- `qward-body.png` + `qward-body-color.png`
-- `qward-hand.png` + `qward-hand-color.png`
-- `qward-foot.png` + `qward-foot-color.png`
-
-The `-color` layers use `#ff0000` as the recolorable region. CHEST tints the body layer, ARMS tint the procedural arms and hand layer, and LEGS tint the procedural legs and foot layers.
-
-
-## Language files
-
-English text lives in `assets/language/language-english.json`.
-
-The file contains menu labels, customization labels, weapon names, descriptions, and movesets. Additional languages can follow the same shape, for example `language-tagalog.json`.
-
-When QWARDDLE is served through HTTP, the JSON file is loaded directly. When `index.html` is opened through `file://`, the game uses the matching built-in English fallback so the no-server workflow still works.
