@@ -20,10 +20,20 @@ class Player {
 
     this.spriteRoot = 'assets/sprites/characters/';
     this.characterSprites = {
-      body:this.loadCharacterSprite(['body.png', 'head-body.png']),
-      hand:this.loadCharacterSprite(['hand.png']),
-      foot:this.loadCharacterSprite(['foot.png'])
+      body:{
+        base:this.loadCharacterSprite('qward-body.png'),
+        color:this.loadCharacterSprite('qward-body-color.png')
+      },
+      hand:{
+        base:this.loadCharacterSprite('qward-hand.png'),
+        color:this.loadCharacterSprite('qward-hand-color.png')
+      },
+      foot:{
+        base:this.loadCharacterSprite('qward-foot.png'),
+        color:this.loadCharacterSprite('qward-foot-color.png')
+      }
     };
+    this.characterTintCache = new WeakMap();
 
     this.x = 0;
     this.y = 0;
@@ -51,17 +61,9 @@ class Player {
     this.weaponMount = new WeaponMount({ hand:this.hand });
   }
 
-  loadCharacterSprite(candidates) {
+  loadCharacterSprite(file) {
     const image = new Image();
-    let index = 0;
-
-    const tryNext = () => {
-      if (index >= candidates.length) return;
-      image.src = this.spriteRoot + candidates[index++];
-    };
-
-    image.onerror = tryNext;
-    tryNext();
+    image.src = this.spriteRoot + file;
     return image;
   }
 
@@ -75,6 +77,56 @@ class Player {
     const width = image.naturalWidth * scale;
     const height = image.naturalHeight * scale;
     ctx.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
+    return true;
+  }
+
+  tintedCharacterLayer(image, color) {
+    if (!this.spriteReady(image)) return null;
+
+    let byColor = this.characterTintCache.get(image);
+    if (!byColor) {
+      byColor = new Map();
+      this.characterTintCache.set(image, byColor);
+    }
+    if (byColor.has(color)) return byColor.get(color);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    // The -color sprite is a transparent layer whose #ff0000 region marks
+    // recolorable pixels. Tinting the layer avoids file:// pixel readback.
+    ctx.drawImage(image, 0, 0);
+    ctx.globalCompositeOperation = 'source-in';
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = 'source-over';
+
+    byColor.set(color, canvas);
+    return canvas;
+  }
+
+  drawCharacterPart(ctx, sprites, tint, centerX, centerY, maxWidth, maxHeight = maxWidth) {
+    const baseReady = this.spriteReady(sprites?.base);
+    const colorReady = this.spriteReady(sprites?.color);
+    if (!baseReady && !colorReady) return false;
+
+    const reference = baseReady ? sprites.base : sprites.color;
+    const scale = Math.min(maxWidth / reference.naturalWidth, maxHeight / reference.naturalHeight);
+    const width = reference.naturalWidth * scale;
+    const height = reference.naturalHeight * scale;
+    const x = centerX - width / 2;
+    const y = centerY - height / 2;
+
+    if (colorReady) {
+      const tinted = this.tintedCharacterLayer(sprites.color, tint);
+      if (tinted) ctx.drawImage(tinted, x, y, width, height);
+    }
+
+    // Draw the outline/base last so its pixels always stay crisp over the tint.
+    if (baseReady) ctx.drawImage(sprites.base, x, y, width, height);
     return true;
   }
 
@@ -530,9 +582,10 @@ class Player {
     const footAngle = leg.state === 'plant' ? Math.atan(this.terrain.slopeAt(foot.x)) : 0;
     ctx.rotate(footAngle);
 
-    if (!this.drawSpriteCentered(
+    if (!this.drawCharacterPart(
       ctx,
       this.characterSprites.foot,
+      this.appearance[`foot${index}`],
       0,
       -this.cfg.footH * 0.5,
       this.cfg.footW * 1.35,
@@ -580,7 +633,15 @@ class Player {
     ctx.save();
     ctx.translate(this.x + sway, this.y);
     ctx.rotate(this.bodyAngle);
-    if (!this.drawSpriteCentered(ctx, this.characterSprites.body, 0, 0, this.cfg.bodyW * 1.22, this.cfg.bodyH * 1.22)) {
+    if (!this.drawCharacterPart(
+      ctx,
+      this.characterSprites.body,
+      this.appearance.body,
+      0,
+      0,
+      this.cfg.bodyW * 1.22,
+      this.cfg.bodyH * 1.22
+    )) {
       ctx.fillStyle = '#202020';
       ctx.fillRect(-this.cfg.bodyW / 2 - 2, -this.cfg.bodyH / 2 - 2, this.cfg.bodyW + 4, this.cfg.bodyH + 4);
       ctx.fillStyle = this.appearance.body;
