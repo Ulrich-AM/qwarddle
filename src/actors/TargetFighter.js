@@ -77,6 +77,7 @@ class TargetFighter extends Player {
     this.aim.x = lookAt?.x ?? this.x - 120;
     this.aim.y = lookAt?.y ?? this.y;
     super.update(dt, this.aim);
+    if (this.health <= 0) this.dead = true;
   }
 
   renderTarget(ctx) {
