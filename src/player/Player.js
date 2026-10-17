@@ -23,14 +23,6 @@ class Player {
       body:{
         base:this.loadCharacterSprite('qward-body.png'),
         color:this.loadCharacterSprite('qward-body-color.png')
-      },
-      hand:{
-        base:this.loadCharacterSprite('qward-hand.png'),
-        color:this.loadCharacterSprite('qward-hand-color.png')
-      },
-      foot:{
-        base:this.loadCharacterSprite('qward-foot.png'),
-        color:this.loadCharacterSprite('qward-foot-color.png')
       }
     };
     this.characterTintCache = new WeakMap();
@@ -550,14 +542,36 @@ class Player {
     this.wasMoving = moving;
   }
 
-  drawSegment(ctx, a, b, width, color) {
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
+  drawPixelLine(ctx, a, b, width, color) {
+    const x0 = Math.round(a.x);
+    const y0 = Math.round(a.y);
+    const x1 = Math.round(b.x);
+    const y1 = Math.round(b.y);
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy))));
+    const size = Math.max(1, Math.round(width));
+
+    ctx.fillStyle = color;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const x = Math.round(x0 + dx * t);
+      const y = Math.round(y0 + dy * t);
+      ctx.fillRect(Math.round(x - size / 2), Math.round(y - size / 2), size, size);
+    }
+  }
+
+  drawPixelCircle(ctx, x, y, radius, color, pixel = 2) {
+    const r = Math.max(pixel, Math.round(radius));
+    const cx = Math.round(x);
+    const cy = Math.round(y);
+    ctx.fillStyle = color;
+
+    for (let yy = -r; yy <= r; yy += pixel) {
+      const span = Math.floor(Math.sqrt(Math.max(0, r * r - yy * yy)));
+      const left = Math.floor(span / pixel) * pixel;
+      ctx.fillRect(cx - left, cy + yy, left * 2 + pixel, pixel);
+    }
   }
 
   drawLeg(ctx, index, debug) {
@@ -565,30 +579,18 @@ class Player {
     const leg = this.legs[index];
     const knee = leg.knee;
     const foot = leg.foot;
+    const footRadius = 10;
+    const visualFoot = { x:foot.x, y:foot.y - footRadius };
 
-    this.drawSegment(ctx, hip, knee, 10, this.appearance[`legUpper${index}`]);
-    this.drawSegment(ctx, knee, foot, 9, this.appearance[`legLower${index}`]);
+    // One silhouette outline for the entire leg first, then both colored bones.
+    this.drawPixelLine(ctx, hip, knee, 14, '#202020');
+    this.drawPixelLine(ctx, knee, visualFoot, 13, '#202020');
+    this.drawPixelLine(ctx, hip, knee, 10, this.appearance[`legUpper${index}`]);
+    this.drawPixelLine(ctx, knee, visualFoot, 9, this.appearance[`legLower${index}`]);
 
-    ctx.save();
-    ctx.translate(foot.x, foot.y);
-    const footAngle = leg.state === 'plant' ? Math.atan(this.terrain.slopeAt(foot.x)) : 0;
-    ctx.rotate(footAngle);
-
-    if (!this.drawCharacterPart(
-      ctx,
-      this.characterSprites.foot,
-      this.appearance[`foot${index}`],
-      0,
-      -this.cfg.footH * 0.5,
-      this.cfg.footW * 1.80,
-      this.cfg.footH * 3.00
-    )) {
-      ctx.fillStyle = '#202020';
-      ctx.fillRect(-this.cfg.footW / 2 - 2, -this.cfg.footH - 2, this.cfg.footW + 4, this.cfg.footH + 4);
-      ctx.fillStyle = this.appearance[`foot${index}`];
-      ctx.fillRect(-this.cfg.footW / 2, -this.cfg.footH, this.cfg.footW, this.cfg.footH);
-    }
-    ctx.restore();
+    // Feet are intentionally simple circles now, attached directly to the leg.
+    this.drawPixelCircle(ctx, visualFoot.x, visualFoot.y, footRadius + 3, '#202020', 2);
+    this.drawPixelCircle(ctx, visualFoot.x, visualFoot.y, footRadius, this.appearance[`foot${index}`], 2);
 
     if (debug) {
       ctx.fillStyle = index ? '#ff7' : '#7ff';
