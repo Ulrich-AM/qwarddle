@@ -6,6 +6,7 @@ class CustomizationScreen {
     this.items = items;
     this.preview = preview;
     this.onContinue = onContinue;
+    this.info = document.getElementById('weaponInfo');
     this.tab = 'weapon';
     this.selectedPart = 'chest';
     this.loadout = {
@@ -14,9 +15,9 @@ class CustomizationScreen {
     };
 
     this.parts = [
-      ['chest','CHEST'],
-      ['arms','ARMS'],
-      ['legs','LEGS']
+      ['chest','ui.customize.body'],
+      ['arms','ui.customize.arms'],
+      ['legs','ui.customize.legs']
     ];
     this.colors = [
       '#9a78c7','#d88b55','#e2a45f','#6096c6','#78a9d4','#c7bd4e',
@@ -38,6 +39,7 @@ class CustomizationScreen {
 
   showTab(tab) {
     this.tab = tab;
+    this.hideWeaponInfo();
     this.root.querySelectorAll('[data-tab]').forEach(button => button.classList.toggle('active', button.dataset.tab === tab));
     this.renderItems();
   }
@@ -61,31 +63,81 @@ class CustomizationScreen {
     else this.renderColors();
   }
 
+  showWeaponInfo(weapon) {
+    const copy = Language.weapon(weapon.id);
+    this.info.innerHTML = '';
+
+    const title = document.createElement('div');
+    title.className = 'weaponInfoTitle';
+    title.textContent = copy.name;
+    this.info.appendChild(title);
+
+    if (copy.description) {
+      const description = document.createElement('div');
+      description.className = 'weaponInfoDescription';
+      description.textContent = copy.description;
+      this.info.appendChild(description);
+    }
+
+    const moveset = document.createElement('div');
+    moveset.className = 'weaponInfoLabel';
+    moveset.textContent = Language.t('ui.customize.moveset', 'MOVESET');
+    this.info.appendChild(moveset);
+
+    for (const move of copy.moves || []) {
+      const row = document.createElement('div');
+      row.className = 'moveRow';
+
+      const input = document.createElement('div');
+      input.className = 'moveInput';
+      input.textContent = move.input;
+
+      const text = document.createElement('div');
+      const name = document.createElement('strong');
+      name.textContent = move.name;
+      const detail = document.createElement('div');
+      detail.className = 'moveDescription';
+      detail.textContent = move.description;
+      text.append(name, detail);
+
+      row.append(input, text);
+      this.info.appendChild(row);
+    }
+
+    this.info.classList.remove('hidden');
+  }
+
+  hideWeaponInfo() {
+    this.info.classList.add('hidden');
+  }
+
   renderWeapons() {
     const grid = document.createElement('div');
-    grid.className = 'itemGrid weaponGrid';
+    grid.className = 'weaponGrid';
 
     for (const weapon of WeaponRegistry.list) {
+      const copy = Language.weapon(weapon.id);
       const button = document.createElement('button');
-      button.className = `itemCard weaponCard ${this.loadout.weapon === weapon.id ? 'selected' : ''}`.trim();
+      button.className = `weaponTile ${this.loadout.weapon === weapon.id ? 'selected' : ''}`.trim();
+      button.title = copy.name;
+      button.setAttribute('aria-label', copy.name);
 
-      const name = document.createElement('span');
-      name.className = 'weaponCardName';
-      name.textContent = weapon.name;
-      button.appendChild(name);
+      const image = document.createElement('img');
+      image.className = 'weaponTileSprite';
+      image.src = weapon.sprite;
+      image.alt = '';
+      button.appendChild(image);
 
-      if (weapon.description) {
-        const description = document.createElement('small');
-        description.className = 'weaponCardDescription';
-        description.textContent = weapon.description;
-        button.appendChild(description);
-      }
-
+      button.addEventListener('mouseenter', () => this.showWeaponInfo(weapon));
+      button.addEventListener('mouseleave', () => this.hideWeaponInfo());
+      button.addEventListener('focus', () => this.showWeaponInfo(weapon));
+      button.addEventListener('blur', () => this.hideWeaponInfo());
       button.addEventListener('click', () => {
         this.loadout.weapon = weapon.id;
         this.syncPreview();
         this.renderItems();
       });
+
       grid.appendChild(button);
     }
 
@@ -120,8 +172,8 @@ class CustomizationScreen {
   renderColors() {
     const partGrid = document.createElement('div');
     partGrid.className = 'partSelector';
-    for (const [key,label] of this.parts) {
-      partGrid.appendChild(this.makeCard(label, this.selectedPart === key, () => {
+    for (const [key,labelKey] of this.parts) {
+      partGrid.appendChild(this.makeCard(Language.t(labelKey, key.toUpperCase()), this.selectedPart === key, () => {
         this.selectedPart = key;
         this.renderItems();
       }, 'partCard'));
