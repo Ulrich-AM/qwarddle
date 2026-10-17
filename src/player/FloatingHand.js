@@ -57,15 +57,12 @@ class FloatingHand {
       dy *= scale;
     }
 
-    const half = this.cfg.handSize * 0.5;
-    const x = origin.x + dx;
-    let y = origin.y + dy;
-
-    // The motor respects actual solid island terrain, but water/open space does
-    // not behave like an invisible wall.
-    const ground = this.terrain.groundYAt ? this.terrain.groundYAt(x) : this.terrain.yAt(x);
-    if (ground != null) y = Math.min(y, ground - half);
-    return { x, y };
+    // Do not clamp against groundYAt here. Rectangle maps can contain ceilings
+    // and walls, so "highest surface at X" is not necessarily a floor.
+    return {
+      x:origin.x + dx,
+      y:origin.y + dy
+    };
   }
 
   applyImpulse(ix, iy) {
@@ -80,15 +77,63 @@ class FloatingHand {
   }
 
   resolveWorldCollision(worldWidth, worldHeight) {
-    const half = this.cfg.handSize * 0.5;
-    const ground = this.terrain.groundYAt ? this.terrain.groundYAt(this.x) : this.terrain.yAt(this.x);
-    if (ground != null) {
-      const floorY = ground - half;
-      if (this.y > floorY) {
-        this.y = floorY;
-        if (this.vy > 0) this.vy *= -this.cfg.handCollisionBounce;
-        this.vx *= this.cfg.handCollisionFriction;
+    const radius = this.cfg.handSize * 0.56;
+    const bounce = this.cfg.handCollisionBounce;
+    const friction = this.cfg.handCollisionFriction;
+
+    // Keep the physical hand inside world X bounds.
+    if (this.x < radius) {
+      this.x = radius;
+      if (this.vx < 0) this.vx *= -bounce;
+      this.vy *= friction;
+    } else if (this.x > worldWidth - radius) {
+      this.x = worldWidth - radius;
+      if (this.vx > 0) this.vx *= -bounce;
+      this.vy *= friction;
+    }
+
+    // Treat every terrain rectangle as a true solid. Using an expanded AABB for
+    // the hand center gives a cheap circle-like collision shell and, importantly,
+    // handles floors, walls, and ceilings with the same code.
+    for (let iteration = 0; iteration < 4; iteration++) {
+      let corrected = false;
+
+      for (const rect of this.terrain.rectangles || []) {
+        const left = rect.x - radius;
+        const right = rect.x + rect.w + radius;
+        const top = rect.y - radius;
+        const bottom = rect.y + rect.h + radius;
+
+        if (this.x <= left || this.x >= right || this.y <= top || this.y >= bottom) continue;
+
+        const pushLeft = this.x - left;
+        const pushRight = right - this.x;
+        const pushUp = this.y - top;
+        const pushDown = bottom - this.y;
+        const minimum = Math.min(pushLeft, pushRight, pushUp, pushDown);
+
+        if (minimum === pushLeft) {
+          this.x = left;
+          if (this.vx > 0) this.vx *= -bounce;
+          this.vy *= friction;
+        } else if (minimum === pushRight) {
+          this.x = right;
+          if (this.vx < 0) this.vx *= -bounce;
+          this.vy *= friction;
+        } else if (minimum === pushUp) {
+          this.y = top;
+          if (this.vy > 0) this.vy *= -bounce;
+          this.vx *= friction;
+        } else {
+          this.y = bottom;
+          if (this.vy < 0) this.vy *= -bounce;
+          this.vx *= friction;
+        }
+
+        corrected = true;
       }
+
+      if (!corrected) break;
     }
   }
 
