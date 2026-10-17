@@ -18,25 +18,41 @@ class ProjectileSystem {
   }
 
   update(dt, { width, height, targets = [] }) {
-    for (const projectile of this.items) {
-      projectile.update(dt);
+    // Snapshot the list so burst projectiles begin updating on the next fixed step.
+    const active = this.items.slice();
+
+    for (const projectile of active) {
+      projectile.update(dt, {
+        targets,
+        terrain:this.terrain,
+        system:this,
+        width,
+        height
+      });
       if (projectile.dead) continue;
 
-      if (projectile.x < -40 || projectile.x > width + 40 || projectile.y < -40 || projectile.y > height + 40) {
+      if (projectile.x < -60 || projectile.x > width + 60 || projectile.y < -60 || projectile.y > height + 60) {
         projectile.dead = true;
         continue;
       }
 
-      const ground = this.terrain.groundYAt ? this.terrain.groundYAt(projectile.x) : this.terrain.yAt(projectile.x);
-      if (ground != null && projectile.y >= ground) {
-        projectile.dead = true;
-        continue;
+      if (!projectile.ignoresTerrain && !projectile.handlesTerrain) {
+        const radius = projectile.hitRadius ?? Math.max(projectile.width || 0, projectile.height || 0) * 0.5;
+        if (this.terrain.circleIntersectsSolid?.(projectile.x, projectile.y, radius)) {
+          projectile.dead = true;
+          continue;
+        }
       }
 
       for (const target of targets) {
         if (!target || target.dead || !target.hitbox || !target.takeHit) continue;
-        if (this.hitRect(projectile, target.hitbox())) {
-          target.takeHit(projectile);
+        if (projectile.hitTargets?.has(target)) continue;
+        if (!this.hitRect(projectile, target.hitbox())) continue;
+
+        target.takeHit(projectile);
+        projectile.hitTargets?.add(target);
+
+        if (!projectile.pierceTargets) {
           projectile.dead = true;
           break;
         }
