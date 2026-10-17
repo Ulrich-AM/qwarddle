@@ -20,7 +20,7 @@ This patch moves QWARDDLE from one hard-coded island toward reusable match maps.
 - Added two starter rectangle maps in `src/world/MapRegistry.js`.
 - Spawn points now come from the selected map.
 - The old hand-coded sloped island was removed.
-- The held revolver PNG was removed for now and replaced with a blocky placeholder.
+- The held revolver sprite is active again.
 - Body sprites render without rotation, use snapped coordinates, and disable smoothing for sharper pixel art.
 - Arm and leg outlines are thicker and overlap their joints.
 - Hands and feet are generated pixel circles whose outlines merge into the limb silhouette.
@@ -58,7 +58,7 @@ Rectangle collision currently uses flat top surfaces. Visual rectangles may touc
 
 Current choices:
 
-- Weapon: REVOLVER
+- Weapons: REVOLVER, WAND
 - Color groups: BODY, ARMS, LEGS
 
 The body uses `qward-body.png` plus `qward-body-color.png`. Generated limbs, hands, and feet use the selected group colors.
@@ -73,7 +73,13 @@ The revolver still uses a six-slot ordered ammo chain.
 - E dumps the cylinder and loads six charged rounds.
 - Charged rounds deal more damage and produce extreme recoil.
 
-The held weapon is temporary geometry for now. Cylinder and ammo HUD sprites remain active.
+The held revolver sprite and its cylinder/ammo HUD sprites are active.
+
+## Wand
+
+- LMB: larger spinning star, low damage, phases through map solids.
+- Q: large pass-through star, one angle-based ricochet, then a six-star radial burst on the next wall impact.
+- E: three larger lightly-homing stars that fade after about three seconds.
 
 ## Language files
 
