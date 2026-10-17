@@ -14,7 +14,7 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   accel:1500,
   airAccel:650,
   friction:1800,
-  jumpSpeed:625,
+  jumpSpeed:760,
   gravity:1450,
 
   bodyHeight:48,
