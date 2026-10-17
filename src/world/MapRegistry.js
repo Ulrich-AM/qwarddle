@@ -3,8 +3,9 @@
 const MapRegistry = Object.freeze({
   list:[
     {
-      id:'training-blocks',
-      name:'TRAINING BLOCKS',
+      version:1,
+      id:'enclosed',
+      name:'ENCLOSED',
       width:2200,
       height:980,
       waterY:760,
@@ -13,33 +14,77 @@ const MapRegistry = Object.freeze({
       outlineColor:'#202020',
       outlineSize:10,
       spawns:[
-        { x:560, y:480 },
-        { x:1640, y:480 }
+        { x:560, y:500 },
+        { x:1640, y:500 }
       ],
       rectangles:[
-        { x:260, y:560, w:1680, h:170 },
-        { x:420, y:470, w:300, h:90 },
-        { x:1480, y:470, w:300, h:90 }
+        { x:300, y:560, w:1600, h:180 },
+        { x:300, y:120, w:180, h:460 },
+        { x:1720, y:120, w:180, h:460 },
+        { x:480, y:120, w:1240, h:60 }
       ]
     },
     {
-      id:'split-levels',
-      name:'SPLIT LEVELS',
+      version:1,
+      id:'platform',
+      name:'PLATFORM',
       width:2200,
       height:980,
-      waterY:780,
+      waterY:760,
       background:'#242a30',
       groundColor:'#596057',
       outlineColor:'#202020',
       outlineSize:10,
       spawns:[
-        { x:520, y:470 },
-        { x:1680, y:470 }
+        { x:560, y:500 },
+        { x:1640, y:500 }
       ],
       rectangles:[
-        { x:220, y:590, w:760, h:150 },
-        { x:1220, y:590, w:760, h:150 },
-        { x:760, y:470, w:680, h:80 }
+        { x:540, y:540, w:1120, h:40 },
+        { x:1000, y:580, w:160, h:400 }
+      ]
+    },
+    {
+      version:1,
+      id:'sunken',
+      name:'SUNKEN',
+      width:2200,
+      height:980,
+      waterY:760,
+      background:'#242a30',
+      groundColor:'#596057',
+      outlineColor:'#202020',
+      outlineSize:10,
+      spawns:[
+        { x:560, y:500 },
+        { x:1640, y:500 }
+      ],
+      rectangles:[
+        { x:300, y:560, w:1600, h:180 },
+        { x:300, y:460, w:180, h:120 },
+        { x:1720, y:460, w:180, h:120 }
+      ]
+    },
+    {
+      version:1,
+      id:'castle',
+      name:'CASTLE',
+      width:2200,
+      height:980,
+      waterY:760,
+      background:'#242a30',
+      groundColor:'#596057',
+      outlineColor:'#202020',
+      outlineSize:10,
+      spawns:[
+        { x:460, y:500 },
+        { x:1740, y:500 }
+      ],
+      rectangles:[
+        { x:440, y:560, w:1320, h:180 },
+        { x:860, y:360, w:460, h:260 },
+        { x:660, y:460, w:100, h:120 },
+        { x:1420, y:460, w:100, h:120 }
       ]
     }
   ],
