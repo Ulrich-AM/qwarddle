@@ -61,13 +61,13 @@
         },
         {
           "input": "Q",
-          "name": "BOUNCING STAR",
-          "description": "At full charge, fire a large star that ricochets once, then bursts into twelve smaller stars on its next wall impact."
+          "name": "HOMING STARS",
+          "description": "Fire three small stars with slight homing. They fade away after a few seconds."
         },
         {
           "input": "E",
-          "name": "HOMING STARS",
-          "description": "Fire three small stars with slight homing. They fade away after a few seconds."
+          "name": "BOUNCING STAR",
+          "description": "At full charge, fire a large star that ricochets once, then bursts into twelve smaller stars on its next wall impact."
         }
       ]
     }
