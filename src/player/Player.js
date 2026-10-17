@@ -613,8 +613,14 @@ class Player {
     const y1 = Math.round(b.y);
     const dx = x1 - x0;
     const dy = y1 - y0;
-    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy))));
+    const distance = Math.max(Math.abs(dx), Math.abs(dy));
     const size = Math.max(1, Math.round(width));
+
+    // The old renderer stamped one large square for every single pixel of line
+    // length. These squares overlap heavily, so spacing them by a fraction of
+    // their own size keeps the same chunky silhouette with far fewer draw calls.
+    const spacing = Math.max(1, Math.floor(size * 0.34));
+    const steps = Math.max(1, Math.ceil(distance / spacing));
 
     ctx.fillStyle = color;
     for (let i = 0; i <= steps; i++) {
