@@ -49,6 +49,27 @@
           "description": "Dump the cylinder and load six charged rounds with extreme recoil."
         }
       ]
+    },
+    "wand": {
+      "name": "WAND",
+      "description": "A light magic weapon that throws spinning stars with strange movement.",
+      "moves": [
+        {
+          "input": "LEFT CLICK",
+          "name": "STAR",
+          "description": "Fire a small spinning star that passes through walls."
+        },
+        {
+          "input": "Q",
+          "name": "BOUNCING STAR",
+          "description": "Fire a large star that bounces twice, then bursts into six smaller stars on its third impact."
+        },
+        {
+          "input": "E",
+          "name": "HOMING STARS",
+          "description": "Fire three small stars with slight homing. They fade away after a few seconds."
+        }
+      ]
     }
   }
 }
