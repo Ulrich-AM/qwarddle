@@ -14,6 +14,9 @@ class FloatingHand {
     this.motorX = 0;
     this.motorY = 0;
     this.time = 0;
+    this.poseOverrideTime = 0;
+    this.poseLocalX = 0;
+    this.poseLocalY = 0;
   }
 
   origin(player) {
@@ -30,6 +33,7 @@ class FloatingHand {
     this.targetY = this.y;
     this.motorX = this.x;
     this.motorY = this.y;
+    this.poseOverrideTime = 0;
     this.resolveWorldCollision(player.worldWidth, this.terrain.height);
   }
 
@@ -69,6 +73,12 @@ class FloatingHand {
     this.vy += iy;
   }
 
+  setPoseOverride(localX, localY, duration = 0.6) {
+    this.poseLocalX = localX;
+    this.poseLocalY = localY;
+    this.poseOverrideTime = Math.max(this.poseOverrideTime, duration);
+  }
+
   resolveWorldCollision(worldWidth, worldHeight) {
     const half = this.cfg.handSize * 0.5;
     const ground = this.terrain.groundYAt ? this.terrain.groundYAt(this.x) : this.terrain.yAt(this.x);
@@ -84,12 +94,18 @@ class FloatingHand {
 
   update(dt, player, pointer) {
     this.time += dt;
+    this.poseOverrideTime = Math.max(0, this.poseOverrideTime - dt);
 
     const raw = this.rawPointerTarget(player, pointer);
     this.targetX = raw.x;
     this.targetY = raw.y;
 
-    const base = this.motorTarget(player, pointer);
+    const base = this.poseOverrideTime > 0
+      ? {
+          x:player.x + this.poseLocalX * player.facing,
+          y:player.y + this.poseLocalY
+        }
+      : this.motorTarget(player, pointer);
     const speedFactor = MathEx.clamp(MathEx.hypot(this.vx, this.vy) / 650, 0, 1);
     const wobble = this.cfg.handWobble * (0.72 + speedFactor * 0.50);
     const wx = Math.sin(this.time * this.cfg.handWobbleSpeed + 0.3) * wobble;
