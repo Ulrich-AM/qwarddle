@@ -8,6 +8,8 @@ class Game {
     this.height = 0;
     this.dpr = 1;
     this.active = false;
+    this.maxCharge = 100;
+    this.charge = 0;
 
     this.config = createGameConfig();
     this.input = new KeyboardInput();
@@ -86,6 +88,7 @@ class Game {
     this.player.placeAt(spawn.x);
     this.player.setAppearance(this.loadout.appearance);
     this.player.weaponMount.equip(WeaponRegistry.create(this.loadout.weapon));
+    this.charge = 0;
     this.camera.reset(this.player);
 
     const startScreen = this.camera.worldToScreen(this.player.x + 180, this.player.y - 20);
@@ -98,11 +101,28 @@ class Game {
     return this.dummy && !this.dummy.dead ? [this.dummy] : [];
   }
 
+  gainCharge(amount) {
+    this.charge = MathEx.clamp(this.charge + Math.max(0, amount || 0), 0, this.maxCharge);
+  }
+
+  hasFullCharge() {
+    return this.charge >= this.maxCharge - 0.001;
+  }
+
+  consumeFullCharge() {
+    if (!this.hasFullCharge()) return false;
+    this.charge = 0;
+    return true;
+  }
+
   update(dt) {
     let pointerWorld = this.camera.screenToWorld(this.pointer.x, this.pointer.y);
     this.camera.update(dt, this.player, pointerWorld);
     pointerWorld = this.camera.screenToWorld(this.pointer.x, this.pointer.y);
     this.player.update(dt, pointerWorld);
+
+    const activeWeapon = this.player.weaponMount.weapon;
+    if (activeWeapon?.chargeRate > 0) this.gainCharge(activeWeapon.chargeRate * dt);
 
     const weaponContext = {
       projectiles:this.projectiles,
@@ -126,6 +146,50 @@ class Game {
     if (this.player.y > this.terrain.waterY + 230) this.reset();
   }
 
+  drawBar(ctx, x, y, width, height, ratio, fill, label) {
+    ratio = MathEx.clamp(ratio, 0, 1);
+
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(x - 2, y - 2, width + 4, height + 4);
+    ctx.fillStyle = '#343434';
+    ctx.fillRect(x, y, width, height);
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, Math.round(width * ratio), height);
+
+    ctx.font = '10px monospace';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(label, x, y - 4);
+  }
+
+  renderCombatHud(ctx) {
+    const x = 22;
+    const attackW = 132;
+    const attackH = 7;
+    const attackGap = 24;
+    const statW = 132;
+    const statH = 12;
+    const statGap = 10;
+
+    const bottomY = this.height - 22;
+    const statY = bottomY - statH;
+    const attack3Y = statY - 34;
+    const attack2Y = attack3Y - attackGap;
+    const attack1Y = attack2Y - attackGap;
+
+    const weapon = this.player.weaponMount.weapon;
+    const readiness = weapon?.attackReadiness?.(this) || [1, 1, 1];
+
+    this.drawBar(ctx, x, attack1Y, attackW, attackH, readiness[0] ?? 1, '#f2f2f2', 'attack1');
+    this.drawBar(ctx, x, attack2Y, attackW, attackH, readiness[1] ?? 1, '#f2f2f2', 'attack2');
+    this.drawBar(ctx, x, attack3Y, attackW, attackH, readiness[2] ?? 1, '#f2f2f2', 'attack3');
+
+    const healthRatio = this.player.maxHealth > 0 ? this.player.health / this.player.maxHealth : 0;
+    const chargeRatio = this.maxCharge > 0 ? this.charge / this.maxCharge : 0;
+    this.drawBar(ctx, x, statY, statW, statH, healthRatio, '#d94a4a', 'health');
+    this.drawBar(ctx, x + statW + statGap, statY, statW, statH, chargeRatio, '#e5c83b', 'charge');
+  }
+
   render() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.width, this.height);
@@ -139,8 +203,8 @@ class Game {
     this.player.render(ctx, false);
     this.camera.end(ctx);
 
-    // Weapon-specific HUD stays in screen space, independent of camera zoom.
-    this.player.weaponMount.weapon?.renderHud?.(ctx, 28, 28);
+    // Shared combat HUD stays in screen space, independent of camera zoom.
+    this.renderCombatHud(ctx);
   }
 
   frame(now) {
