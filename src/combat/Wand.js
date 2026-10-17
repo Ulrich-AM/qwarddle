@@ -79,9 +79,10 @@ class WandStarProjectile extends Projectile {
     ctx.imageSmoothingEnabled = false;
 
     if (this.sprite?.complete && this.sprite.naturalWidth > 0) {
-      const scale = Math.max(1, Math.floor(this.size / Math.max(this.sprite.naturalWidth, this.sprite.naturalHeight)));
-      const width = this.sprite.naturalWidth * scale;
-      const height = this.sprite.naturalHeight * scale;
+      const rawScale = this.size / Math.max(this.sprite.naturalWidth, this.sprite.naturalHeight);
+      const scale = rawScale >= 1 ? Math.max(1, Math.floor(rawScale)) : rawScale;
+      const width = Math.max(1, Math.round(this.sprite.naturalWidth * scale));
+      const height = Math.max(1, Math.round(this.sprite.naturalHeight * scale));
       ctx.drawImage(this.sprite, Math.round(-width / 2), Math.round(-height / 2), width, height);
     } else {
       ctx.fillStyle = this.color;
@@ -101,6 +102,7 @@ class WandBouncingStar extends WandStarProjectile {
     this.bounceLock = 0;
     this.handlesTerrain = true;
     this.hitRadius = this.size * 0.46;
+    this.noPhysicalHit = true;
   }
 
   circleTouchesRect(rect) {
