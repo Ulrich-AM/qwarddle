@@ -308,7 +308,7 @@ class Sake extends Weapon {
     game.addStatusVisual(
       player,
       'assets/sprites/characters/enlightned-particle.png',
-      outcome === 2 ? 2.4 : 5,
+      5,
       'sake-drink'
     );
     return true;
@@ -343,6 +343,8 @@ class Sake extends Weapon {
     this.drunkRemaining = this.drunkDuration;
     this.drunkMoveTimer = 0.15;
     this.beginPose('chug', 1.05);
+
+    game.removeStatusVisual?.(player, 'sake-drink');
 
     player.addBuff('sake-drunk', this.drunkDuration, {
       defense:0.5,
