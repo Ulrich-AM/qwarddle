@@ -46,6 +46,10 @@ class Player {
     this.health = this.maxHealth;
     this.tempHealth = 0;
     this.tempHealthTime = 0;
+    this.buffs = new Map();
+    this.bleedTime = 0;
+    this.bleedDps = 0;
+    this.stunTime = 0;
 
     this.legs = [new ProceduralLeg(0), new ProceduralLeg(1)];
     this.hand = new FloatingHand({ terrain:this.terrain, config:this.cfg });
@@ -271,6 +275,10 @@ class Player {
     this.health = this.maxHealth;
     this.tempHealth = 0;
     this.tempHealthTime = 0;
+    this.buffs.clear();
+    this.bleedTime = 0;
+    this.bleedDps = 0;
+    this.stunTime = 0;
 
     for (let i = 0; i < 2; i++) {
       const leg = this.legs[i];
@@ -295,8 +303,42 @@ class Player {
     this.tempHealthTime = Math.max(this.tempHealthTime, duration);
   }
 
+  heal(amount) {
+    this.health = Math.min(this.maxHealth, this.health + Math.max(0, amount || 0));
+  }
+
+  addBuff(id, duration, multipliers = {}) {
+    this.buffs.set(id, {
+      time:Math.max(0, duration || 0),
+      defense:multipliers.defense ?? 1,
+      damage:multipliers.damage ?? 1,
+      melee:multipliers.melee ?? 1,
+      move:multipliers.move ?? 1,
+      jump:multipliers.jump ?? 1
+    });
+  }
+
+  removeBuff(id) {
+    this.buffs.delete(id);
+  }
+
+  buffMultiplier(key) {
+    let value = 1;
+    for (const buff of this.buffs.values()) value *= buff[key] ?? 1;
+    return value;
+  }
+
+  applyBleed(duration = 3, dps = 3) {
+    this.bleedTime = Math.max(this.bleedTime, duration);
+    this.bleedDps = Math.max(this.bleedDps, dps);
+  }
+
+  applyStun(duration = 0.5) {
+    this.stunTime = Math.max(this.stunTime, duration);
+  }
+
   takeDamage(amount) {
-    let remaining = Math.max(0, amount);
+    let remaining = Math.max(0, amount) * this.buffMultiplier('defense');
     if (this.tempHealth > 0) {
       const absorbed = Math.min(this.tempHealth, remaining);
       this.tempHealth -= absorbed;
@@ -629,34 +671,49 @@ class Player {
   update(dt, pointer) {
     this.time += dt;
     this.resolveBodyPenetration();
+
+    for (const [id, buff] of this.buffs) {
+      buff.time = Math.max(0, buff.time - dt);
+      if (buff.time <= 0) this.buffs.delete(id);
+    }
+
+    this.stunTime = Math.max(0, this.stunTime - dt);
+    if (this.bleedTime > 0) {
+      const tick = Math.min(dt, this.bleedTime);
+      this.bleedTime = Math.max(0, this.bleedTime - dt);
+      this.health = Math.max(0, this.health - this.bleedDps * tick);
+      if (this.bleedTime <= 0) this.bleedDps = 0;
+    }
     if (this.tempHealthTime > 0) {
       this.tempHealthTime = Math.max(0, this.tempHealthTime - dt);
       if (this.tempHealthTime <= 0) this.tempHealth = 0;
     }
 
-    const axis = this.input.axis('left', 'right');
-    const running = this.input.down('run');
-    const maxSpeed = running ? this.cfg.runSpeed : this.cfg.walkSpeed;
+    const stunned = this.stunTime > 0;
+    const axis = stunned ? 0 : this.input.axis('left', 'right');
+    const running = !stunned && this.input.down('run');
+    const moveMultiplier = this.buffMultiplier('move');
+    const maxSpeed = (running ? this.cfg.runSpeed : this.cfg.walkSpeed) * moveMultiplier;
 
     this.prevVx = this.vx;
     if (axis) {
       this.facing = axis;
-      const acceleration = this.onGround ? this.cfg.accel : this.cfg.airAccel;
+      const acceleration = (this.onGround ? this.cfg.accel : this.cfg.airAccel) * moveMultiplier;
       this.vx = MathEx.clamp(this.vx + axis * acceleration * dt, -maxSpeed, maxSpeed);
     } else if (this.onGround) {
       const drag = this.cfg.friction * dt;
       this.vx = Math.abs(this.vx) <= drag ? 0 : this.vx - Math.sign(this.vx) * drag;
     }
 
-    if (this.input.down('jump') && this.onGround) {
-      this.vy = -this.cfg.jumpSpeed;
+    if (!stunned && this.input.down('jump') && this.onGround) {
+      this.vy = -this.cfg.jumpSpeed * this.buffMultiplier('jump');
       this.onGround = false;
       this.landingPulse = 0;
       this.releaseFeetToAir();
     }
 
     const moving = Math.abs(this.vx) > 14;
-    const speed01 = MathEx.clamp(Math.abs(this.vx) / this.cfg.runSpeed, 0, 1);
+    const speed01 = MathEx.clamp(Math.abs(this.vx) / Math.max(1, this.cfg.runSpeed * moveMultiplier), 0, 1);
     const direction = Math.sign(this.vx) || this.facing;
 
     const previousX = this.x;
