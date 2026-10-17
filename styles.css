@@ -16,9 +16,9 @@ canvas,img{image-rendering:pixelated}
 .screenLayer{position:fixed;inset:0;z-index:20;background:var(--bg)}
 
 /* beta menu */
-.simpleMenu{height:100%;display:grid;grid-template-columns:300px minmax(420px,760px);gap:28px;align-items:center;justify-content:center;padding:36px}
-.menuLeft{display:flex;flex-direction:column;gap:26px}
-.menuTitle{font-size:58px;font-weight:900;letter-spacing:-3px;line-height:.85}
+.simpleMenu{height:100%;display:grid;grid-template-columns:minmax(380px,440px) minmax(420px,720px);gap:42px;align-items:center;justify-content:center;padding:36px}
+.menuLeft{display:flex;flex-direction:column;gap:26px;min-width:0}
+.menuTitle{font-size:clamp(44px,4vw,58px);font-weight:900;letter-spacing:-3px;line-height:.85;white-space:nowrap}
 .bigButton{height:72px;background:#aaa;color:#202020;font-size:24px;font-weight:900;cursor:pointer}
 .bigButton:hover{background:#d7d7d7}
 .demoPanel{height:min(62vh,520px);background:#292929;overflow:hidden}
@@ -84,7 +84,7 @@ canvas,img{image-rendering:pixelated}
 .swatch.selected::after{content:"";position:absolute;inset:36%;background:#fff;mix-blend-mode:difference}
 
 @media(max-width:850px){
-  .simpleMenu{grid-template-columns:220px 1fr;padding:18px;gap:14px}.menuTitle{font-size:42px}
+  .simpleMenu{grid-template-columns:minmax(220px,300px) minmax(0,1fr);padding:18px;gap:18px}.menuTitle{font-size:42px;white-space:normal}
   .customShell{width:97vw;padding:14px 0}.customBody{grid-template-columns:82px 270px 1fr}
   .weaponGrid{grid-template-columns:repeat(2,96px)}.weaponInfo{width:270px}
   .swatchGrid{grid-template-columns:repeat(4,48px)}.swatch{width:48px;height:48px}
