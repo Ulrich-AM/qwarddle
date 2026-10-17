@@ -8,6 +8,6 @@ Current art:
 
 Current moves:
 
-- LMB: small spinning star, low damage, passes through map solids.
-- Q: large star, low contact damage, passes through fighters, bounces twice, then bursts into six small radial stars on the third terrain impact.
-- E: three low-damage small stars in a spread, slight homing toward the nearest fighter, fade over about three seconds, disappear on fighter contact.
+- LMB: larger small spinning star, low damage, passes through map solids.
+- Q: large star, low contact damage, passes through fighters, ricochets once using its impact angle, then bursts into six small radial stars on the next terrain impact.
+- E: three larger low-damage small stars in a spread, slight homing toward the nearest fighter, fade over about three seconds, disappear on fighter contact.
