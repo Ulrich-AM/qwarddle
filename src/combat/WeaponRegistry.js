@@ -4,7 +4,7 @@ const WeaponRegistry = Object.freeze({
   list: [
     {
       id:'revolver',
-      sprite:null,
+      sprite:'assets/sprites/revolver/revolver.png',
       languageKey:'weapons.revolver'
     },
     {
