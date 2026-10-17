@@ -49,6 +49,7 @@ class Revolver extends Weapon {
     this.normalChamberColor = '#aeb7c3';
     this.chargedChamberColor = '#ff0000';
     this.sprites = {
+      held:this.loadSprite('revolver.png'),
       cylinder:this.loadSprite('revolver-cylinder.png'),
       // Kept as the editable/source map. Runtime uses derived per-chamber masks
       // below so opening index.html through file:// never depends on canvas readback.
@@ -272,17 +273,33 @@ class Revolver extends Weapon {
     const spin = this.shotSpinAngle + this.reloadSpinAngle + this.chargeSpinAngle;
     ctx.save();
     ctx.translate(Math.round(p.x), Math.round(p.y));
-    ctx.rotate(mount.angle + spin);
 
-    // Temporary block-gun placeholder. The held revolver sprite was removed
-    // until the final weapon art direction is settled.
+    // Keep the low-resolution art crisp while still preserving the revolver spin.
+    const step = Math.PI / 32;
+    ctx.rotate(Math.round((mount.angle + spin) / step) * step);
     if (mount.dirX < 0) ctx.scale(1, -1);
-    ctx.fillStyle = '#202020';
-    ctx.fillRect(-20, -9, 48, 22);
-    ctx.fillRect(-4, 9, 13, 20);
-    ctx.fillStyle = '#b8b8b8';
-    ctx.fillRect(-17, -6, 42, 16);
-    ctx.fillRect(-1, 9, 8, 16);
+    ctx.imageSmoothingEnabled = false;
+
+    if (this.imageReady(this.sprites.held)) {
+      const desiredWidth = 78;
+      const scale = desiredWidth / this.sprites.held.naturalWidth;
+      const width = Math.round(this.sprites.held.naturalWidth * scale);
+      const height = Math.round(this.sprites.held.naturalHeight * scale);
+      ctx.drawImage(
+        this.sprites.held,
+        Math.round(-width * 0.38),
+        Math.round(-height * 0.50),
+        width,
+        height
+      );
+    } else {
+      ctx.fillStyle = '#202020';
+      ctx.fillRect(-20, -9, 48, 22);
+      ctx.fillRect(-4, 9, 13, 20);
+      ctx.fillStyle = '#b8b8b8';
+      ctx.fillRect(-17, -6, 42, 16);
+      ctx.fillRect(-1, 9, 8, 16);
+    }
 
     ctx.restore();
   }
