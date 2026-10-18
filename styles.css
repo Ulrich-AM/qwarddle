@@ -66,7 +66,7 @@ canvas,img{image-rendering:pixelated}
 .weaponTile:hover{background:#818181;z-index:5}
 .weaponTileSprite{display:block;max-width:68px;max-height:68px;pointer-events:none;transition:transform .08s linear}
 .weaponTile:hover .weaponTileSprite,.weaponTile:focus .weaponTileSprite{transform:scale(1.28)}
-.weaponInfo{position:absolute;left:0;top:112px;width:330px;background:#202020;padding:15px;z-index:20}
+.weaponInfo{position:absolute;left:0;top:112px;width:330px;background:#202020;padding:15px;z-index:20;pointer-events:none}
 .weaponInfoTitle{font-size:20px;font-weight:900;margin-bottom:7px}
 .weaponInfoDescription{font-size:12px;line-height:1.45;color:#bbb;margin-bottom:15px}
 .weaponInfoLabel{font-size:10px;font-weight:900;letter-spacing:1.2px;color:#8f8f8f;margin-bottom:7px}
