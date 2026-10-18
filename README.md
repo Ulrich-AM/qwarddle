@@ -6,9 +6,9 @@ Open `index.html` directly. No npm, bundler, or local server is required.
 
 ## Current flow
 
-MAIN MENU -> SOLO -> MAP -> CUSTOMIZE -> FIGHT
+MAIN MENU -> SOLO / LOCAL -> MAP -> CUSTOMIZE -> FIGHT
 
-Local and online multiplayer remain disabled for now.
+LOCAL multiplayer is enabled. ONLINE remains disabled. SOLO still uses an idle P2 placeholder until the CPU session.
 
 ## v0.0.20
 
@@ -42,6 +42,30 @@ Normal gameplay now runs on two real `Player` instances instead of a player plus
 - The old `TargetFighter` runtime actor has been removed. Git history preserves it for a possible future training mode.
 
 This is the foundation for LOCAL multiplayer. The next input implementation can replace P2's controller without creating another fighter/combat path.
+
+## Local multiplayer
+
+LOCAL now uses the same two-fighter core as SOLO.
+
+- P1: keyboard + mouse.
+- P2: first connected browser gamepad.
+- P2 is a normal fighter with independent health, charge, statuses, Slip/death ragdolls, projectiles, hazards, and weapon state.
+- The camera frames both active fighters and smoothly zooms between them.
+- Fighter HUDs are split left/right, and weapon-specific HUDs such as Revolver ammo and Sake drunk slots can render on either side.
+- If no controller is detected, the game shows `P2: CONNECT A CONTROLLER`.
+- P2 customization is intentionally deferred to the next match/customization session. For now P2 uses the default revolver loadout.
+
+P2 controls use an Xbox-style mapping:
+
+- Left stick: move.
+- Push the left stick far / left-stick click: run.
+- A: jump.
+- Right stick: aim.
+- RT: attack 1.
+- LB or X: attack 2.
+- RB or Y: attack 3.
+
+This setup also works with virtual gamepads exposed to the browser, which keeps the LOCAL architecture compatible with remote couch-play tools such as Parsec without adding native online networking.
 
 ## Map format
 
