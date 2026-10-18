@@ -304,6 +304,8 @@ class Sake extends Weapon {
     this.chugCooldown = 25;
     this.gourdThrowCooldown = 3;
     this.drunkSwingCooldown = 1.25;
+    this.chargeRate = 4;
+    this.chargeOnHit = 3;
 
     this.drinkCooldownRemaining = 0;
     this.mouthful = false;
@@ -544,7 +546,8 @@ class Sake extends Weapon {
         height:size,
         color:'#00f822',
         outlineColor:'#202020',
-        outlineWidth:3
+        outlineWidth:3,
+        onHit:() => this.game?.gainCharge?.(this.chargeOnHit)
       }));
     }
   }
@@ -579,6 +582,7 @@ class Sake extends Weapon {
       target.takeDamage(damage);
       target.vx += nx * 330;
       target.vy += ny * 100 - 55;
+      game.gainCharge?.(this.chargeOnHit);
       if (target.health <= 0 && 'dead' in target) target.dead = true;
     }
 
@@ -654,7 +658,10 @@ class Sake extends Weapon {
       damage,
       knockback:320,
       life:3.2,
-      onHit:(target) => target.applyBleed?.(3, 4)
+      onHit:(target) => {
+        target.applyBleed?.(3, 4);
+        game.gainCharge?.(this.chargeOnHit);
+      }
     }));
 
     this.gourdCooldownRemaining = this.gourdThrowCooldown;
