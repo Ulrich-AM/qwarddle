@@ -94,22 +94,22 @@
     },
     "dagger": {
       "name": "DAGGER",
-      "description": "A fast mobility weapon built around short blinks, pressure from damage-over-time throws, and an 8 second cloak.",
+      "description": "Fast dagger with cloak, bleed, and reckless movement.",
       "moves": [
         {
           "input": "LEFT CLICK",
-          "name": "BLINK",
-          "description": "Dash a short distance toward the cursor and damage enemies crossed by the dash. Leaves a 35% opacity trail. Cloak increases Blink distance and damage. 3 second cooldown."
+          "name": "LUNGE",
+          "description": "Floppy blade-first rush toward the mouse. 3s cooldown."
         },
         {
           "input": "Q",
-          "name": "DAGGER THROW",
-          "description": "Throw the dagger and stick it into an enemy, applying damage over time for 3 seconds. While cloaked the projectile is faster and the damage-over-time lasts 6 seconds. 5 second cooldown."
+          "name": "THROW",
+          "description": "Spin-throw the dagger. Bleeds 3s, or 6s while cloaked. 5s cooldown."
         },
         {
           "input": "E",
           "name": "CLOAK",
-          "description": "Become translucent for 8 seconds. The first 4 seconds grant invulnerability frames, and Blink plus Dagger Throw are enhanced for the full cloak duration. 17 second cooldown."
+          "description": "Cloak for 8s. First 4s are invulnerable. 17s cooldown."
         }
       ]
     }
