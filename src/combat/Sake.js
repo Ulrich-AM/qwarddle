@@ -301,6 +301,10 @@ class Sake extends Weapon {
     this.mouthfulWindow = 5;
     this.skill2SpitCooldown = 4;
     this.skill2SpillCooldown = 5;
+    this.spitDuration = 1.5;
+    this.spitRemaining = 0;
+    this.spitEmitTimer = 0;
+    this.spitContext = null;
     this.chugCooldown = 25;
     this.gourdThrowCooldown = 3;
     this.drunkSwingCooldown = 1.25;
@@ -402,6 +406,21 @@ class Sake extends Weapon {
     this.poseTime = Math.max(0, this.poseTime - dt);
     this.gourdReturnRemaining = Math.max(0, this.gourdReturnRemaining - dt);
 
+    if (this.spitRemaining > 0 && this.spitContext) {
+      this.spitRemaining = Math.max(0, this.spitRemaining - dt);
+      this.spitEmitTimer -= dt;
+
+      while (this.spitEmitTimer <= 0 && this.spitRemaining > 0) {
+        this.emitSpitBurst(this.spitContext);
+        this.spitEmitTimer += 0.10;
+      }
+
+      if (this.spitRemaining <= 0) {
+        this.spitContext = null;
+        this.spitEmitTimer = 0;
+      }
+    }
+
     if (this.poseTime <= 0) this.pose = 'normal';
 
     if (this.mouthfulRemaining > 0) {
@@ -484,8 +503,10 @@ class Sake extends Weapon {
       this.mouthfulRemaining = 0;
       this.skill2CooldownTotal = this.skill2SpitCooldown;
       this.skill2CooldownRemaining = this.skill2SpitCooldown;
-      this.beginPose('spit', 0.38, player.facing);
-      this.spitCone({ mount, projectiles, player, game });
+      this.beginPose('spit', this.spitDuration, player.facing);
+      this.spitRemaining = this.spitDuration;
+      this.spitEmitTimer = 0;
+      this.spitContext = { mount, projectiles, player, game };
       return true;
     }
 
@@ -515,39 +536,44 @@ class Sake extends Weapon {
     return this.enterDrunkState(player, game);
   }
 
-  spitCone({ mount, projectiles, player }) {
-    if (!projectiles) return;
+  emitSpitBurst({ mount, projectiles, player }) {
+    if (!projectiles || !player || !mount) return;
 
     const origin = {
       x:player.x + mount.dirX * 26,
       y:player.y - 10 + mount.dirY * 8
     };
     const base = Math.atan2(mount.dirY, mount.dirX);
-    const count = 10 + Math.floor(Math.random() * 6);
     const spread = 0.58;
     const totalDamageScale = player.buffMultiplier('damage');
 
+    // One gameplay droplet per pulse keeps total damage/knockback close to the
+    // old single-burst move. Extra droplets are visual-only so the spit reads as
+    // a sustained messy spray rather than a perfect projectile fan.
+    const count = 3 + Math.floor(Math.random() * 2);
     for (let i = 0; i < count; i++) {
       const angle = base + (Math.random() - 0.5) * spread * 2;
       const speed = 390 + Math.random() * 330;
-      const life = 0.84 + Math.random() * 0.96;
+      const life = 0.42 + Math.random() * 0.48;
       const size = 10 + Math.random() * 8;
+      const combatDroplet = i === 0;
 
       projectiles.spawn(new SakeDropletProjectile({
         sprite:this.sprites.droplet,
+        nonCombat:!combatDroplet,
         x:origin.x + mount.dirX * (6 + Math.random() * 8),
         y:origin.y + (Math.random() - 0.5) * 10,
         vx:Math.cos(angle) * speed,
         vy:Math.sin(angle) * speed + (Math.random() - 0.5) * 45,
-        damage:2.2 * totalDamageScale,
-        knockback:62,
+        damage:combatDroplet ? 2.0 * totalDamageScale : 0,
+        knockback:combatDroplet ? 22 : 0,
         life,
         width:size,
         height:size,
         color:'#00f822',
         outlineColor:'#202020',
         outlineWidth:3,
-        onHit:() => this.game?.gainCharge?.(this.chargeOnHit)
+        onHit:combatDroplet ? (() => this.game?.gainCharge?.(this.chargeOnHit)) : null
       }));
     }
   }
