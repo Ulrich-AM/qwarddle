@@ -303,6 +303,7 @@ class Sake extends Weapon {
     this.skill2SpillCooldown = 5;
     this.chugCooldown = 25;
     this.gourdThrowCooldown = 3;
+    this.drunkSwingCooldown = 1.25;
 
     this.drinkCooldownRemaining = 0;
     this.mouthful = false;
@@ -311,6 +312,7 @@ class Sake extends Weapon {
     this.skill2CooldownTotal = this.skill2SpillCooldown;
     this.chugCooldownRemaining = 0;
     this.gourdCooldownRemaining = 0;
+    this.drunkSwingCooldownRemaining = 0;
 
     this.drunkMeter = 0;
     this.drunkMeterMax = 8;
@@ -394,6 +396,7 @@ class Sake extends Weapon {
     this.skill2CooldownRemaining = Math.max(0, this.skill2CooldownRemaining - dt);
     this.chugCooldownRemaining = Math.max(0, this.chugCooldownRemaining - dt);
     this.gourdCooldownRemaining = Math.max(0, this.gourdCooldownRemaining - dt);
+    this.drunkSwingCooldownRemaining = Math.max(0, this.drunkSwingCooldownRemaining - dt);
     this.poseTime = Math.max(0, this.poseTime - dt);
     this.gourdReturnRemaining = Math.max(0, this.gourdReturnRemaining - dt);
 
@@ -410,8 +413,8 @@ class Sake extends Weapon {
       this.drunkMoveTimer -= dt;
 
       if (player && this.drunkMoveTimer <= 0) {
-        player.vx += (Math.random() < 0.5 ? -1 : 1) * (32 + Math.random() * 42);
-        this.drunkMoveTimer = 0.24 + Math.random() * 0.46;
+        player.vx += (Math.random() < 0.5 ? -1 : 1) * (95 + Math.random() * 135);
+        this.drunkMoveTimer = 0.12 + Math.random() * 0.28;
       }
 
       if (previous > 0 && this.drunkRemaining <= 0 && player) {
@@ -466,7 +469,13 @@ class Sake extends Weapon {
 
   reload({ mount, projectiles, player, game }) {
     this.game = game || this.game;
-    if (!player || !game || this.drunkRemaining > 0 || this.skill2CooldownRemaining > 0) return false;
+    if (!player || !game) return false;
+
+    if (this.drunkRemaining > 0) {
+      return this.drunkSwing({ mount, player, game });
+    }
+
+    if (this.skill2CooldownRemaining > 0) return false;
 
     if (this.mouthful && this.mouthfulRemaining > 0) {
       this.mouthful = false;
@@ -491,6 +500,12 @@ class Sake extends Weapon {
     this.game = game || this.game;
     if (!player || !game || this.drunkRemaining > 0 || this.chugCooldownRemaining > 0) return false;
 
+    const enoughDrinks = this.drunkMeter >= 5;
+    const usingCharge = !enoughDrinks && game.hasFullCharge();
+    if (!enoughDrinks && !usingCharge) return false;
+
+    if (usingCharge) game.consumeFullCharge();
+
     this.chugCooldownRemaining = this.chugCooldown;
     this.beginPose('chug', 1.05, player.facing);
     player.hand?.setPoseOverride?.(18, -24, 1.05);
@@ -501,7 +516,10 @@ class Sake extends Weapon {
   spitCone({ mount, projectiles, player }) {
     if (!projectiles) return;
 
-    const hand = mount.position();
+    const origin = {
+      x:player.x + mount.dirX * 26,
+      y:player.y - 10 + mount.dirY * 8
+    };
     const base = Math.atan2(mount.dirY, mount.dirX);
     const count = 10 + Math.floor(Math.random() * 6);
     const spread = 0.58;
@@ -515,8 +533,8 @@ class Sake extends Weapon {
 
       projectiles.spawn(new SakeDropletProjectile({
         sprite:this.sprites.droplet,
-        x:hand.x + mount.dirX * (22 + Math.random() * 12),
-        y:hand.y + mount.dirY * (22 + Math.random() * 12) + (Math.random() - 0.5) * 8,
+        x:origin.x + mount.dirX * (6 + Math.random() * 8),
+        y:origin.y + (Math.random() - 0.5) * 10,
         vx:Math.cos(angle) * speed,
         vy:Math.sin(angle) * speed + (Math.random() - 0.5) * 45,
         damage:2.2 * totalDamageScale,
@@ -529,6 +547,43 @@ class Sake extends Weapon {
         outlineWidth:3
       }));
     }
+  }
+
+  drunkSwing({ mount, player, game }) {
+    if (this.drunkSwingCooldownRemaining > 0) return false;
+
+    const targets = game.getTargetableActors();
+    let target = null;
+    let bestDistance = Infinity;
+    for (const candidate of targets) {
+      if (!candidate || candidate === player || candidate.dead) continue;
+      const distance = MathEx.hypot(candidate.x - player.x, candidate.y - player.y);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        target = candidate;
+      }
+    }
+
+    const dirX = target ? target.x - player.x : mount.dirX;
+    const dirY = target ? target.y - player.y : mount.dirY;
+    const length = MathEx.hypot(dirX, dirY) || 1;
+    const nx = dirX / length;
+    const ny = dirY / length;
+
+    player.hand?.setPoseOverride?.(56, -4, 0.24);
+    mount.setAimOverride?.(nx, ny, 0.24);
+    this.beginPose('swing', 0.24, player.facing);
+
+    if (target && bestDistance <= 155 && !target.isInvulnerable?.()) {
+      const damage = 15 * player.buffMultiplier('damage') * player.buffMultiplier('melee');
+      target.takeDamage(damage);
+      target.vx += nx * 330;
+      target.vy += ny * 100 - 55;
+      if (target.health <= 0 && 'dead' in target) target.dead = true;
+    }
+
+    this.drunkSwingCooldownRemaining = this.drunkSwingCooldown;
+    return true;
   }
 
   spill({ mount, projectiles, player, game }) {
@@ -611,7 +666,7 @@ class Sake extends Weapon {
     if (this.drunkRemaining > 0) {
       return [
         MathEx.clamp(1 - this.gourdCooldownRemaining / this.gourdThrowCooldown, 0, 1),
-        0,
+        MathEx.clamp(1 - this.drunkSwingCooldownRemaining / this.drunkSwingCooldown, 0, 1),
         0
       ];
     }
@@ -622,7 +677,10 @@ class Sake extends Weapon {
       0,
       1
     );
-    const attack3 = MathEx.clamp(1 - this.chugCooldownRemaining / this.chugCooldown, 0, 1);
+    const chugReady = this.drunkMeter >= 5 || this.game?.hasFullCharge?.();
+    const attack3 = chugReady
+      ? MathEx.clamp(1 - this.chugCooldownRemaining / this.chugCooldown, 0, 1)
+      : 0;
     return [attack1, attack2, attack3];
   }
 
