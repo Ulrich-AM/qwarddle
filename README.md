@@ -117,12 +117,13 @@ The held revolver sprite remains active. The separate `revolver-cylinder.png` sp
 
 ## Dagger
 
-- LMB, Blink: 3 second cooldown. Dashes a short distance toward the cursor, damages crossed enemies, and leaves a 35% opacity afterimage trail.
-- Cloaked Blink travels farther and deals more damage.
-- Q, Dagger Throw: 5 second cooldown. Sticks into an enemy and applies 3 seconds of damage over time.
-- Cloaked Dagger Throw travels faster and extends the damage-over-time duration to 6 seconds.
-- E, Cloak: 17 second cooldown. The fighter is translucent for 8 seconds and gains true invulnerability for the first 4 seconds.
-- Attacking does not cancel Cloak.
+- LMB, Lunge: 3 second cooldown. Briefly turns the fighter into an offensive ragdoll and launches them toward the mouse with the dagger pointed outward.
+- The arm stays actively aimed during the lunge while the rest of the body remains floppy.
+- Q, Throw: 5 second cooldown. The dagger disappears from the hand, spins through the air at the same visual size, sticks into a fighter, and applies bleed.
+- While the thrown dagger is out, the held dagger fades back into the hand instead of appearing instantly.
+- E, Cloak: 17 second cooldown. The fighter is translucent for 8 seconds and invulnerable for the first 4 seconds.
+- Cloak enhances Lunge and Throw.
+- Held, thrown, stuck, and dropped dagger rendering now share consistent scaling. The held dagger pivots from the bottom-center handle point.
 
 ## Slip
 
