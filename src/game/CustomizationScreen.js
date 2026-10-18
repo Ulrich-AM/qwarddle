@@ -9,10 +9,27 @@ class CustomizationScreen {
     this.info = document.getElementById('weaponInfo');
     this.tab = 'weapon';
     this.selectedPart = 'chest';
-    this.loadout = {
-      weapon:'revolver',
-      appearance:Player.defaultAppearance()
-    };
+    this.mode = 'solo';
+    this.activeFighter = 0;
+    this.loadouts = [
+      {
+        weapon:'revolver',
+        appearance:Player.defaultAppearance()
+      },
+      {
+        weapon:'revolver',
+        appearance:{
+          ...Player.defaultAppearance(),
+          body:'#8c6f78',
+          armUpper:'#6d8f98',
+          armLower:'#6d8f98',
+          hand:'#6d8f98',
+          legUpper0:'#b87b59', legLower0:'#b87b59', foot0:'#b87b59',
+          legUpper1:'#b87b59', legLower1:'#b87b59', foot1:'#b87b59'
+        }
+      }
+    ];
+    this.fighterSwitch = document.getElementById('fighterSwitchBtn');
 
     this.parts = [
       ['chest','ui.customize.body'],
@@ -28,13 +45,57 @@ class CustomizationScreen {
     root.querySelectorAll('[data-tab]').forEach(button => {
       button.addEventListener('click', () => this.showTab(button.dataset.tab));
     });
-    document.getElementById('continueBtn').addEventListener('click', () => this.onContinue(this.getLoadout()));
+    document.getElementById('continueBtn').addEventListener('click', () => this.onContinue(this.getSelection()));
+    this.fighterSwitch?.addEventListener('click', () => this.switchFighter());
     this.renderItems();
     this.syncPreview();
   }
 
-  getLoadout() {
-    return { weapon:this.loadout.weapon, appearance:{...this.loadout.appearance} };
+  get loadout() {
+    return this.loadouts[this.activeFighter];
+  }
+
+  getSelection() {
+    if (this.mode === 'couch') {
+      return {
+        p1:this.getLoadout(0),
+        p2:this.getLoadout(1)
+      };
+    }
+    if (this.mode === 'lan-client') return this.getLoadout(1);
+    return this.getLoadout(0);
+  }
+
+  setMode(mode = 'solo') {
+    this.mode = mode;
+    this.activeFighter = mode === 'lan-client' ? 1 : 0;
+
+    const couch = mode === 'couch';
+    this.fighterSwitch?.classList.toggle('hidden', !couch);
+    this.updateFighterSwitch();
+    this.renderItems();
+    this.syncPreview();
+
+    const continueBtn = document.getElementById('continueBtn');
+    if (continueBtn) continueBtn.textContent = mode === 'lan-client' ? 'READY' : 'FIGHT';
+  }
+
+  switchFighter() {
+    if (this.mode !== 'couch') return;
+    this.activeFighter = this.activeFighter ? 0 : 1;
+    this.updateFighterSwitch();
+    this.renderItems();
+    this.syncPreview();
+  }
+
+  updateFighterSwitch() {
+    if (!this.fighterSwitch) return;
+    this.fighterSwitch.textContent = this.activeFighter === 0 ? 'EDIT P2' : 'EDIT P1';
+  }
+
+  getLoadout(index = this.activeFighter) {
+    const source = this.loadouts[index] || this.loadouts[0];
+    return { weapon:source.weapon, appearance:{...source.appearance} };
   }
 
   showTab(tab) {
