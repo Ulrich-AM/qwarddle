@@ -6,11 +6,11 @@ class Projectile {
     damage = 10, knockback = 100, life = 3,
     width = 14, height = 9, color = '#ededed',
     shape = 'rect', outlineColor = null, outlineWidth = 0,
-    onHit = null
+    onHit = null, owner = null
   } = {}) {
     Object.assign(this, {
       x, y, vx, vy, damage, knockback, life, width, height, color,
-      shape, outlineColor, outlineWidth, onHit
+      shape, outlineColor, outlineWidth, onHit, owner
     });
     this.dead = false;
     this.angle = Math.atan2(vy, vx);
