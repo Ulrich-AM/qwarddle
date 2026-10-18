@@ -288,13 +288,12 @@ class Dagger extends Weapon {
       const w = Math.max(1, Math.round(this.sprite.naturalWidth * scale));
       const h = Math.max(1, Math.round(this.sprite.naturalHeight * scale));
 
-      // Pivot sits at the bottom of the sprite, but a small grip inset lets the
-      // hand overlap the actual handle instead of visually pinching the blade.
-      const gripInset = Math.round(h * 0.10);
+      // Bottom-center is the rotation pivot. The entire sprite sits above the
+      // hand, so the hand lines up with the handle rather than the blade.
       ctx.drawImage(
         this.sprite,
         -Math.round(w * 0.5),
-        -h + gripInset,
+        -h,
         w,
         h
       );
