@@ -32,6 +32,9 @@ class Game {
     this.dummyRespawnRemaining = 0;
     this.playerKnockdown = null;
     this.playerKnockdownRemaining = 0;
+    this.playerAttackRagdoll = null;
+    this.playerAttackRemaining = 0;
+    this.playerAttackData = null;
     this.dummyKnockdown = null;
     this.dummyKnockdownRemaining = 0;
 
@@ -58,6 +61,9 @@ class Game {
     this.dummyRagdoll = null;
     this.playerKnockdown = null;
     this.playerKnockdownRemaining = 0;
+    this.playerAttackRagdoll = null;
+    this.playerAttackRemaining = 0;
+    this.playerAttackData = null;
     this.dummyKnockdown = null;
     this.hazards.length = 0;
     this.statusEmitters.length = 0;
@@ -124,6 +130,9 @@ class Game {
     this.dummyRespawnRemaining = 0;
     this.playerKnockdown = null;
     this.playerKnockdownRemaining = 0;
+    this.playerAttackRagdoll = null;
+    this.playerAttackRemaining = 0;
+    this.playerAttackData = null;
     this.dummyKnockdown = null;
     this.dummyKnockdownRemaining = 0;
     this.charge = 0;
@@ -140,6 +149,9 @@ class Game {
     this.playerRagdoll = null;
     this.playerKnockdown = null;
     this.playerKnockdownRemaining = 0;
+    this.playerAttackRagdoll = null;
+    this.playerAttackRemaining = 0;
+    this.playerAttackData = null;
     this.playerRespawnRemaining = 0;
     this.charge = 0;
     this.projectiles.clear();
@@ -157,6 +169,9 @@ class Game {
 
     this.playerKnockdown = null;
     this.playerKnockdownRemaining = 0;
+    this.playerAttackRagdoll = null;
+    this.playerAttackRemaining = 0;
+    this.playerAttackData = null;
 
     const ragdoll = new Ragdoll({
       actor:this.player,
@@ -195,7 +210,7 @@ class Game {
 
   getHazardActors() {
     const actors = [];
-    if (!this.playerRagdoll && !this.playerKnockdown) actors.push(this.player);
+    if (!this.playerRagdoll && !this.playerKnockdown && !this.playerAttackRagdoll) actors.push(this.player);
     if (this.dummy && !this.dummy.dead && !this.dummyKnockdown) actors.push(this.dummy);
     return actors;
   }
@@ -351,6 +366,165 @@ class Game {
     this.dummyKnockdownRemaining = 0;
   }
 
+  startPlayerAttackRagdoll({
+    weapon,
+    duration = 0.38,
+    dirX = 1,
+    dirY = 0,
+    speed = 790,
+    damage = 15,
+    knockback = 320
+  } = {}) {
+    if (!weapon || this.playerRagdoll || this.playerKnockdown || this.playerAttackRagdoll) return false;
+
+    const length = MathEx.hypot(dirX, dirY) || 1;
+    dirX /= length;
+    dirY /= length;
+
+    const ragdoll = new Ragdoll({
+      actor:this.player,
+      terrain:this.terrain,
+      lifetime:Math.max(1.0, duration + 0.5),
+      dropWeapon:false,
+      fadeOut:false
+    });
+
+    ragdoll.body.vx = dirX * speed;
+    ragdoll.body.vy = dirY * speed;
+    ragdoll.body.av += (Math.random() - 0.5) * 4.5;
+
+    this.playerAttackRagdoll = ragdoll;
+    this.playerAttackRemaining = duration;
+    this.playerAttackData = {
+      weapon,
+      speed,
+      damage,
+      knockback,
+      aimDirX:dirX,
+      aimDirY:dirY,
+      hitTargets:new Set(),
+      trailTimer:0,
+      previousX:ragdoll.body.x,
+      previousY:ragdoll.body.y
+    };
+
+    ragdoll.aimArmAt(
+      ragdoll.body.x + dirX * 180,
+      ragdoll.body.y + dirY * 180
+    );
+
+    return true;
+  }
+
+  finishPlayerAttackRagdoll() {
+    if (!this.playerAttackRagdoll) return;
+
+    const ragdoll = this.playerAttackRagdoll;
+    this.player.x = MathEx.clamp(ragdoll.body.x, 40, this.terrain.worldWidth - 40);
+    this.player.y = ragdoll.body.y;
+    this.player.vx = ragdoll.body.vx * 0.42;
+    this.player.vy = ragdoll.body.vy * 0.42;
+    this.player.onGround = false;
+    this.player.releaseFeetToAir?.();
+
+    this.player.hand.x = ragdoll.hand.x;
+    this.player.hand.y = ragdoll.hand.y;
+    this.player.hand.vx = ragdoll.hand.vx;
+    this.player.hand.vy = ragdoll.hand.vy;
+    if (this.player.arm?.elbow) {
+      this.player.arm.elbow.x = ragdoll.elbow.x;
+      this.player.arm.elbow.y = ragdoll.elbow.y;
+    }
+
+    this.playerAttackRagdoll = null;
+    this.playerAttackRemaining = 0;
+    this.playerAttackData = null;
+    this.player.resolveBodyPenetration?.();
+  }
+
+  hitAttackRagdollTarget(target, tipX, tipY, data) {
+    if (!target?.hitbox || target.dead || data.hitTargets.has(target) || target.isInvulnerable?.()) return false;
+
+    const box = target.hitbox();
+    const left = box.x - box.w * 0.5;
+    const right = box.x + box.w * 0.5;
+    const top = box.y - box.h * 0.5;
+    const bottom = box.y + box.h * 0.5;
+    const nearestX = MathEx.clamp(tipX, left, right);
+    const nearestY = MathEx.clamp(tipY, top, bottom);
+    const distance = MathEx.hypot(tipX - nearestX, tipY - nearestY);
+
+    if (distance > 24) return false;
+
+    target.takeDamage(data.damage * this.player.buffMultiplier('damage'));
+    target.vx += data.aimDirX * data.knockback;
+    target.vy += data.aimDirY * data.knockback * 0.22 - 45;
+    data.hitTargets.add(target);
+    if (target.health <= 0 && 'dead' in target) target.dead = true;
+    return true;
+  }
+
+  updatePlayerAttackRagdoll(dt, pointerWorld) {
+    const ragdoll = this.playerAttackRagdoll;
+    const data = this.playerAttackData;
+    if (!ragdoll || !data) return;
+
+    this.player.updateStatusEffects?.(dt);
+
+    const previousX = ragdoll.body.x;
+    const previousY = ragdoll.body.y;
+    ragdoll.update(dt);
+
+    let aimX = pointerWorld.x - ragdoll.body.x;
+    let aimY = pointerWorld.y - ragdoll.body.y;
+    const aimLength = MathEx.hypot(aimX, aimY) || 1;
+    aimX /= aimLength;
+    aimY /= aimLength;
+
+    data.aimDirX = aimX;
+    data.aimDirY = aimY;
+
+    // Small steering keeps the attack aimed at the mouse without turning the
+    // short lunge into free flight around the arena.
+    ragdoll.body.vx = MathEx.expLerp(ragdoll.body.vx, aimX * data.speed, 6.5, dt);
+    ragdoll.body.vy = MathEx.expLerp(ragdoll.body.vy, aimY * data.speed, 6.5, dt);
+
+    ragdoll.aimArmAt(
+      ragdoll.body.x + aimX * 180,
+      ragdoll.body.y + aimY * 180
+    );
+
+    this.player.x = ragdoll.body.x;
+    this.player.y = ragdoll.body.y;
+    this.player.hand.x = ragdoll.hand.x;
+    this.player.hand.y = ragdoll.hand.y;
+
+    data.trailTimer -= dt;
+    if (data.trailTimer <= 0) {
+      data.weapon.spawnRushTrail?.(
+        this,
+        previousX,
+        previousY,
+        ragdoll.body.x,
+        ragdoll.body.y,
+        this.player
+      );
+      data.trailTimer += 0.055;
+    }
+
+    const tipDistance = 66;
+    const tipX = ragdoll.hand.x + aimX * tipDistance;
+    const tipY = ragdoll.hand.y + aimY * tipDistance;
+    for (const target of this.getTargetableActors()) {
+      this.hitAttackRagdollTarget(target, tipX, tipY, data);
+    }
+
+    this.playerAttackRemaining -= dt;
+    if (this.playerAttackRemaining <= 0 || ragdoll.dead) {
+      this.finishPlayerAttackRagdoll();
+    }
+  }
+
   gainCharge(amount) {
     this.charge = MathEx.clamp(this.charge + Math.max(0, amount || 0), 0, this.maxCharge);
   }
@@ -413,11 +587,13 @@ class Game {
 
   update(dt) {
     let pointerWorld = this.camera.screenToWorld(this.pointer.x, this.pointer.y);
-    const cameraSubject = this.playerRagdoll?.body || this.playerKnockdown?.body || this.player;
+    const cameraSubject = this.playerRagdoll?.body || this.playerKnockdown?.body || this.playerAttackRagdoll?.body || this.player;
     this.camera.update(dt, cameraSubject, pointerWorld);
     pointerWorld = this.camera.screenToWorld(this.pointer.x, this.pointer.y);
 
-    if (!this.playerRagdoll && !this.playerKnockdown) {
+    if (this.playerAttackRagdoll) {
+      this.updatePlayerAttackRagdoll(dt, pointerWorld);
+    } else if (!this.playerRagdoll && !this.playerKnockdown) {
       this.player.update(dt, pointerWorld);
 
       const activeWeapon = this.player.weaponMount.weapon;
@@ -435,7 +611,7 @@ class Game {
     }
 
     if (!this.dummy.dead && !this.dummyKnockdown) {
-      const lookAt = this.playerRagdoll?.body || this.playerKnockdown?.body || this.player;
+      const lookAt = this.playerRagdoll?.body || this.playerKnockdown?.body || this.playerAttackRagdoll?.body || this.player;
       this.dummy.updateTarget(dt, { x:lookAt.x, y:lookAt.y });
     }
 
@@ -456,10 +632,13 @@ class Game {
 
     if (!this.playerRagdoll && this.player.health <= 0) {
       this.killPlayer(false);
-    } else if (!this.playerRagdoll && !this.playerKnockdown && this.actorTouchesWater(this.player)) {
+    } else if (!this.playerRagdoll && !this.playerKnockdown && !this.playerAttackRagdoll && this.actorTouchesWater(this.player)) {
       this.killPlayer(false);
     } else if (!this.playerRagdoll && this.playerKnockdown &&
                this.playerKnockdown.body.y >= this.terrain.waterY + 20) {
+      this.killPlayer(false);
+    } else if (!this.playerRagdoll && this.playerAttackRagdoll &&
+               this.playerAttackRagdoll.body.y >= this.terrain.waterY + 20) {
       this.killPlayer(false);
     }
 
@@ -501,8 +680,8 @@ class Game {
     const attack2Y = attack3Y - attackGap;
     const attack1Y = attack2Y - attackGap;
 
-    const weapon = (this.playerRagdoll || this.playerKnockdown) ? null : this.player.weaponMount.weapon;
-    const readiness = (this.playerRagdoll || this.playerKnockdown)
+    const weapon = (this.playerRagdoll || this.playerKnockdown || this.playerAttackRagdoll) ? null : this.player.weaponMount.weapon;
+    const readiness = (this.playerRagdoll || this.playerKnockdown || this.playerAttackRagdoll)
       ? [0, 0, 0]
       : (weapon?.attackReadiness?.(this) || [1, 1, 1]);
 
@@ -533,15 +712,26 @@ class Game {
 
     this.projectiles.render(ctx);
 
-    if (this.playerRagdoll) this.playerRagdoll.render(ctx);
-    else if (this.playerKnockdown) this.playerKnockdown.render(ctx);
-    else this.player.render(ctx, false);
+    if (this.playerRagdoll) {
+      this.playerRagdoll.render(ctx);
+    } else if (this.playerKnockdown) {
+      this.playerKnockdown.render(ctx);
+    } else if (this.playerAttackRagdoll) {
+      this.playerAttackRagdoll.render(ctx);
+      this.playerAttackData?.weapon?.renderRagdoll?.(
+        ctx,
+        this.playerAttackRagdoll,
+        this.playerAttackData
+      );
+    } else {
+      this.player.render(ctx, false);
+    }
 
     this.renderStatusVisuals(ctx);
 
     this.camera.end(ctx);
 
-    if (!this.playerRagdoll && !this.playerKnockdown) {
+    if (!this.playerRagdoll && !this.playerKnockdown && !this.playerAttackRagdoll) {
       this.player.weaponMount.weapon?.renderHud?.(ctx, 22, 22);
     }
     this.renderCombatHud(ctx);
