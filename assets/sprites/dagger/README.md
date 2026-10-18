@@ -1,7 +1,7 @@
 # Dagger
 
-Sprite directory for the DAGGER weapon.
+Current art:
 
-Expected held/projectile sprite name when art is added:
+- `dagger.png` - held dagger and thrown dagger projectile
 
-- `dagger.png`
+The same sprite is used by the weapon picker and runtime weapon.
