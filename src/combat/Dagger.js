@@ -1,7 +1,7 @@
 'use strict';
 
 class DaggerBlinkTrail {
-  constructor({ x0, y0, x1, y1, bodyColor = '#d7dce3', duration = 0.28 } = {}) {
+  constructor({ x0, y0, x1, y1, bodyColor = '#d7dce3', duration = 0.22 } = {}) {
     Object.assign(this, { x0, y0, x1, y1, bodyColor, duration });
     this.age = 0;
     this.dead = false;
@@ -14,7 +14,7 @@ class DaggerBlinkTrail {
 
   render(ctx) {
     const alpha = MathEx.clamp(1 - this.age / this.duration, 0, 1) * 0.35;
-    const count = 7;
+    const count = 4;
 
     ctx.save();
     ctx.globalAlpha *= alpha;
@@ -22,23 +22,35 @@ class DaggerBlinkTrail {
       const t = i / Math.max(1, count - 1);
       const x = MathEx.lerp(this.x0, this.x1, t);
       const y = MathEx.lerp(this.y0, this.y1, t);
-      const size = 30 + t * 14;
+      const size = 28 + t * 10;
+
       ctx.fillStyle = '#202020';
-      ctx.fillRect(Math.round(x - size / 2 - 2), Math.round(y - size / 2 - 2), Math.round(size + 4), Math.round(size + 4));
+      ctx.fillRect(
+        Math.round(x - size / 2 - 2),
+        Math.round(y - size / 2 - 2),
+        Math.round(size + 4),
+        Math.round(size + 4)
+      );
       ctx.fillStyle = this.bodyColor;
-      ctx.fillRect(Math.round(x - size / 2), Math.round(y - size / 2), Math.round(size), Math.round(size));
+      ctx.fillRect(
+        Math.round(x - size / 2),
+        Math.round(y - size / 2),
+        Math.round(size),
+        Math.round(size)
+      );
     }
     ctx.restore();
   }
 }
 
 class DaggerStuckEffect {
-  constructor({ target, duration = 3, sprite = null } = {}) {
+  constructor({ target, duration = 3, sprite = null, visualSize = 82 } = {}) {
     this.target = target;
     this.duration = duration;
     this.age = 0;
     this.dead = false;
     this.sprite = sprite;
+    this.visualSize = visualSize;
     this.offsetX = (Math.random() - 0.5) * 18;
     this.offsetY = -4 + (Math.random() - 0.5) * 16;
     this.angle = (Math.random() - 0.5) * 1.1;
@@ -51,22 +63,25 @@ class DaggerStuckEffect {
 
   render(ctx) {
     if (this.dead || !this.target) return;
+
     ctx.save();
-    ctx.translate(Math.round(this.target.x + this.offsetX), Math.round(this.target.y + this.offsetY));
-    ctx.rotate(this.angle);
+    ctx.translate(
+      Math.round(this.target.x + this.offsetX),
+      Math.round(this.target.y + this.offsetY)
+    );
+    ctx.rotate(this.angle + Math.PI * 0.5);
     ctx.imageSmoothingEnabled = false;
 
     if (this.sprite?.complete && this.sprite.naturalWidth > 0) {
-      const desired = 38;
-      const scale = desired / Math.max(this.sprite.naturalWidth, this.sprite.naturalHeight);
+      const scale = this.visualSize / Math.max(this.sprite.naturalWidth, this.sprite.naturalHeight);
       const w = Math.max(1, Math.round(this.sprite.naturalWidth * scale));
       const h = Math.max(1, Math.round(this.sprite.naturalHeight * scale));
-      ctx.drawImage(this.sprite, -Math.round(w * 0.45), -Math.round(h * 0.5), w, h);
+      ctx.drawImage(this.sprite, -Math.round(w * 0.5), -Math.round(h * 0.5), w, h);
     } else {
       ctx.fillStyle = '#202020';
-      ctx.fillRect(-19, -5, 38, 10);
+      ctx.fillRect(-30, -6, 60, 12);
       ctx.fillStyle = '#d7dce3';
-      ctx.fillRect(-17, -3, 34, 6);
+      ctx.fillRect(-27, -3, 54, 6);
     }
 
     ctx.restore();
@@ -74,30 +89,37 @@ class DaggerStuckEffect {
 }
 
 class DaggerProjectile extends Projectile {
-  constructor({ sprite = null, ...options } = {}) {
+  constructor({ sprite = null, visualSize = 82, spinSpeed = 18, ...options } = {}) {
     super(options);
     this.sprite = sprite;
+    this.visualSize = visualSize;
+    this.spinSpeed = spinSpeed;
+    this.spinAngle = 0;
     this.noPhysicalHit = true;
-    this.hitRadius = 8;
+    this.hitRadius = Math.max(10, visualSize * 0.18);
+  }
+
+  update(dt) {
+    super.update(dt);
+    this.spinAngle += this.spinSpeed * dt;
   }
 
   render(ctx) {
     ctx.save();
     ctx.translate(Math.round(this.x), Math.round(this.y));
-    ctx.rotate(this.angle);
+    ctx.rotate(this.angle + Math.PI * 0.5 + this.spinAngle);
     ctx.imageSmoothingEnabled = false;
 
     if (this.sprite?.complete && this.sprite.naturalWidth > 0) {
-      const desired = 42;
-      const scale = desired / Math.max(this.sprite.naturalWidth, this.sprite.naturalHeight);
+      const scale = this.visualSize / Math.max(this.sprite.naturalWidth, this.sprite.naturalHeight);
       const w = Math.max(1, Math.round(this.sprite.naturalWidth * scale));
       const h = Math.max(1, Math.round(this.sprite.naturalHeight * scale));
-      ctx.drawImage(this.sprite, -Math.round(w * 0.45), -Math.round(h * 0.5), w, h);
+      ctx.drawImage(this.sprite, -Math.round(w * 0.5), -Math.round(h * 0.5), w, h);
     } else {
       ctx.fillStyle = '#202020';
-      ctx.fillRect(-22, -5, 44, 10);
+      ctx.fillRect(-30, -6, 60, 12);
       ctx.fillStyle = '#d7dce3';
-      ctx.fillRect(-20, -3, 40, 6);
+      ctx.fillRect(-27, -3, 54, 6);
     }
 
     ctx.restore();
@@ -128,6 +150,10 @@ class Dagger extends Weapon {
     this.cloakRemaining = 0;
     this.cloakIframeDuration = 4;
 
+    this.visualSize = 82;
+    this.returnDuration = 0.85;
+    this.returnRemaining = 0;
+
     this.spriteRoot = 'assets/sprites/dagger/';
     this.sprite = this.loadSprite('dagger.png');
   }
@@ -152,87 +178,28 @@ class Dagger extends Weapon {
     this.throwCooldownRemaining = Math.max(0, this.throwCooldownRemaining - dt);
     this.cloakCooldownRemaining = Math.max(0, this.cloakCooldownRemaining - dt);
     this.cloakRemaining = Math.max(0, this.cloakRemaining - dt);
-  }
-
-  bodyOverlapsTerrain(player, x, y) {
-    const box = player.collisionBox(x, y);
-    for (const rect of player.terrain.rectangles || []) {
-      if (box.right <= rect.x || box.left >= rect.x + rect.w ||
-          box.bottom <= rect.y || box.top >= rect.y + rect.h) {
-        continue;
-      }
-      return true;
-    }
-    return false;
-  }
-
-  pointSegmentDistance(px, py, x0, y0, x1, y1) {
-    const dx = x1 - x0;
-    const dy = y1 - y0;
-    const length2 = dx * dx + dy * dy;
-    if (length2 <= 0.0001) return MathEx.hypot(px - x0, py - y0);
-
-    const t = MathEx.clamp(((px - x0) * dx + (py - y0) * dy) / length2, 0, 1);
-    const x = x0 + dx * t;
-    const y = y0 + dy * t;
-    return MathEx.hypot(px - x, py - y);
+    this.returnRemaining = Math.max(0, this.returnRemaining - dt);
   }
 
   primary({ mount, player, game }) {
     if (!player || !game || this.blinkCooldownRemaining > 0) return false;
 
     const cloaked = this.isCloaked();
-    const distance = cloaked ? 270 : 215;
-    const damage = cloaked ? 20 : 14;
-    const x0 = player.x;
-    const y0 = player.y;
+    const directionLength = MathEx.hypot(mount.dirX, mount.dirY) || 1;
+    const dirX = mount.dirX / directionLength;
+    const dirY = mount.dirY / directionLength;
 
-    let dirX = mount.dirX;
-    let dirY = mount.dirY;
-    const length = MathEx.hypot(dirX, dirY) || 1;
-    dirX /= length;
-    dirY /= length;
+    const started = game.startPlayerAttackRagdoll?.({
+      weapon:this,
+      duration:cloaked ? 0.44 : 0.38,
+      dirX,
+      dirY,
+      speed:cloaked ? 930 : 790,
+      damage:cloaked ? 21 : 15,
+      knockback:cloaked ? 390 : 320
+    });
 
-    const steps = Math.max(10, Math.ceil(distance / 16));
-    let x = x0;
-    let y = y0;
-
-    for (let i = 1; i <= steps; i++) {
-      const candidateX = x0 + dirX * distance * (i / steps);
-      const candidateY = y0 + dirY * distance * (i / steps);
-      if (this.bodyOverlapsTerrain(player, candidateX, candidateY)) break;
-      x = candidateX;
-      y = candidateY;
-    }
-
-    player.x = x;
-    player.y = y;
-    player.vx = dirX * 260;
-    player.vy = dirY * 180;
-    player.onGround = false;
-    player.releaseFeetToAir?.();
-    player.resolveBodyPenetration?.();
-
-    game.addHazard(new DaggerBlinkTrail({
-      x0,
-      y0,
-      x1:player.x,
-      y1:player.y,
-      bodyColor:player.appearance?.body || '#d7dce3'
-    }));
-
-    for (const target of game.getTargetableActors()) {
-      if (!target || target === player || target.dead) continue;
-      const hitRadius = Math.max(target.cfg?.bodyW || 58, target.cfg?.bodyH || 58) * 0.72;
-      if (this.pointSegmentDistance(target.x, target.y, x0, y0, player.x, player.y) > hitRadius) continue;
-      if (target.isInvulnerable?.()) continue;
-
-      target.takeDamage(damage * player.buffMultiplier('damage'));
-      target.vx += dirX * 280;
-      target.vy += dirY * 100 - 45;
-      if (target.health <= 0 && 'dead' in target) target.dead = true;
-    }
-
+    if (!started) return false;
     this.blinkCooldownRemaining = this.blinkCooldown;
     return true;
   }
@@ -248,6 +215,7 @@ class Dagger extends Weapon {
 
     const projectile = new DaggerProjectile({
       sprite:this.sprite,
+      visualSize:this.visualSize,
       x:hand.x + mount.dirX * 28,
       y:hand.y + mount.dirY * 28,
       vx:mount.dirX * speed,
@@ -255,8 +223,8 @@ class Dagger extends Weapon {
       damage:5 * player.buffMultiplier('damage'),
       knockback:0,
       life:2.2,
-      width:42,
-      height:10,
+      width:this.visualSize,
+      height:this.visualSize * 0.26,
       color:'#d7dce3',
       outlineColor:'#202020',
       outlineWidth:3,
@@ -265,13 +233,15 @@ class Dagger extends Weapon {
         game.addHazard(new DaggerStuckEffect({
           target,
           duration:dotDuration,
-          sprite:this.sprite
+          sprite:this.sprite,
+          visualSize:this.visualSize
         }));
       }
     });
 
     projectiles.spawn(projectile);
     this.throwCooldownRemaining = this.throwCooldown;
+    this.returnRemaining = this.returnDuration;
     return true;
   }
 
@@ -293,29 +263,65 @@ class Dagger extends Weapon {
     ];
   }
 
-  render(ctx, { mount }) {
-    const p = mount.position();
+  spawnRushTrail(game, x0, y0, x1, y1, player) {
+    game.addHazard(new DaggerBlinkTrail({
+      x0,
+      y0,
+      x1,
+      y1,
+      bodyColor:player.appearance?.body || '#d7dce3'
+    }));
+  }
 
+  drawHeld(ctx, x, y, angle, alpha = 1) {
     ctx.save();
-    ctx.translate(Math.round(p.x), Math.round(p.y));
-    const step = Math.PI / 32;
-    ctx.rotate(Math.round(mount.angle / step) * step);
-    if (mount.dirX < 0) ctx.scale(1, -1);
+    ctx.globalAlpha *= MathEx.clamp(alpha, 0, 1);
+    ctx.translate(Math.round(x), Math.round(y));
+
+    // dagger.png points upward. Rotating +90 degrees makes its blade follow the
+    // aim direction, while the bottom-center pivot stays in the fighter's hand.
+    ctx.rotate(angle + Math.PI * 0.5);
     ctx.imageSmoothingEnabled = false;
 
     if (this.imageReady(this.sprite)) {
-      const desired = 58;
-      const scale = desired / Math.max(this.sprite.naturalWidth, this.sprite.naturalHeight);
+      const scale = this.visualSize / Math.max(this.sprite.naturalWidth, this.sprite.naturalHeight);
       const w = Math.max(1, Math.round(this.sprite.naturalWidth * scale));
       const h = Math.max(1, Math.round(this.sprite.naturalHeight * scale));
-      ctx.drawImage(this.sprite, -Math.round(w * 0.42), -Math.round(h * 0.5), w, h);
+
+      // Pivot sits at the bottom of the sprite, but a small grip inset lets the
+      // hand overlap the actual handle instead of visually pinching the blade.
+      const gripInset = Math.round(h * 0.10);
+      ctx.drawImage(
+        this.sprite,
+        -Math.round(w * 0.5),
+        -h + gripInset,
+        w,
+        h
+      );
     } else {
       ctx.fillStyle = '#202020';
-      ctx.fillRect(-27, -6, 54, 12);
+      ctx.fillRect(-6, -72, 12, 72);
       ctx.fillStyle = '#d7dce3';
-      ctx.fillRect(-24, -3, 48, 6);
+      ctx.fillRect(-3, -68, 6, 62);
     }
 
     ctx.restore();
+  }
+
+  renderRagdoll(ctx, ragdoll, data) {
+    if (!ragdoll || !data) return;
+    const dirX = data.aimDirX ?? 1;
+    const dirY = data.aimDirY ?? 0;
+    const angle = Math.atan2(dirY, dirX);
+    this.drawHeld(ctx, ragdoll.hand.x, ragdoll.hand.y, angle, 1);
+  }
+
+  render(ctx, { mount }) {
+    const p = mount.position();
+    const alpha = this.returnRemaining > 0
+      ? 1 - this.returnRemaining / this.returnDuration
+      : 1;
+
+    this.drawHeld(ctx, p.x, p.y, mount.angle, alpha);
   }
 }
