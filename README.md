@@ -27,6 +27,22 @@ This patch moves QWARDDLE from one hard-coded island toward reusable match maps.
 - Hands and feet are generated pixel circles whose outlines merge into the limb silhouette.
 - The standalone map editor exports the same rectangle/spawn JSON shape used by the runtime map registry.
 
+## Two-fighter core
+
+Normal gameplay now runs on two real `Player` instances instead of a player plus a special test dummy.
+
+- `Game.fighters` contains two `FighterSlot` objects.
+- Each fighter owns independent health, charge, weapon state, buffs, Slip state, death ragdoll, respawn state, and loadout.
+- `Player` itself owns hitboxes and hit reactions. Combat no longer depends on a target-only subclass.
+- Projectiles carry an owner and cannot hit their owner.
+- Weapons receive a fighter-scoped game view, so calls such as charge gain, full-charge checks, opponent targeting, hazards, and Dagger attack ragdolls automatically resolve to the correct fighter.
+- P1 currently uses `KeyboardMouseController`.
+- P2 currently uses `IdleController`. It is a full fighter, but intentionally has no player controls until the LOCAL multiplayer session.
+- Both fighters use the same movement, procedural body, collision, combat, Slip, death, water, and respawn systems.
+- The old `TargetFighter` runtime actor has been removed. Git history preserves it for a possible future training mode.
+
+This is the foundation for LOCAL multiplayer. The next input implementation can replace P2's controller without creating another fighter/combat path.
+
 ## Map format
 
 Map definitions use this shape:
@@ -145,13 +161,13 @@ Slip is a temporary ragdoll state, separate from death.
 
 ## Combat HUD
 
-The bottom-left HUD uses five bars:
+Each fighter now has its own five-bar combat HUD. P1 is shown on the left and P2 on the right:
 
 - ATTACK1, ATTACK2, ATTACK3: small white readiness bars.
 - HEALTH: red.
 - CHARGE: yellow.
 
-Charge rises passively during a match at a weapon-specific rate and gains a small bonus when that weapon hits an enemy.
+Charge is stored per fighter. It rises passively at that fighter's weapon-specific rate and gains weapon-specific hit bonuses.
 
 ## Language files
 
