@@ -186,9 +186,10 @@ class GamepadController extends FighterController {
 
   aimWorld(game, slot) {
     const distance = 620;
+    const body = slot.activeBody?.() || slot.actor;
     return {
-      x:slot.actor.x + this.aimX * distance,
-      y:slot.actor.y + this.aimY * distance
+      x:body.x + this.aimX * distance,
+      y:body.y + this.aimY * distance
     };
   }
 }
