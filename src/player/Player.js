@@ -44,6 +44,8 @@ class Player {
     // effects such as the revolver reload buff.
     this.maxHealth = 100;
     this.health = this.maxHealth;
+    this.dead = false;
+    this.hitFlash = 0;
     this.tempHealth = 0;
     this.tempHealthTime = 0;
     this.buffs = new Map();
@@ -273,6 +275,8 @@ class Player {
     // effects such as the revolver reload buff.
     this.maxHealth = 100;
     this.health = this.maxHealth;
+    this.dead = false;
+    this.hitFlash = 0;
     this.tempHealth = 0;
     this.tempHealthTime = 0;
     this.buffs.clear();
@@ -363,6 +367,36 @@ class Player {
     }
     this.health = Math.max(0, this.health - remaining);
     return this.health <= 0;
+  }
+
+  hitbox() {
+    return {
+      x:this.x,
+      y:this.y,
+      w:this.cfg.bodyW,
+      h:this.cfg.bodyH
+    };
+  }
+
+  takeHit(projectile) {
+    if (this.dead || this.isInvulnerable()) return false;
+
+    this.takeDamage(projectile.damage);
+    if (!projectile.noPhysicalHit) {
+      const speed = MathEx.hypot(projectile.vx, projectile.vy) || 1;
+      const dx = projectile.vx / speed;
+      const dy = projectile.vy / speed;
+      this.vx += dx * projectile.knockback;
+      this.vy += dy * projectile.knockback * 0.16 - 55;
+      if (this.onGround && Math.abs(projectile.knockback) > 0) {
+        this.onGround = false;
+        this.releaseFeetToAir?.();
+      }
+    }
+
+    this.hitFlash = 0.11;
+    if (this.health <= 0) this.dead = true;
+    return this.dead;
   }
 
   anySwing() {
@@ -708,9 +742,15 @@ class Player {
   }
 
   update(dt, pointer) {
+    if (this.dead) return;
     this.time += dt;
+    this.hitFlash = Math.max(0, this.hitFlash - dt);
     this.resolveBodyPenetration();
     this.updateStatusEffects(dt);
+    if (this.health <= 0) {
+      this.dead = true;
+      return;
+    }
 
     const stunned = this.stunTime > 0;
     const axis = stunned ? 0 : this.input.axis('left', 'right');
@@ -900,6 +940,20 @@ class Player {
     this.hand.color = this.appearance.hand;
     this.hand.render(ctx, this, debug, options.showAimPointer !== false);
     this.weaponMount.render(ctx, debug);
+
+    if (this.hitFlash > 0) {
+      ctx.save();
+      ctx.globalAlpha *= MathEx.clamp(this.hitFlash / 0.11, 0, 1) * 0.45;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(
+        this.x - this.cfg.bodyW * 0.5,
+        this.y - this.cfg.bodyH * 0.5,
+        this.cfg.bodyW,
+        this.cfg.bodyH
+      );
+      ctx.restore();
+    }
+
     ctx.restore();
   }
 
