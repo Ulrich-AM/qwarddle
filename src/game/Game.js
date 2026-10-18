@@ -298,7 +298,8 @@ class Game {
         actor:this.player,
         terrain:this.terrain,
         lifetime:Math.max(1.2, duration + 0.4),
-        dropWeapon:false
+        dropWeapon:false,
+        fadeOut:false
       });
       this.playerKnockdownRemaining = duration;
       return true;
@@ -309,7 +310,8 @@ class Game {
         actor:this.dummy,
         terrain:this.terrain,
         lifetime:Math.max(1.2, duration + 0.4),
-        dropWeapon:false
+        dropWeapon:false,
+        fadeOut:false
       });
       this.dummyKnockdownRemaining = duration;
       return true;
