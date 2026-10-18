@@ -214,6 +214,7 @@ class Dagger extends Weapon {
     const hand = mount.position();
 
     const projectile = new DaggerProjectile({
+      owner:player,
       sprite:this.sprite,
       visualSize:this.visualSize,
       x:hand.x + mount.dirX * 28,
