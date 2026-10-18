@@ -1,7 +1,7 @@
 'use strict';
 
 class Ragdoll {
-  constructor({ actor, terrain, lifetime = 4.2, dropWeapon = true } = {}) {
+  constructor({ actor, terrain, lifetime = 4.2, dropWeapon = true, fadeOut = true } = {}) {
     this.actor = actor;
     this.terrain = terrain;
     this.cfg = actor.cfg;
@@ -10,6 +10,7 @@ class Ragdoll {
     this.lifetime = lifetime;
     this.fadeStart = Math.max(0, lifetime - 1.35);
     this.dead = false;
+    this.fadeOut = fadeOut;
 
     const baseVx = actor.vx || 0;
     const baseVy = actor.vy || 0;
@@ -64,6 +65,7 @@ class Ragdoll {
   }
 
   opacity() {
+    if (!this.fadeOut) return 1;
     if (this.age <= this.fadeStart) return 1;
     return MathEx.clamp(1 - (this.age - this.fadeStart) / Math.max(0.001, this.lifetime - this.fadeStart), 0, 1);
   }
