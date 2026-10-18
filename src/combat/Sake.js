@@ -559,6 +559,7 @@ class Sake extends Weapon {
       const combatDroplet = i === 0;
 
       projectiles.spawn(new SakeDropletProjectile({
+        owner:player,
         sprite:this.sprites.droplet,
         nonCombat:!combatDroplet,
         x:origin.x + mount.dirX * (6 + Math.random() * 8),
@@ -638,6 +639,7 @@ class Sake extends Weapon {
     const dropletCount = 7;
     for (let i = 0; i < dropletCount; i++) {
       projectiles.spawn(new SakeDropletProjectile({
+        owner:player,
         sprite:this.sprites.droplet,
         nonCombat:true,
         ignoresTerrain:true,
@@ -674,6 +676,7 @@ class Sake extends Weapon {
     const damage = 18 * player.buffMultiplier('damage');
 
     projectiles.spawn(new SakeGourdProjectile({
+      owner:player,
       game,
       sprite:this.sprites.gourd,
       gravity,
