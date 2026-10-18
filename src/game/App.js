@@ -13,6 +13,7 @@ class App {
     this.customDemo = new MenuDemo(document.getElementById('customDemo'), { interactive:false, stationaryShowcase:true });
 
     this.selectedMapId = MapRegistry.list[0]?.id || null;
+    this.selectedMode = 'solo';
 
     this.mapSelection = new MapSelectionScreen({
       root:this.mapScreen,
@@ -32,7 +33,14 @@ class App {
 
     this.screen = 'menu';
     document.getElementById('playBtn').addEventListener('click', () => this.showMode());
-    document.getElementById('singleBtn').addEventListener('click', () => this.showMaps());
+    document.getElementById('singleBtn').addEventListener('click', () => {
+      this.selectedMode = 'solo';
+      this.showMaps();
+    });
+    document.getElementById('localBtn').addEventListener('click', () => {
+      this.selectedMode = 'local';
+      this.showMaps();
+    });
 
     window.addEventListener('keydown', (event) => {
       if (event.code !== 'Escape') return;
@@ -89,6 +97,7 @@ class App {
   showGame(loadout = null) {
     this.screen = 'game';
     this.hideScreens();
+    this.game.setMode(this.selectedMode);
     this.game.applyMap(this.selectedMapId);
     if (loadout) this.game.applyLoadout(loadout);
     this.menuDemo.setActive(false);
