@@ -223,6 +223,7 @@ class Game {
 
     actor.health = 0;
     actor.dead = true;
+    this.statusEmitters = this.statusEmitters.filter((emitter) => emitter.actor !== actor);
     slot.ragdoll = ragdoll;
     slot.respawnRemaining = this.ragdollLifetime;
     slot.charge = 0;
