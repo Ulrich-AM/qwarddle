@@ -6,9 +6,9 @@ Open `index.html` directly. No npm, bundler, or local server is required.
 
 ## Current flow
 
-MAIN MENU -> SOLO / LOCAL -> MAP -> CUSTOMIZE -> FIGHT
+MAIN MENU -> SOLO / LOCAL -> SETUP -> MAP / CUSTOMIZE -> FIGHT
 
-LOCAL multiplayer is enabled. ONLINE remains disabled. SOLO still uses an idle P2 placeholder until the CPU session.
+LOCAL now contains COUCH and LAN. COUCH uses one computer plus a controller. LAN uses two computers on the same network, with separate keyboard/mouse input on each machine. ONLINE remains disabled. SOLO still uses an idle P2 placeholder until the CPU session.
 
 ## v0.0.20
 
@@ -45,27 +45,66 @@ This is the foundation for LOCAL multiplayer. The next input implementation can 
 
 ## Local multiplayer
 
-LOCAL now uses the same two-fighter core as SOLO.
+LOCAL now has two paths.
+
+### Couch
 
 - P1: keyboard + mouse.
 - P2: first connected browser gamepad.
-- P2 is a normal fighter with independent health, charge, statuses, Slip/death ragdolls, projectiles, hazards, and weapon state.
-- The camera frames both active fighters and smoothly zooms between them.
-- Fighter HUDs are split left/right, and weapon-specific HUDs such as Revolver ammo and Sake drunk slots can render on either side.
-- If no controller is detected, the game shows `P2: CONNECT A CONTROLLER`.
-- P2 customization is intentionally deferred to the next match/customization session. For now P2 uses the default revolver loadout.
+- P1 and P2 can both be customized from the same customization screen using the bottom fighter-switch button.
+- The two-fighter camera and mirrored HUD remain shared.
 
-P2 controls use an Xbox-style mapping:
+### LAN
 
-- Left stick: move.
-- Push the left stick far / left-stick click: run.
-- A: jump.
-- Right stick: aim.
-- RT: attack 1.
-- LB or X: attack 2.
-- RB or Y: attack 3.
+LAN is same-network remote couch play built into QWARDDLE.
 
-This setup also works with virtual gamepads exposed to the browser, which keeps the LOCAL architecture compatible with remote couch-play tools such as Parsec without adding native online networking.
+The host remains authoritative. Only the host browser runs the actual simulation. P2 receives a live WebRTC stream of the host game canvas and sends keyboard/mouse input back through a WebRTC data channel. This avoids trying to synchronize ragdolls, random Sake movement, shards, projectiles, and other physics independently on two machines.
+
+Run on the host computer:
+
+```text
+START-LAN.bat
+```
+
+or:
+
+```text
+py lan_server.py
+```
+
+The terminal prints both a localhost address and a LAN address such as:
+
+```text
+http://192.168.1.14:8765
+```
+
+Open the LAN address on the second computer. Both computers must be on the same local network.
+
+LAN flow:
+
+1. Host opens LOCAL -> LAN and creates a room. Room name and password are optional.
+2. Host selects the map and customizes P1.
+3. Client opens the host LAN address, goes to LOCAL -> LAN, and chooses the room from the list.
+4. Client customizes P2 and presses READY.
+5. WebRTC connects the host canvas stream and remote input channel.
+
+Client controls:
+
+- A / D or Left / Right: move.
+- W / Space / Up: jump.
+- Shift: run.
+- Mouse: aim.
+- LMB: attack 1.
+- Q: attack 2.
+- E: attack 3.
+
+The LAN companion uses only Python's standard library. It serves the game, stores temporary room metadata/passwords in memory, and relays WebRTC signaling. It does not simulate combat and does not provide internet-wide matchmaking.
+
+Room discovery currently lists rooms available from the LAN server address the client opened. Automatic discovery across multiple different host computers on the same network is a later enhancement.
+
+### Identity
+
+The main menu includes a lightweight nickname field. It is stored locally in the browser and is only used to identify players in the UI/LAN room. It is not an account system.
 
 ## Map format
 
