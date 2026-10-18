@@ -65,6 +65,8 @@ class Game {
         loadout:p2Loadout
       }).bindGame(this)
     ];
+    this.fighters[0].nickname = 'P1';
+    this.fighters[1].nickname = 'P2';
 
     this.ragdollLifetime = 4.2;
     this.hazards = [];
@@ -100,13 +102,27 @@ class Game {
   }
 
   setMode(mode = 'solo') {
-    this.mode = mode === 'local' ? 'local' : 'solo';
+    this.mode = ['couch','lan-host'].includes(mode) ? mode : 'solo';
 
-    if (this.mode === 'local') {
+    if (this.mode === 'couch') {
       this.setFighterController(1, new GamepadController(0));
+    } else if (this.mode === 'lan-host') {
+      this.setFighterController(1, new NetworkController());
     } else {
       this.setFighterController(1, new IdleController());
     }
+  }
+
+  setNickname(index, nickname) {
+    const slot = this.fighters[index];
+    if (!slot) return;
+    const clean = String(nickname || '').trim().slice(0, 16);
+    slot.nickname = clean || (index === 0 ? 'P1' : 'P2');
+  }
+
+  getNetworkController() {
+    const controller = this.fighters[1]?.controller;
+    return controller instanceof NetworkController ? controller : null;
   }
 
   applyMap(mapId) {
@@ -747,9 +763,10 @@ class Game {
       ? [0, 0, 0]
       : (weapon?.attackReadiness?.(slot.gameView) || [1, 1, 1]);
 
-    this.drawBar(ctx, attackX, attack1Y, attackW, attackH, readiness[0] ?? 0, '#f2f2f2', `${slot.id} attack1`);
-    this.drawBar(ctx, attackX, attack2Y, attackW, attackH, readiness[1] ?? 0, '#f2f2f2', `${slot.id} attack2`);
-    this.drawBar(ctx, attackX, attack3Y, attackW, attackH, readiness[2] ?? 0, '#f2f2f2', `${slot.id} attack3`);
+    const label = slot.nickname || slot.id.toUpperCase();
+    this.drawBar(ctx, attackX, attack1Y, attackW, attackH, readiness[0] ?? 0, '#f2f2f2', `${label} attack1`);
+    this.drawBar(ctx, attackX, attack2Y, attackW, attackH, readiness[1] ?? 0, '#f2f2f2', `${label} attack2`);
+    this.drawBar(ctx, attackX, attack3Y, attackW, attackH, readiness[2] ?? 0, '#f2f2f2', `${label} attack3`);
 
     const healthRatio = slot.actor.maxHealth > 0
       ? slot.actor.health / slot.actor.maxHealth
@@ -759,11 +776,11 @@ class Game {
       : 0;
 
     if (leftAligned) {
-      this.drawBar(ctx, statsX, statY, statW, statH, healthRatio, '#d94a4a', `${slot.id} health`);
-      this.drawBar(ctx, statsX + statW + statGap, statY, statW, statH, chargeRatio, '#e5c83b', `${slot.id} charge`);
+      this.drawBar(ctx, statsX, statY, statW, statH, healthRatio, '#d94a4a', `${label} health`);
+      this.drawBar(ctx, statsX + statW + statGap, statY, statW, statH, chargeRatio, '#e5c83b', `${label} charge`);
     } else {
-      this.drawBar(ctx, statsX, statY, statW, statH, chargeRatio, '#e5c83b', `${slot.id} charge`);
-      this.drawBar(ctx, statsX + statW + statGap, statY, statW, statH, healthRatio, '#d94a4a', `${slot.id} health`);
+      this.drawBar(ctx, statsX, statY, statW, statH, chargeRatio, '#e5c83b', `${label} charge`);
+      this.drawBar(ctx, statsX + statW + statGap, statY, statW, statH, healthRatio, '#d94a4a', `${label} health`);
     }
   }
 
@@ -789,7 +806,7 @@ class Game {
     }
 
     slot.actor.render(ctx, false, {
-      showAimPointer:slot.index === 0
+      showAimPointer:slot.index === 0 || (this.mode === 'lan-host' && slot.index === 1)
     });
   }
 
@@ -824,7 +841,7 @@ class Game {
       }
     }
 
-    if (this.mode === 'local' && !this.fighters[1].controller.connected?.()) {
+    if (this.mode === 'couch' && !this.fighters[1].controller.connected?.()) {
       ctx.save();
       ctx.font = '12px monospace';
       ctx.textAlign = 'center';
