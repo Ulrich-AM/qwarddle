@@ -63,7 +63,7 @@ class CustomizationScreen {
     else this.renderColors();
   }
 
-  showWeaponInfo(weapon) {
+  showWeaponInfo(weapon, event = null, anchor = null) {
     const copy = Language.weapon(weapon.id);
     this.info.innerHTML = '';
 
@@ -105,6 +105,36 @@ class CustomizationScreen {
     }
 
     this.info.classList.remove('hidden');
+    this.positionWeaponInfo(event, anchor);
+  }
+
+  positionWeaponInfo(event = null, anchor = null) {
+    let clientX = event?.clientX;
+    let clientY = event?.clientY;
+
+    if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) {
+      const rect = anchor?.getBoundingClientRect?.();
+      if (!rect) return;
+      clientX = rect.right;
+      clientY = rect.top + rect.height * 0.5;
+    }
+
+    const margin = 10;
+    const offset = 16;
+    const rect = this.info.getBoundingClientRect();
+
+    let left = clientX + offset;
+    let top = clientY + offset;
+
+    if (left + rect.width > window.innerWidth - margin) {
+      left = clientX - rect.width - offset;
+    }
+    if (top + rect.height > window.innerHeight - margin) {
+      top = clientY - rect.height - offset;
+    }
+
+    this.info.style.left = `${Math.max(margin, left)}px`;
+    this.info.style.top = `${Math.max(margin, top)}px`;
   }
 
   hideWeaponInfo() {
@@ -134,9 +164,10 @@ class CustomizationScreen {
         button.appendChild(placeholder);
       }
 
-      button.addEventListener('mouseenter', () => this.showWeaponInfo(weapon));
+      button.addEventListener('mouseenter', (event) => this.showWeaponInfo(weapon, event, button));
+      button.addEventListener('mousemove', (event) => this.positionWeaponInfo(event, button));
       button.addEventListener('mouseleave', () => this.hideWeaponInfo());
-      button.addEventListener('focus', () => this.showWeaponInfo(weapon));
+      button.addEventListener('focus', () => this.showWeaponInfo(weapon, null, button));
       button.addEventListener('blur', () => this.hideWeaponInfo());
       button.addEventListener('click', () => {
         this.loadout.weapon = weapon.id;
