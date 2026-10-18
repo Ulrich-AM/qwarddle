@@ -470,6 +470,7 @@ class Game {
     if (!ragdoll || !data) return;
 
     this.player.updateStatusEffects?.(dt);
+    data.weapon.update?.(dt, { player:this.player });
 
     const previousX = ragdoll.body.x;
     const previousY = ragdoll.body.y;
