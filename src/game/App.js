@@ -26,10 +26,13 @@ class App {
     this.lanPeer = null;
 
     this.nicknameInput = document.getElementById('nicknameInput');
-    const savedNickname = localStorage.getItem('qwarddle.nickname');
-    if (savedNickname) this.nicknameInput.value = savedNickname.slice(0, 16);
+    try {
+      const savedNickname = localStorage.getItem('qwarddle.nickname');
+      if (savedNickname) this.nicknameInput.value = savedNickname.slice(0, 16);
+    } catch (_) {}
+
     this.nicknameInput.addEventListener('input', () => {
-      localStorage.setItem('qwarddle.nickname', this.nickname());
+      try { localStorage.setItem('qwarddle.nickname', this.nickname()); } catch (_) {}
     });
 
     this.mapSelection = new MapSelectionScreen({
@@ -74,12 +77,21 @@ class App {
         this.stopLanSession();
         this.showMenu();
       } else if (this.screen === 'custom') {
-        if (this.selectedMode === 'lan-client') this.showLan();
-        else this.showMaps();
+        if (this.selectedMode === 'lan-client') {
+          this.stopLanSession();
+          this.showLan();
+        } else {
+          this.showMaps();
+        }
       } else if (this.screen === 'map') {
-        if (this.selectedMode === 'couch') this.showLocal();
-        else if (this.selectedMode === 'lan-host') this.showLan();
-        else this.showMode();
+        if (this.selectedMode === 'couch') {
+          this.showLocal();
+        } else if (this.selectedMode === 'lan-host') {
+          this.stopLanSession();
+          this.showLan();
+        } else {
+          this.showMode();
+        }
       } else if (this.screen === 'lan') {
         this.showLocal();
       } else if (this.screen === 'local') {
@@ -90,7 +102,7 @@ class App {
     });
 
     window.addEventListener('beforeunload', () => {
-      this.lanPeer?.close?.();
+      this.stopLanSession();
     });
   }
 
@@ -396,8 +408,20 @@ class App {
     await peer.close().catch(() => null);
   }
 
-  stopLanSession() {
-    this.stopLanPeerOnly();
+  async stopLanSession() {
+    const room = this.lanRoom;
+    const pending = this.pendingLanJoin;
+    const hadPeer = !!this.lanPeer;
+
+    await this.stopLanPeerOnly();
+
+    if (!hadPeer && room) {
+      await LanApi.leave(room.id, 'host', room.token).catch(() => null);
+    }
+    if (!hadPeer && pending) {
+      await LanApi.leave(pending.id, 'client', pending.token).catch(() => null);
+    }
+
     this.lanRoom = null;
     this.pendingLanJoin = null;
   }
