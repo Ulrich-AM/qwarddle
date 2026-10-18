@@ -56,7 +56,7 @@ class TargetFighter extends Player {
   }
 
   takeHit(projectile) {
-    if (this.dead) return;
+    if (this.dead || this.isInvulnerable?.()) return;
     this.takeDamage(projectile.damage);
     if (!projectile.noPhysicalHit) {
       const speed = MathEx.hypot(projectile.vx, projectile.vy) || 1;
