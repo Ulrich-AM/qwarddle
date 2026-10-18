@@ -669,7 +669,7 @@ class Sake extends Weapon {
     return true;
   }
 
-  attackReadiness() {
+  attackReadiness(game) {
     if (this.drunkRemaining > 0) {
       return [
         MathEx.clamp(1 - this.gourdCooldownRemaining / this.gourdThrowCooldown, 0, 1),
@@ -684,7 +684,7 @@ class Sake extends Weapon {
       0,
       1
     );
-    const chugReady = this.drunkMeter >= 5 || this.game?.hasFullCharge?.();
+    const chugReady = this.drunkMeter >= 5 || game?.hasFullCharge?.();
     const attack3 = chugReady
       ? MathEx.clamp(1 - this.chugCooldownRemaining / this.chugCooldown, 0, 1)
       : 0;
