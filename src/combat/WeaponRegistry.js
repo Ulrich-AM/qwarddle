@@ -19,7 +19,7 @@ const WeaponRegistry = Object.freeze({
     },
     {
       id:'dagger',
-      sprite:null,
+      sprite:'assets/sprites/dagger/dagger.png',
       languageKey:'weapons.dagger'
     }
   ],
