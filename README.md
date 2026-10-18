@@ -68,7 +68,7 @@ The old TRAINING BLOCKS and SPLIT LEVELS maps have been removed.
 
 Future art can be placed in:
 
-- `assets/sprites/throwing-knife/`
+- `assets/sprites/dagger/`
 - `assets/sprites/flail/`
 - `assets/sprites/hats/`
 
@@ -78,7 +78,7 @@ These are asset staging areas only. Their gameplay/cosmetic systems are not regi
 
 Current choices:
 
-- Weapons: REVOLVER, WAND, SAKE
+- Weapons: REVOLVER, WAND, SAKE, DAGGER
 - Color groups: BODY, ARMS, LEGS
 
 The body uses `qward-body.png` plus `qward-body-color.png`. Generated limbs, hands, and feet use the selected group colors.
@@ -103,16 +103,36 @@ The held revolver sprite remains active. The separate `revolver-cylinder.png` sp
 
 ## Sake
 
-- LMB, Drink: 5 second cooldown. The hand pulls the gourd toward the mouth and tips it while drinking.
+- LMB, Drink: 5 second cooldown. Pulls the gourd toward the mouth and tips it.
 - Each Drink fills one of 8 drunk-meter slots and gives one equal 1/3 result: +25% melee damage for 5 seconds, 25% damage reduction for 5 seconds, or 8 health regenerated over 5 seconds.
 - Filling all 8 slots automatically enters the 15 second drunk state and resets the meter.
-- Q during the 5 second mouthful window, Sake Spit: randomized fading droplets in a messy cone, damage plus knockback, 4 second cooldown.
-- Q without an active mouthful, Sake Spill: tips the gourd and emits falling droplets before leaving a #e2a417 slipping puddle, 5 second cooldown.
-- E, Chug: 25 second cooldown. Uses the same hand-to-mouth pose and enters the drunk state immediately.
-- Drunk state: +50% damage, defense, movement, and jump strength, drunken swirls, and small random horizontal movement. Q and E are disabled.
-- Drunk LMB, Gourd Throw: 3 second cooldown. Throws toward the cursor, causes 3 seconds of bleed on fighter hits, and bursts larger thick-outlined #bf7950 shards outward on terrain impact.
+- Q during the 5 second mouthful window, Sake Spit: randomized fading droplets emitted from the fighter's body, damage plus knockback, 4 second cooldown.
+- Q without an active mouthful, Sake Spill: tips the gourd and emits falling droplets before leaving a #e2a417 puddle, 5 second cooldown.
+- E, Chug: available only after at least 5 drinks or at full charge. Full charge is consumed only when it substitutes for the 5-drink requirement.
+- Sake builds charge passively at 4 per second and gains a small bonus from offensive hits.
+- Drunk state: +50% damage, defense, movement, and jump strength, drunken swirls, and stronger random horizontal movement.
+- Drunk LMB, Gourd Throw: 3 second cooldown. Throws toward the cursor, causes 3 seconds of bleed on fighter hits, and bursts thick-outlined #bf7950 shards outward on terrain impact.
+- Drunk Q, Gourd Swing: 1.25 second cooldown. Swings toward the nearest enemy and deals melee damage plus knockback.
 - Shards stop dealing damage once they fade to 50% opacity. The held gourd fades back into the hand after a throw.
-- There is no automatic vomit effect when the drunk state ends.
+
+## Dagger
+
+- LMB, Blink: 3 second cooldown. Dashes a short distance toward the cursor, damages crossed enemies, and leaves a 35% opacity afterimage trail.
+- Cloaked Blink travels farther and deals more damage.
+- Q, Dagger Throw: 5 second cooldown. Sticks into an enemy and applies 3 seconds of damage over time.
+- Cloaked Dagger Throw travels faster and extends the damage-over-time duration to 6 seconds.
+- E, Cloak: 17 second cooldown. The fighter is translucent for 8 seconds and gains true invulnerability for the first 4 seconds.
+- Attacking does not cancel Cloak.
+
+## Slip
+
+Slip is a temporary ragdoll state, separate from death.
+
+- A slipped fighter cannot move or attack until recovery.
+- Entering Slip does not deal damage by itself.
+- A move or hazard may explicitly deal damage and then cause Slip.
+- The fighter keeps their current health and equipped weapon when recovering.
+- Slip uses the same floppy body physics as ragdolls but does not drop the weapon.
 
 ## Ragdolls
 
