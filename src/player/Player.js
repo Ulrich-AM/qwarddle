@@ -315,7 +315,9 @@ class Player {
       melee:multipliers.melee ?? 1,
       move:multipliers.move ?? 1,
       jump:multipliers.jump ?? 1,
-      regen:multipliers.regen ?? 0
+      regen:multipliers.regen ?? 0,
+      opacity:multipliers.opacity ?? 1,
+      invulnerable:!!multipliers.invulnerable
     });
   }
 
@@ -329,6 +331,19 @@ class Player {
     return value;
   }
 
+  visualOpacity() {
+    let opacity = 1;
+    for (const buff of this.buffs.values()) opacity *= buff.opacity ?? 1;
+    return MathEx.clamp(opacity, 0.08, 1);
+  }
+
+  isInvulnerable() {
+    for (const buff of this.buffs.values()) {
+      if (buff.invulnerable) return true;
+    }
+    return false;
+  }
+
   applyBleed(duration = 3, dps = 3) {
     this.bleedTime = Math.max(this.bleedTime, duration);
     this.bleedDps = Math.max(this.bleedDps, dps);
@@ -339,6 +354,7 @@ class Player {
   }
 
   takeDamage(amount) {
+    if (this.isInvulnerable()) return false;
     let remaining = Math.max(0, amount) * this.buffMultiplier('defense');
     if (this.tempHealth > 0) {
       const absorbed = Math.min(this.tempHealth, remaining);
@@ -838,6 +854,9 @@ class Player {
   }
 
   render(ctx, debug = false, options = {}) {
+    ctx.save();
+    ctx.globalAlpha *= this.visualOpacity();
+
     this.drawLeg(ctx, 0, debug);
     this.drawLeg(ctx, 1, debug);
 
@@ -876,6 +895,7 @@ class Player {
     this.hand.color = this.appearance.hand;
     this.hand.render(ctx, this, debug, options.showAimPointer !== false);
     this.weaponMount.render(ctx, debug);
+    ctx.restore();
   }
 
   debugText() {
