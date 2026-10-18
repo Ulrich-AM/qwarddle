@@ -720,7 +720,7 @@ class Sake extends Weapon {
     return [attack1, attack2, attack3];
   }
 
-  renderHud(ctx, x = 22, y = 22) {
+  renderHud(ctx, x = 22, y = 22, options = {}) {
     const slotW = 22;
     const slotH = 28;
     const gap = 5;
@@ -728,6 +728,7 @@ class Sake extends Weapon {
     const labelH = 15;
     const totalW = pad * 2 + this.drunkMeterMax * slotW + (this.drunkMeterMax - 1) * gap;
     const totalH = labelH + slotH + pad * 2;
+    if (options.align === 'right') x -= totalW;
     const filled = this.drunkRemaining > 0 ? this.drunkMeterMax : this.drunkMeter;
 
     ctx.save();
