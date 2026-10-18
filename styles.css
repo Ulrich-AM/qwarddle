@@ -66,14 +66,14 @@ canvas,img{image-rendering:pixelated}
 .weaponTile:hover{background:#818181;z-index:5}
 .weaponTileSprite{display:block;max-width:68px;max-height:68px;pointer-events:none;transition:transform .08s linear}
 .weaponTile:hover .weaponTileSprite,.weaponTile:focus .weaponTileSprite{transform:scale(1.28)}
-.weaponInfo{position:absolute;left:0;top:112px;width:330px;background:#202020;padding:15px;z-index:20;pointer-events:none}
-.weaponInfoTitle{font-size:20px;font-weight:900;margin-bottom:7px}
-.weaponInfoDescription{font-size:12px;line-height:1.45;color:#bbb;margin-bottom:15px}
+.weaponInfo{position:fixed;left:0;top:0;width:270px;background:#202020;padding:11px;z-index:40;pointer-events:none}
+.weaponInfoTitle{font-size:16px;font-weight:900;margin-bottom:5px}
+.weaponInfoDescription{font-size:10px;line-height:1.3;color:#bbb;margin-bottom:9px}
 .weaponInfoLabel{font-size:10px;font-weight:900;letter-spacing:1.2px;color:#8f8f8f;margin-bottom:7px}
-.moveRow{display:grid;grid-template-columns:86px 1fr;gap:10px;padding:9px 0;border-top:1px solid #3d3d3d}
+.moveRow{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:6px 0;border-top:1px solid #3d3d3d}
 .moveInput{font-size:10px;font-weight:900;color:#ddd}
 .moveRow strong{font-size:12px}
-.moveDescription{font-size:10px;line-height:1.4;color:#aaa;margin-top:3px}
+.moveDescription{font-size:9px;line-height:1.3;color:#aaa;margin-top:2px}
 
 /* colors */
 .itemCard{min-height:48px;background:#5d5d5d;color:#ddd;font-weight:900;font-size:11px;padding:8px;cursor:pointer}
@@ -86,7 +86,7 @@ canvas,img{image-rendering:pixelated}
 @media(max-width:850px){
   .simpleMenu{grid-template-columns:minmax(220px,300px) minmax(0,1fr);padding:18px;gap:18px}.menuTitle{font-size:42px;white-space:normal}
   .customShell{width:97vw;padding:14px 0}.customBody{grid-template-columns:82px 270px 1fr}
-  .weaponGrid{grid-template-columns:repeat(2,96px)}.weaponInfo{width:270px}
+  .weaponGrid{grid-template-columns:repeat(2,96px)}.weaponInfo{width:250px}
   .swatchGrid{grid-template-columns:repeat(4,48px)}.swatch{width:48px;height:48px}
 }
 
