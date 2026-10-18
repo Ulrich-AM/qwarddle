@@ -37,11 +37,11 @@ Normal gameplay now runs on two real `Player` instances instead of a player plus
 - Projectiles carry an owner and cannot hit their owner.
 - Weapons receive a fighter-scoped game view, so calls such as charge gain, full-charge checks, opponent targeting, hazards, and Dagger attack ragdolls automatically resolve to the correct fighter.
 - P1 currently uses `KeyboardMouseController`.
-- P2 currently uses `IdleController`. It is a full fighter, but intentionally has no player controls until the LOCAL multiplayer session.
+- P2 controller is mode-dependent: `IdleController` in current SOLO, `GamepadController` in COUCH, and `NetworkController` for LAN-hosted matches.
 - Both fighters use the same movement, procedural body, collision, combat, Slip, death, water, and respawn systems.
 - The old `TargetFighter` runtime actor has been removed. Git history preserves it for a possible future training mode.
 
-This is the foundation for LOCAL multiplayer. The next input implementation can replace P2's controller without creating another fighter/combat path.
+This controller boundary is shared by COUCH, LAN, and the future CPU mode, so new control sources do not require a separate fighter/combat path.
 
 ## Local multiplayer
 
