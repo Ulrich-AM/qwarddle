@@ -17,8 +17,11 @@ canvas,img{image-rendering:pixelated}
 
 /* beta menu */
 .simpleMenu{height:100%;display:grid;grid-template-columns:minmax(380px,440px) minmax(420px,720px);gap:42px;align-items:center;justify-content:center;padding:36px}
-.menuLeft{display:flex;flex-direction:column;gap:26px;min-width:0}
+.menuLeft{display:flex;flex-direction:column;gap:18px;min-width:0}
 .menuTitle{font-size:clamp(44px,4vw,58px);font-weight:900;letter-spacing:-3px;line-height:.85;white-space:nowrap}
+.nicknameField{display:flex;flex-direction:column;gap:6px;font-size:10px;font-weight:900;letter-spacing:1px;color:#bdbdbd}
+.nicknameField input,.lanPanel input{height:42px;border:0;border-radius:0;background:#222;color:#f2f2f2;padding:0 10px;font:14px Arial,Helvetica,sans-serif;outline:2px solid #5a5a5a;outline-offset:-2px}
+.nicknameField input:focus,.lanPanel input:focus{outline-color:#d8d8d8}
 .bigButton{height:72px;background:#aaa;color:#202020;font-size:24px;font-weight:900;cursor:pointer}
 .bigButton:hover{background:#d7d7d7}
 .demoPanel{height:min(62vh,520px);background:#292929;overflow:hidden}
@@ -32,6 +35,26 @@ canvas,img{image-rendering:pixelated}
 .modeCard.available{background:#aaa;color:#202020}
 .modeCard.available:hover{background:#ddd}
 .modeCard:disabled{color:#858585;cursor:not-allowed}
+.localChoiceGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.screenHint{margin:14px 0 0;color:#aaa;font-size:12px;line-height:1.45}
+.lanShell{width:min(980px,94vw);height:100%;margin:0 auto;padding:30px 0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:18px}
+.lanColumns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-height:0}
+.lanPanel{background:#464646;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.lanPanel h2{margin:0 0 4px;font-size:20px}
+.lanPanel label{display:flex;flex-direction:column;gap:6px;font-size:10px;font-weight:900;letter-spacing:.8px;color:#c7c7c7}
+.lanPanel small{font-size:8px;color:#8d8d8d}
+.lanAction{height:52px;font-size:17px;margin-top:2px}
+.lanStatus{min-height:18px;font:11px monospace;color:#d7d7d7}
+.lanRoomList{display:flex;flex-direction:column;gap:7px;min-height:120px;overflow:auto}
+.lanRoom{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;background:#565656;padding:10px}
+.lanRoom:hover{background:#666}
+.lanRoomTitle{font-size:12px;font-weight:900}
+.lanRoomMeta{font-size:9px;color:#bcbcbc;margin-top:3px}
+.lanJoinBtn{height:34px;padding:0 12px;background:#c7c7c7;color:#202020;font-size:11px;font-weight:900;cursor:pointer}
+.lanJoinBtn:disabled{background:#777;color:#aaa;cursor:not-allowed}
+.lanClientLayer{background:#111}
+.lanVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#111;cursor:crosshair}
+.lanClientHud{position:absolute;left:12px;right:12px;top:10px;display:flex;justify-content:space-between;gap:14px;pointer-events:none;font:11px monospace;color:#f2f2f2;text-shadow:2px 2px #111}
 
 /* map selection */
 .mapShell{width:min(980px,94vw);height:100%;margin:0 auto;padding:30px 0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:18px}
@@ -51,10 +74,11 @@ canvas,img{image-rendering:pixelated}
 .continueButton{height:52px;min-width:150px;padding:0 24px;background:#b9b9b9;color:#202020;font-size:18px;font-weight:900;cursor:pointer}
 .continueButton:hover{background:#e0e0e0}
 .customBody{min-height:0;display:grid;grid-template-columns:102px 330px minmax(0,1fr);gap:10px}
-.customTabs{display:flex;flex-direction:column;gap:7px}
+.customTabs{display:flex;flex-direction:column;gap:7px;height:100%}
 .customTab{height:66px;background:#575757;font-size:12px;font-weight:900;cursor:pointer}
 .customTab.active{background:#ddd;color:#202020}
 .customTab:hover{background:#aaa;color:#202020}
+.customFighterSwitch{margin-top:auto}
 .customControls{position:relative;align-self:start;min-height:120px}
 .customItems{padding:0;min-height:0}
 .customPreview{min-height:0;background:#292929;overflow:hidden}
@@ -94,3 +118,9 @@ canvas,img{image-rendering:pixelated}
 .weaponPlaceholder::after{content:"";position:absolute;right:-16px;top:8px;width:20px;height:12px;background:#9b9b9b}
 .weaponPlaceholder::before{content:"";position:absolute;left:10px;bottom:-15px;width:14px;height:20px;background:#8b8b8b}
 @media(max-width:850px){.mapGrid{grid-template-columns:1fr}}
+
+@media(max-width:760px){
+  .lanColumns{grid-template-columns:1fr}
+  .lanShell{overflow:auto}
+  .localChoiceGrid{grid-template-columns:1fr}
+}
