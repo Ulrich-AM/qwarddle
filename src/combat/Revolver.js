@@ -208,6 +208,7 @@ class Revolver extends Weapon {
     const y = hand.y + dirY * this.muzzleOffset;
 
     projectiles.spawn(new Projectile({
+      owner:player,
       x, y,
       vx:dirX * this.projectileSpeed,
       vy:dirY * this.projectileSpeed,
