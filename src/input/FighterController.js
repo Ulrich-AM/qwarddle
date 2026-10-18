@@ -194,6 +194,81 @@ class GamepadController extends FighterController {
   }
 }
 
+class NetworkController extends FighterController {
+  constructor() {
+    super();
+    this.moveX = 0;
+    this.jump = false;
+    this.run = false;
+    this.attack1 = false;
+    this.attack2 = false;
+    this.attack3 = false;
+    this.aimX = 0.5;
+    this.aimY = 0.5;
+    this.pressed = new Set();
+    this.lastSequence = -1;
+  }
+
+  applyRemoteInput(state = {}) {
+    const sequence = Number.isFinite(state.seq) ? state.seq : this.lastSequence + 1;
+    if (sequence <= this.lastSequence) return;
+    this.lastSequence = sequence;
+
+    const next1 = !!state.attack1;
+    const next2 = !!state.attack2;
+    const next3 = !!state.attack3;
+
+    if (next1 && !this.attack1) this.pressed.add('attack1');
+    if (next2 && !this.attack2) this.pressed.add('attack2');
+    if (next3 && !this.attack3) this.pressed.add('attack3');
+
+    this.attack1 = next1;
+    this.attack2 = next2;
+    this.attack3 = next3;
+    this.jump = !!state.jump;
+    this.run = !!state.run;
+    this.moveX = MathEx.clamp(Number(state.moveX) || 0, -1, 1);
+    this.aimX = MathEx.clamp(Number(state.aimX) || 0.5, 0, 1);
+    this.aimY = MathEx.clamp(Number(state.aimY) || 0.5, 0, 1);
+  }
+
+  axis(negativeAction, positiveAction) {
+    if (negativeAction === 'left' && positiveAction === 'right') return this.moveX;
+    return 0;
+  }
+
+  down(action) {
+    if (action === 'jump') return this.jump;
+    if (action === 'run') return this.run;
+    return false;
+  }
+
+  consumePrimary() {
+    const value = this.pressed.has('attack1');
+    this.pressed.delete('attack1');
+    return value;
+  }
+
+  consumeAttack2() {
+    const value = this.pressed.has('attack2');
+    this.pressed.delete('attack2');
+    return value;
+  }
+
+  consumeAttack3() {
+    const value = this.pressed.has('attack3');
+    this.pressed.delete('attack3');
+    return value;
+  }
+
+  aimWorld(game) {
+    return game.camera.screenToWorld(
+      this.aimX * game.width,
+      this.aimY * game.height
+    );
+  }
+}
+
 // SOLO placeholder until the CPU session. It uses the exact same fighter slot
 // interface as GamepadController, so adding AI will not create another actor path.
 class IdleController extends FighterController {
