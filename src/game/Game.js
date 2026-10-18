@@ -17,6 +17,7 @@ class Game {
     this.rounds = new RoundManager();
     this.projectiles = new ProjectileSystem({ terrain:this.terrain });
     this.selectedMapId = MapRegistry.list[0]?.id || null;
+    this.mode = 'solo';
 
     const p1Controller = new KeyboardMouseController({
       keyboard:this.keyboard,
@@ -89,6 +90,23 @@ class Game {
 
   slotForActor(actor) {
     return this.fighters.find((slot) => slot.actor === actor) || null;
+  }
+
+  setFighterController(index, controller) {
+    const slot = this.fighters[index];
+    if (!slot || !controller) return;
+    slot.controller = controller;
+    slot.actor.input = controller;
+  }
+
+  setMode(mode = 'solo') {
+    this.mode = mode === 'local' ? 'local' : 'solo';
+
+    if (this.mode === 'local') {
+      this.setFighterController(1, new GamepadController(0));
+    } else {
+      this.setFighterController(1, new IdleController());
+    }
   }
 
   applyMap(mapId) {
@@ -187,14 +205,14 @@ class Game {
 
     for (const slot of this.fighters) this.spawnFighter(slot);
 
-    this.camera.reset(this.primarySlot.actor);
+    this.camera.resetGroup(this.fighters.map((slot) => slot.activeBody()));
     this.primarySlot.controller.resetAim?.(this, this.primarySlot.actor);
   }
 
   respawnFighter(slot) {
     this.spawnFighter(slot);
     if (slot === this.primarySlot) {
-      this.camera.reset(slot.actor);
+      this.camera.resetGroup(this.fighters.map((candidate) => candidate.activeBody()));
       slot.controller.resetAim?.(this, slot.actor);
     }
   }
@@ -634,11 +652,14 @@ class Game {
   }
 
   update(dt) {
-    const focus = this.primarySlot;
-    let focusAim = this.aimForSlot(focus);
-    const cameraSubject = focus.activeBody();
+    for (const slot of this.fighters) {
+      slot.controller.poll?.();
+    }
 
-    this.camera.update(dt, cameraSubject, focusAim);
+    this.camera.updateFighters(
+      dt,
+      this.fighters.map((slot) => slot.activeBody())
+    );
 
     const aims = new Map();
     for (const slot of this.fighters) {
@@ -710,9 +731,9 @@ class Game {
     const statGap = 10;
     const totalStatW = statW * 2 + statGap;
 
-    const x = slot.index === 0
-      ? 22
-      : this.width - 22 - totalStatW;
+    const leftAligned = slot.index === 0;
+    const attackX = leftAligned ? 22 : this.width - 22 - attackW;
+    const statsX = leftAligned ? 22 : this.width - 22 - totalStatW;
 
     const bottomY = this.height - 22;
     const statY = bottomY - statH;
@@ -726,9 +747,9 @@ class Game {
       ? [0, 0, 0]
       : (weapon?.attackReadiness?.(slot.gameView) || [1, 1, 1]);
 
-    this.drawBar(ctx, x, attack1Y, attackW, attackH, readiness[0] ?? 0, '#f2f2f2', `${slot.id} attack1`);
-    this.drawBar(ctx, x, attack2Y, attackW, attackH, readiness[1] ?? 0, '#f2f2f2', `${slot.id} attack2`);
-    this.drawBar(ctx, x, attack3Y, attackW, attackH, readiness[2] ?? 0, '#f2f2f2', `${slot.id} attack3`);
+    this.drawBar(ctx, attackX, attack1Y, attackW, attackH, readiness[0] ?? 0, '#f2f2f2', `${slot.id} attack1`);
+    this.drawBar(ctx, attackX, attack2Y, attackW, attackH, readiness[1] ?? 0, '#f2f2f2', `${slot.id} attack2`);
+    this.drawBar(ctx, attackX, attack3Y, attackW, attackH, readiness[2] ?? 0, '#f2f2f2', `${slot.id} attack3`);
 
     const healthRatio = slot.actor.maxHealth > 0
       ? slot.actor.health / slot.actor.maxHealth
@@ -737,8 +758,13 @@ class Game {
       ? slot.charge / slot.maxCharge
       : 0;
 
-    this.drawBar(ctx, x, statY, statW, statH, healthRatio, '#d94a4a', `${slot.id} health`);
-    this.drawBar(ctx, x + statW + statGap, statY, statW, statH, chargeRatio, '#e5c83b', `${slot.id} charge`);
+    if (leftAligned) {
+      this.drawBar(ctx, statsX, statY, statW, statH, healthRatio, '#d94a4a', `${slot.id} health`);
+      this.drawBar(ctx, statsX + statW + statGap, statY, statW, statH, chargeRatio, '#e5c83b', `${slot.id} charge`);
+    } else {
+      this.drawBar(ctx, statsX, statY, statW, statH, chargeRatio, '#e5c83b', `${slot.id} charge`);
+      this.drawBar(ctx, statsX + statW + statGap, statY, statW, statH, healthRatio, '#d94a4a', `${slot.id} health`);
+    }
   }
 
   renderFighter(ctx, slot) {
@@ -783,9 +809,29 @@ class Game {
     this.renderStatusVisuals(ctx);
     this.camera.end(ctx);
 
-    const primary = this.primarySlot;
-    if (primary.canControl()) {
-      primary.actor.weaponMount.weapon?.renderHud?.(ctx, 22, 22);
+    for (const slot of this.fighters) {
+      if (!slot.canControl()) continue;
+
+      if (slot.index === 0) {
+        slot.actor.weaponMount.weapon?.renderHud?.(ctx, 22, 22, { align:'left' });
+      } else {
+        slot.actor.weaponMount.weapon?.renderHud?.(
+          ctx,
+          this.width - 22,
+          22,
+          { align:'right' }
+        );
+      }
+    }
+
+    if (this.mode === 'local' && !this.fighters[1].controller.connected?.()) {
+      ctx.save();
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = '#f2f2f2';
+      ctx.fillText('P2: CONNECT A CONTROLLER', this.width * 0.5, 18);
+      ctx.restore();
     }
 
     for (const slot of this.fighters) this.renderFighterHud(ctx, slot);
