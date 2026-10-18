@@ -187,6 +187,25 @@ class Ragdoll {
     }
   }
 
+  aimArmAt(targetX, targetY, upperArm = 48, lowerArm = 48) {
+    const shoulder = this.bodyAnchor(0, 0);
+    let dx = targetX - shoulder.x;
+    let dy = targetY - shoulder.y;
+    const distance = MathEx.hypot(dx, dy) || 1;
+    dx /= distance;
+    dy /= distance;
+
+    this.elbow.x = shoulder.x + dx * upperArm;
+    this.elbow.y = shoulder.y + dy * upperArm;
+    this.hand.x = shoulder.x + dx * (upperArm + lowerArm);
+    this.hand.y = shoulder.y + dy * (upperArm + lowerArm);
+
+    this.elbow.vx = this.body.vx;
+    this.elbow.vy = this.body.vy;
+    this.hand.vx = this.body.vx;
+    this.hand.vy = this.body.vy;
+  }
+
   update(dt) {
     if (this.dead) return;
     this.age += dt;
@@ -230,10 +249,22 @@ class Ragdoll {
     ctx.imageSmoothingEnabled = false;
 
     if (weapon.image?.complete && weapon.image.naturalWidth > 0) {
-      const desired = weapon.id === 'wand' ? 72 : 78;
-      const scale = desired / Math.max(1, weapon.image.naturalWidth);
+      const desiredById = {
+        wand:72,
+        revolver:78,
+        sake:82,
+        dagger:82
+      };
+      const desired = desiredById[weapon.id] ?? 78;
+      const scale = desired / Math.max(
+        1,
+        weapon.image.naturalWidth,
+        weapon.image.naturalHeight
+      );
       const width = Math.max(1, Math.round(weapon.image.naturalWidth * scale));
       const height = Math.max(1, Math.round(weapon.image.naturalHeight * scale));
+      const rotationOffset = weapon.id === 'dagger' ? Math.PI * 0.5 : 0;
+      ctx.rotate(rotationOffset);
       ctx.drawImage(weapon.image, -Math.round(width * 0.5), -Math.round(height * 0.5), width, height);
     } else {
       ctx.fillStyle = '#202020';
