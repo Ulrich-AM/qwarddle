@@ -332,13 +332,14 @@ class Revolver extends Weapon {
     return [attack1, attack2, attack3];
   }
 
-  renderHud(ctx, x = 22, y = 22) {
+  renderHud(ctx, x = 22, y = 22, options = {}) {
     const slotW = 24;
     const slotH = 32;
     const gap = 7;
     const pad = 7;
     const totalW = pad * 2 + this.capacity * slotW + (this.capacity - 1) * gap;
     const totalH = slotH + pad * 2;
+    if (options.align === 'right') x -= totalW;
 
     ctx.save();
     ctx.fillStyle = 'rgba(20,20,20,0.82)';
