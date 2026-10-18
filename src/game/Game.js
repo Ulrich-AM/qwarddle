@@ -382,6 +382,7 @@ class Game {
     }
 
     if (this.playerKnockdown) {
+      this.player.updateStatusEffects?.(dt);
       this.playerKnockdown.update(dt);
       this.playerKnockdownRemaining -= dt;
       this.player.x = this.playerKnockdown.body.x;
@@ -390,6 +391,11 @@ class Game {
     }
 
     if (this.dummyKnockdown) {
+      this.dummy.updateStatusEffects?.(dt);
+      if (this.dummy.health <= 0) {
+        this.dummy.dead = true;
+        return;
+      }
       this.dummyKnockdown.update(dt);
       this.dummyKnockdownRemaining -= dt;
       this.dummy.x = this.dummyKnockdown.body.x;
