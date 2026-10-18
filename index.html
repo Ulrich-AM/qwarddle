@@ -13,6 +13,10 @@
     <main class="simpleMenu">
       <section class="menuLeft">
         <div class="menuTitle">QWARDDLE</div>
+        <label class="nicknameField">
+          <span>NICKNAME</span>
+          <input id="nicknameInput" type="text" maxlength="16" autocomplete="off" spellcheck="false" value="QWARD" />
+        </label>
         <button id="playBtn" class="bigButton" data-i18n="ui.menu.play">PLAY</button>
       </section>
       <section class="demoPanel"><canvas id="menuDemo"></canvas></section>
@@ -28,6 +32,53 @@
         <button class="modeCard" disabled data-i18n="ui.mode.online">ONLINE</button>
       </section>
     </main>
+  </div>
+
+  <div id="localScreen" class="screenLayer hidden">
+    <main class="simpleScreen">
+      <h1>LOCAL</h1>
+      <section class="localChoiceGrid">
+        <button id="couchBtn" class="modeCard available">COUCH</button>
+        <button id="lanBtn" class="modeCard available">LAN</button>
+      </section>
+      <p class="screenHint">COUCH uses one computer + controller. LAN uses two computers on the same network.</p>
+    </main>
+  </div>
+
+  <div id="lanScreen" class="screenLayer hidden">
+    <main class="lanShell">
+      <header class="setupTop">
+        <h1>LAN</h1>
+        <button id="lanRefreshBtn" class="continueButton">REFRESH</button>
+      </header>
+
+      <section class="lanColumns">
+        <section class="lanPanel">
+          <h2>HOST GAME</h2>
+          <label>ROOM NAME<input id="lanRoomName" maxlength="28" autocomplete="off" /></label>
+          <label>PASSWORD <small>OPTIONAL</small><input id="lanHostPassword" maxlength="32" type="password" autocomplete="off" /></label>
+          <button id="lanHostBtn" class="bigButton lanAction">HOST</button>
+          <div id="lanHostStatus" class="lanStatus"></div>
+        </section>
+
+        <section class="lanPanel">
+          <h2>JOIN GAME</h2>
+          <label>PASSWORD <small>IF NEEDED</small><input id="lanJoinPassword" maxlength="32" type="password" autocomplete="off" /></label>
+          <div id="lanRoomList" class="lanRoomList"></div>
+          <div id="lanJoinStatus" class="lanStatus"></div>
+        </section>
+      </section>
+
+      <p class="screenHint">Run <b>py lan_server.py</b> on the host, then open its printed LAN address on the second computer.</p>
+    </main>
+  </div>
+
+  <div id="lanClientScreen" class="screenLayer hidden lanClientLayer">
+    <video id="lanVideo" class="lanVideo" autoplay playsinline muted></video>
+    <div class="lanClientHud">
+      <span id="lanClientStatus">CONNECTING...</span>
+      <span>WASD + MOUSE / LMB / Q / E</span>
+    </div>
   </div>
 
   <div id="mapScreen" class="screenLayer hidden">
@@ -51,6 +102,7 @@
         <nav class="customTabs" aria-label="Customization categories">
           <button class="customTab active" data-tab="weapon" data-i18n="ui.customize.weapons">WEAPONS</button>
           <button class="customTab" data-tab="color" data-i18n="ui.customize.colors">COLORS</button>
+          <button id="fighterSwitchBtn" class="customTab customFighterSwitch hidden" type="button">EDIT P2</button>
         </nav>
 
         <section class="customControls">
@@ -68,6 +120,7 @@
   <script src="src/input/KeyboardInput.js"></script>
   <script src="src/input/PointerInput.js"></script>
   <script src="src/input/FighterController.js"></script>
+  <script src="src/net/LanPeer.js"></script>
   <script src="src/world/MapRegistry.js"></script>
   <script src="src/world/Terrain.js"></script>
   <script src="src/player/ProceduralLeg.js"></script>
