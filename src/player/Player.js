@@ -242,7 +242,7 @@ class Player {
     for (let i = 0; i < 2; i++) {
       const leg = this.legs[i];
       const footX = this.x + this.stanceOffset(i);
-      const footY = this.terrain.yAt(footX);
+      const footY = this.footSurfaceY(footX, this.collisionBox().bottom);
       const hip = this.hipFor(i);
       leg.plant(footX, footY);
       const knee = this.solveKnee(hip.x, hip.y, footX, footY, -this.facing * this.cfg.kneeBend);
@@ -287,7 +287,7 @@ class Player {
     for (let i = 0; i < 2; i++) {
       const leg = this.legs[i];
       const footX = this.x + this.stanceOffset(i);
-      const footY = this.terrain.yAt(footX);
+      const footY = this.footSurfaceY(footX, this.collisionBox().bottom);
       const hip = this.hipFor(i);
       leg.plant(footX, footY);
       const knee = this.solveKnee(hip.x, hip.y, footX, footY, -this.facing * this.cfg.kneeBend);
