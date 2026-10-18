@@ -28,7 +28,7 @@ class WandStarProjectile extends Projectile {
     let best = null;
     let bestDistance = Infinity;
     for (const target of targets) {
-      if (!target || target.dead || !target.hitbox || this.hitTargets.has(target)) continue;
+      if (!target || target === this.owner || target.dead || !target.hitbox || this.hitTargets.has(target)) continue;
       const dx = target.x - this.x;
       const dy = target.y - this.y;
       const distance = dx * dx + dy * dy;
@@ -135,7 +135,8 @@ class WandBouncingStar extends WandStarProjectile {
         sprite:this.smallSprite,
         spinSpeed:10,
         ignoresTerrain:true,
-        onHit:this.onHit
+        onHit:this.onHit,
+        owner:this.owner
       }));
     }
   }
@@ -257,11 +258,12 @@ class Wand extends Weapon {
     };
   }
 
-  primary({ mount, projectiles, game }) {
+  primary({ mount, projectiles, player, game }) {
     if (!projectiles || !this.beginUse()) return false;
 
     const muzzle = this.muzzle(mount);
     projectiles.spawn(new WandStarProjectile({
+      owner:player,
       x:muzzle.x,
       y:muzzle.y,
       vx:mount.dirX * this.primarySpeed,
@@ -282,7 +284,7 @@ class Wand extends Weapon {
   }
 
   // Q slot. Three lightly-homing stars in a small fan around the aim direction.
-  reload({ mount, projectiles, game }) {
+  reload({ mount, projectiles, player, game }) {
     if (!projectiles || this.qCooldownRemaining > 0) return false;
 
     const muzzle = this.muzzle(mount);
@@ -293,6 +295,7 @@ class Wand extends Weapon {
     for (const offset of [-spread, 0, spread]) {
       const angle = base + offset;
       projectiles.spawn(new WandStarProjectile({
+        owner:player,
         x:muzzle.x,
         y:muzzle.y,
         vx:Math.cos(angle) * speed,
@@ -316,12 +319,13 @@ class Wand extends Weapon {
 
   // E slot. The large star ignores fighters physically, damages each fighter
   // once while passing through, ricochets once, then bursts on the second impact.
-  special({ mount, projectiles, game }) {
+  special({ mount, projectiles, player, game }) {
     if (!projectiles || this.eCooldownRemaining > 0 || !game?.hasFullCharge()) return false;
 
     const muzzle = this.muzzle(mount, 54);
     const speed = 540;
     projectiles.spawn(new WandBouncingStar({
+      owner:player,
       system:projectiles,
       smallSprite:this.sprites.small,
       x:muzzle.x,
