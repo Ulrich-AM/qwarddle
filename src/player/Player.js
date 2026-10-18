@@ -685,10 +685,7 @@ class Player {
     return corrected;
   }
 
-  update(dt, pointer) {
-    this.time += dt;
-    this.resolveBodyPenetration();
-
+  updateStatusEffects(dt) {
     for (const [id, buff] of this.buffs) {
       if (buff.regen > 0 && this.health > 0) this.heal(buff.regen * dt);
       buff.time = Math.max(0, buff.time - dt);
@@ -696,16 +693,24 @@ class Player {
     }
 
     this.stunTime = Math.max(0, this.stunTime - dt);
+
     if (this.bleedTime > 0) {
       const tick = Math.min(dt, this.bleedTime);
       this.bleedTime = Math.max(0, this.bleedTime - dt);
       this.health = Math.max(0, this.health - this.bleedDps * tick);
       if (this.bleedTime <= 0) this.bleedDps = 0;
     }
+
     if (this.tempHealthTime > 0) {
       this.tempHealthTime = Math.max(0, this.tempHealthTime - dt);
       if (this.tempHealthTime <= 0) this.tempHealth = 0;
     }
+  }
+
+  update(dt, pointer) {
+    this.time += dt;
+    this.resolveBodyPenetration();
+    this.updateStatusEffects(dt);
 
     const stunned = this.stunTime > 0;
     const axis = stunned ? 0 : this.input.axis('left', 'right');
