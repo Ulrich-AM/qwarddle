@@ -16,12 +16,18 @@ const WeaponRegistry = Object.freeze({
       id:'sake',
       sprite:'assets/sprites/sake/sake.png',
       languageKey:'weapons.sake'
+    },
+    {
+      id:'dagger',
+      sprite:null,
+      languageKey:'weapons.dagger'
     }
   ],
   create(id) {
     if (id === 'revolver') return new Revolver();
     if (id === 'wand') return new Wand();
     if (id === 'sake') return new Sake();
+    if (id === 'dagger') return new Dagger();
     return null;
   }
 });
