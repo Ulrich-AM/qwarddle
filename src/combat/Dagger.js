@@ -182,7 +182,7 @@ class Dagger extends Weapon {
   }
 
   primary({ mount, player, game }) {
-    if (!player || !game || this.blinkCooldownRemaining > 0) return false;
+    if (!player || !game || this.blinkCooldownRemaining > 0 || this.returnRemaining > 0) return false;
 
     const cloaked = this.isCloaked();
     const directionLength = MathEx.hypot(mount.dirX, mount.dirY) || 1;
