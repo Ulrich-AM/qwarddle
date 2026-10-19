@@ -33,10 +33,34 @@ class Ragdoll {
 
     this.elbow = this.makePoint(elbow.x, elbow.y, baseVx, baseVy, 8);
     this.hand = this.makePoint(hand.x, hand.y, hand.vx ?? baseVx, hand.vy ?? baseVy, 11);
-    this.knee0 = this.makePoint(leg0?.knee?.x ?? actor.x - 10, leg0?.knee?.y ?? actor.y + 38, baseVx, baseVy, 8);
-    this.foot0 = this.makePoint(leg0?.foot?.x ?? actor.x - 12, leg0?.foot?.y ?? actor.y + 70, leg0?.foot?.vx ?? baseVx, leg0?.foot?.vy ?? baseVy, 12);
-    this.knee1 = this.makePoint(leg1?.knee?.x ?? actor.x + 10, leg1?.knee?.y ?? actor.y + 38, baseVx, baseVy, 8);
-    this.foot1 = this.makePoint(leg1?.foot?.x ?? actor.x + 12, leg1?.foot?.y ?? actor.y + 70, leg1?.foot?.vx ?? baseVx, leg1?.foot?.vy ?? baseVy, 12);
+    this.knee0 = this.makePoint(
+      leg0?.knee?.x ?? actor.x - 10,
+      leg0?.knee?.y ?? actor.y + 38,
+      leg0?.knee?.vx ?? baseVx,
+      leg0?.knee?.vy ?? baseVy,
+      8
+    );
+    this.foot0 = this.makePoint(
+      leg0?.foot?.x ?? actor.x - 12,
+      leg0?.foot?.y ?? actor.y + 70,
+      leg0?.foot?.vx ?? baseVx,
+      leg0?.foot?.vy ?? baseVy,
+      12
+    );
+    this.knee1 = this.makePoint(
+      leg1?.knee?.x ?? actor.x + 10,
+      leg1?.knee?.y ?? actor.y + 38,
+      leg1?.knee?.vx ?? baseVx,
+      leg1?.knee?.vy ?? baseVy,
+      8
+    );
+    this.foot1 = this.makePoint(
+      leg1?.foot?.x ?? actor.x + 12,
+      leg1?.foot?.y ?? actor.y + 70,
+      leg1?.foot?.vx ?? baseVx,
+      leg1?.foot?.vy ?? baseVy,
+      12
+    );
 
     this.weapon = dropWeapon ? this.createDroppedWeapon(actor) : null;
   }
@@ -148,22 +172,22 @@ class Ragdoll {
     }
   }
 
-  constrainPointToAnchor(point, anchor, length) {
+  constrainPointToAnchor(point, anchor, length, strength = 1) {
     const dx = point.x - anchor.x;
     const dy = point.y - anchor.y;
     const distance = MathEx.hypot(dx, dy) || 0.001;
-    const error = distance - length;
+    const error = (distance - length) * strength;
     const nx = dx / distance;
     const ny = dy / distance;
     point.x -= nx * error;
     point.y -= ny * error;
   }
 
-  constrainPair(a, b, length) {
+  constrainPair(a, b, length, strength = 1) {
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const distance = MathEx.hypot(dx, dy) || 0.001;
-    const correction = (distance - length) * 0.5;
+    const correction = (distance - length) * 0.5 * strength;
     const nx = dx / distance;
     const ny = dy / distance;
     a.x += nx * correction;
@@ -179,13 +203,19 @@ class Ragdoll {
     const upperArm = 48;
     const lowerArm = 48;
 
+    const constraintBlend = MathEx.clamp(
+      0.18 + this.age / 0.16 * 0.82,
+      0.18,
+      1
+    );
+
     for (let i = 0; i < 5; i++) {
-      this.constrainPointToAnchor(this.elbow, shoulder, upperArm);
-      this.constrainPair(this.elbow, this.hand, lowerArm);
-      this.constrainPointToAnchor(this.knee0, hip0, this.cfg.upperLeg);
-      this.constrainPair(this.knee0, this.foot0, this.cfg.lowerLeg);
-      this.constrainPointToAnchor(this.knee1, hip1, this.cfg.upperLeg);
-      this.constrainPair(this.knee1, this.foot1, this.cfg.lowerLeg);
+      this.constrainPointToAnchor(this.elbow, shoulder, upperArm, constraintBlend);
+      this.constrainPair(this.elbow, this.hand, lowerArm, constraintBlend);
+      this.constrainPointToAnchor(this.knee0, hip0, this.cfg.upperLeg, constraintBlend);
+      this.constrainPair(this.knee0, this.foot0, this.cfg.lowerLeg, constraintBlend);
+      this.constrainPointToAnchor(this.knee1, hip1, this.cfg.upperLeg, constraintBlend);
+      this.constrainPair(this.knee1, this.foot1, this.cfg.lowerLeg, constraintBlend);
     }
   }
 
@@ -309,7 +339,7 @@ class Ragdoll {
 
     ctx.save();
     ctx.translate(Math.round(this.body.x), Math.round(this.body.y));
-    const angleStep = Math.PI / 32;
+    const angleStep = Math.PI / 64;
     ctx.rotate(Math.round(this.body.angle / angleStep) * angleStep);
     ctx.imageSmoothingEnabled = false;
 
