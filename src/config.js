@@ -54,6 +54,19 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   runSwingTime:0.17,
   landingPrediction:0.12,
   stanceSpread:12,
+
+  // Ground gait is phase driven so a bad physical foot position can never stall
+  // walking. Two steps occur per gait cycle.
+  gaitWalkHz:2.60,
+  gaitRunHz:3.20,
+  gaitSwingFraction:0.43,
+  gaitRearStride:0.42,
+  gaitFrontStride:0.50,
+
+  activeLegConstraintIterations:4,
+  activeLegConstraintStrength:0.68,
+  activeLegPlantedFootWeight:0.06,
+  kneeGroundClearance:9,
   restRecenter:5,
 
   kneeBend:1.0,
@@ -65,9 +78,9 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
 
   footPlantSpring:165,
   footPlantDamping:20,
-  footSwingSpring:150,
-  footSwingDamping:15,
-  footMaxSpeed:760,
+  footSwingSpring:205,
+  footSwingDamping:21,
+  footMaxSpeed:980,
   footContactRange:24,
   footReleaseReach:1.07,
   footSoftReach:0.97,
