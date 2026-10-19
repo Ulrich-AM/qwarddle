@@ -209,31 +209,40 @@ class Player {
   constrainLegReach(index) {
     const leg = this.legs[index];
     const hip = this.hipFor(index);
-    const maxReach = (this.cfg.upperLeg + this.cfg.lowerLeg) * 0.94;
+    const totalLength = this.cfg.upperLeg + this.cfg.lowerLeg;
     const dx = leg.foot.x - hip.x;
     const dy = leg.foot.y - hip.y;
     const distance = MathEx.hypot(dx, dy);
+    if (distance <= 0.001) return;
 
-    if (distance <= maxReach || distance <= 0.001) return;
+    const reach = distance / Math.max(1, totalLength);
+
+    // Ground contact stays where it was made. Once the body pulls too far away,
+    // release the foot instead of dragging the contact anchor across the floor.
+    if (leg.state === 'plant') {
+      if (reach > this.cfg.footReleaseReach) leg.releaseToAir();
+      return;
+    }
+
+    const softLimit = totalLength * this.cfg.footSoftReach;
+    if (distance <= softLimit) return;
 
     const nx = dx / distance;
     const ny = dy / distance;
-    leg.foot.x = hip.x + nx * maxReach;
-    leg.foot.y = hip.y + ny * maxReach;
+    const excess = distance - softLimit;
+
+    // Soft velocity constraint rather than teleporting the foot back onto the
+    // reach circle.
+    leg.foot.vx -= nx * excess * 34 * (1 / 120);
+    leg.foot.vy -= ny * excess * 34 * (1 / 120);
 
     const outwardSpeed = leg.foot.vx * nx + leg.foot.vy * ny;
     if (outwardSpeed > 0) {
-      leg.foot.vx -= outwardSpeed * nx;
-      leg.foot.vy -= outwardSpeed * ny;
-    }
-
-    // A planted foot should not immediately snap back to an impossible point on
-    // the next frame. Move its safety anchor with the constrained foot instead.
-    if (leg.state === 'plant') {
-      leg.plantX = leg.foot.x;
-      leg.plantY = leg.foot.y;
+      leg.foot.vx -= outwardSpeed * nx * 0.55;
+      leg.foot.vy -= outwardSpeed * ny * 0.55;
     }
   }
+
 
   placeAt(x, referenceY = null) {
     this.x = x;
@@ -252,7 +261,7 @@ class Player {
       const footX = this.x + this.stanceOffset(i);
       const footY = this.footSurfaceY(footX, this.footReferenceY());
       const hip = this.hipFor(i);
-      leg.plant(footX, footY);
+      leg.plant(footX, footY, true);
       const knee = this.solveKnee(hip.x, hip.y, footX, footY, -this.facing * this.cfg.kneeBend);
       leg.knee.x = knee.x;
       leg.knee.y = knee.y;
@@ -299,7 +308,7 @@ class Player {
       const footX = this.x + this.stanceOffset(i);
       const footY = this.footSurfaceY(footX, this.footReferenceY());
       const hip = this.hipFor(i);
-      leg.plant(footX, footY);
+      leg.plant(footX, footY, true);
       const knee = this.solveKnee(hip.x, hip.y, footX, footY, -this.facing * this.cfg.kneeBend);
       leg.knee.x = knee.x;
       leg.knee.y = knee.y;
@@ -482,53 +491,126 @@ class Player {
     this.stepPulse = 1;
   }
 
+  driveLegPoint(point, targetX, targetY, spring, damping, maxSpeed, dt, gravity = 0) {
+    const ax = (targetX - point.x) * spring - point.vx * damping;
+    const ay = (targetY - point.y) * spring - point.vy * damping + gravity;
+
+    point.vx += ax * dt;
+    point.vy += ay * dt;
+
+    const speed = MathEx.hypot(point.vx, point.vy);
+    if (speed > maxSpeed && speed > 0.001) {
+      const scale = maxSpeed / speed;
+      point.vx *= scale;
+      point.vy *= scale;
+    }
+
+    point.x += point.vx * dt;
+    point.y += point.vy * dt;
+  }
+
   updateFootStates(dt, moving, speed01, direction) {
     for (const leg of this.legs) {
       leg.lastFootX = leg.foot.x;
       leg.lastFootY = leg.foot.y;
 
       if (leg.state === 'plant') {
-        leg.foot.x = leg.plantX;
-        leg.foot.y = leg.plantY;
-        leg.foot.vx = 0;
-        leg.foot.vy = 0;
+        this.driveLegPoint(
+          leg.foot,
+          leg.plantX,
+          leg.plantY,
+          this.cfg.footPlantSpring,
+          this.cfg.footPlantDamping,
+          this.cfg.footMaxSpeed,
+          dt
+        );
+
+        const error = MathEx.hypot(
+          leg.foot.x - leg.plantX,
+          leg.foot.y - leg.plantY
+        );
+        const targetContact = MathEx.clamp(
+          1 - error / Math.max(1, this.cfg.footContactRange),
+          0,
+          1
+        );
+        leg.contactStrength = MathEx.expLerp(
+          leg.contactStrength,
+          targetContact,
+          13,
+          dt
+        );
       } else if (leg.state === 'swing') {
-        const s = leg.swing;
-        s.t = Math.min(1, s.t + dt / s.duration);
-        const t = s.t;
-        leg.foot.x = MathEx.hermite(s.sx, s.svx, s.tx, 0, t, s.duration);
-        leg.foot.y = MathEx.hermite(s.sy, s.svy, s.ty, 0, t, s.duration) - MathEx.hump(t) * s.height;
-        leg.foot.vx = (leg.foot.x - leg.lastFootX) / dt;
-        leg.foot.vy = (leg.foot.y - leg.lastFootY) / dt;
+        const swing = leg.swing;
+        swing.t = Math.min(1, swing.t + dt / swing.duration);
+        const t = swing.t;
+
+        const targetX = MathEx.hermite(
+          swing.sx,
+          swing.svx,
+          swing.tx,
+          0,
+          t,
+          swing.duration
+        );
+        const targetY =
+          MathEx.hermite(
+            swing.sy,
+            swing.svy,
+            swing.ty,
+            0,
+            t,
+            swing.duration
+          ) -
+          MathEx.hump(t) * swing.height;
+
+        this.driveLegPoint(
+          leg.foot,
+          targetX,
+          targetY,
+          this.cfg.footSwingSpring,
+          this.cfg.footSwingDamping,
+          this.cfg.footMaxSpeed,
+          dt,
+          this.cfg.gravity * 0.04
+        );
 
         if (t >= 1) {
-          leg.plant(s.tx, s.ty);
+          leg.plant(swing.tx, swing.ty, false);
           this.stepPulse = 1;
         }
-      } else if (leg.state === 'air') {
+      } else {
         const hip = this.hipFor(leg.index);
-        const targetX = hip.x - this.vx * 0.020 - this.facing * this.cfg.airTuckX + this.stanceOffset(leg.index)
-          + (leg.index ? this.cfg.airSpread : -this.cfg.airSpread) * 0.5;
-        const targetY = hip.y + this.cfg.airTuckY + (leg.index ? 2 : -2);
-        const ax = (targetX - leg.foot.x) * this.cfg.airFootSpring - leg.foot.vx * this.cfg.airFootDamping;
-        const ay = (targetY - leg.foot.y) * this.cfg.airFootSpring - leg.foot.vy * this.cfg.airFootDamping + this.cfg.gravity * 0.18;
-        leg.foot.vx += ax * dt;
-        leg.foot.vy += ay * dt;
-        leg.foot.vx = MathEx.clamp(leg.foot.vx, -720, 720);
-        leg.foot.vy = MathEx.clamp(leg.foot.vy, -720, 720);
-        leg.foot.x += leg.foot.vx * dt;
-        leg.foot.y += leg.foot.vy * dt;
+        const targetX =
+          hip.x -
+          this.vx * 0.020 -
+          this.facing * this.cfg.airTuckX +
+          this.stanceOffset(leg.index) +
+          (leg.index ? this.cfg.airSpread : -this.cfg.airSpread) * 0.5;
+        const targetY =
+          hip.y +
+          this.cfg.airTuckY +
+          (leg.index ? 2 : -2);
+
+        this.driveLegPoint(
+          leg.foot,
+          targetX,
+          targetY,
+          this.cfg.airFootSpring,
+          this.cfg.airFootDamping,
+          720,
+          dt,
+          this.cfg.gravity * 0.18
+        );
       }
     }
 
     if (!this.onGround) return;
 
     if (this.legs.some((leg) => leg.state === 'air')) {
-      // One planted foot may catch the body first. Do not instantly teleport the
-      // other foot onto the floor: let it perform a real recovery step so ledge
-      // catches and partial support remain visible.
-      if (!this.anySwing() && this.activeBody.strength > 0.18) {
+      if (!this.anySwing() && this.activeBody.strength > 0.14) {
         const airIndex = this.legs.findIndex((leg) => leg.state === 'air');
+
         if (airIndex >= 0) {
           const targetX = this.clampFootXToReach(
             airIndex,
@@ -543,7 +625,7 @@ class Player {
             this.legs[airIndex].beginSwing(
               targetX,
               surfaceY,
-              this.cfg.landingTime,
+              this.cfg.landingTime * 1.2,
               this.cfg.stepHeight * 0.62,
               true
             );
@@ -560,13 +642,18 @@ class Player {
       const leg = this.legs[index];
       const hip = this.hipFor(index);
       const trailing = (this.x - leg.foot.x) * direction;
-      const reach = MathEx.hypot(leg.foot.x - hip.x, leg.foot.y - hip.y) / (this.cfg.upperLeg + this.cfg.lowerLeg);
+      const reach = MathEx.hypot(
+        leg.foot.x - hip.x,
+        leg.foot.y - hip.y
+      ) / (this.cfg.upperLeg + this.cfg.lowerLeg);
+
       if (!this.wasMoving || trailing > this.cfg.stepTrigger || reach > 0.90) {
-        this.startNormalStep(index, direction, speed01);
+        this.startNormalStep(index, direction, MathEx.clamp(speed01, 0, 1));
       }
-    } else if (Math.abs(this.vx) < 2) {
+    } else if (Math.abs(this.vx) < 6) {
       let worst = -1;
       let worstDistance = 0;
+
       for (let i = 0; i < 2; i++) {
         const home = this.x + this.stanceOffset(i);
         const distance = Math.abs(this.legs[i].foot.x - home);
@@ -575,12 +662,17 @@ class Player {
           worst = i;
         }
       }
+
       if (worst >= 0 && worstDistance > this.cfg.restRecenter) {
-        const targetX = this.clampFootXToReach(worst, this.x + this.stanceOffset(worst));
+        const targetX = this.clampFootXToReach(
+          worst,
+          this.x + this.stanceOffset(worst)
+        );
+
         this.legs[worst].beginSwing(
           targetX,
           this.footSurfaceY(targetX, this.footReferenceY()),
-          this.cfg.stopSettleTime,
+          this.cfg.stopSettleTime * 1.15,
           this.cfg.stepHeight * 0.52,
           false
         );
@@ -593,7 +685,7 @@ class Player {
       const leg = this.legs[i];
       const hip = this.hipFor(i);
       const swingT = leg.state === 'swing' ? leg.swing.t : 0;
-      const wobble = Math.sin(this.time * 9 + i * 2.3 + swingT * Math.PI) * this.cfg.kneeWobble * speed01;
+
       const target = this.solveKnee(
         hip.x,
         hip.y,
@@ -601,24 +693,36 @@ class Player {
         leg.foot.y,
         -this.facing * this.cfg.kneeBend
       );
-      target.x += wobble;
 
-      const oldX = leg.knee.x;
-      const oldY = leg.knee.y;
-      leg.knee.x = MathEx.expLerp(leg.knee.x, target.x, this.cfg.kneeResponse, dt);
-      leg.knee.y = MathEx.expLerp(leg.knee.y, target.y, this.cfg.kneeResponse, dt);
+      target.x +=
+        Math.sin(this.time * 9 + i * 2.3 + swingT * Math.PI) *
+        this.cfg.kneeWobble *
+        speed01;
 
-      const dx = leg.knee.x - target.x;
-      const dy = leg.knee.y - target.y;
-      const distance = MathEx.hypot(dx, dy);
-      if (distance > this.cfg.kneeLagMax) {
-        leg.knee.x = target.x + dx / distance * this.cfg.kneeLagMax;
-        leg.knee.y = target.y + dy / distance * this.cfg.kneeLagMax;
-      }
+      const spring = this.cfg.kneeSpring *
+        (leg.state === 'air' ? 0.72 : 1);
 
-      if (!Number.isFinite(leg.knee.x + leg.knee.y)) {
-        leg.knee.x = oldX;
-        leg.knee.y = oldY;
+      this.driveLegPoint(
+        leg.knee,
+        target.x,
+        target.y,
+        spring,
+        this.cfg.kneeDamping,
+        this.cfg.kneeMaxSpeed,
+        dt,
+        this.cfg.gravity * (leg.state === 'air' ? 0.035 : 0)
+      );
+
+      if (!Number.isFinite(
+        leg.knee.x +
+        leg.knee.y +
+        leg.knee.vx +
+        leg.knee.vy
+      )) {
+        leg.knee.x = target.x;
+        leg.knee.y = target.y;
+        leg.knee.vx = this.vx;
+        leg.knee.vy = this.vy;
       }
     }
   }
