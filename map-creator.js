@@ -165,7 +165,15 @@
       background:normalizeColor(source?.background, fallback.background),
       groundColor:normalizeColor(source?.groundColor, fallback.groundColor),
       outlineColor:normalizeColor(source?.outlineColor, fallback.outlineColor),
-      outlineSize:Math.max(0, Math.min(40, Math.round(Number(source?.outlineSize) || 0))),
+      outlineSize:Math.max(
+        0,
+        Math.min(
+          40,
+          Number.isFinite(Number(source?.outlineSize))
+            ? Math.round(Number(source.outlineSize))
+            : fallback.outlineSize
+        )
+      ),
       spawns:[0,1].map((index) => {
         const spawn = source?.spawns?.[index] || fallback.spawns[index];
         return {
@@ -251,7 +259,7 @@
       ['LOWER LEG', `${cfg.lowerLeg} px`],
       ['LEG REACH', `${cfg.upperLeg + cfg.lowerLeg} px`],
       ['STANDING OFFSET', `${cfg.bodyH * 0.5 + cfg.bodyHeight} px`],
-      ['BODY + STANCE', `~${Math.round(total + cfg.bodyHeight)} px`]
+      ['STANDING HEIGHT', `~${Math.round(total)} px`]
     ].map(([a,b]) => `<b>${a}</b><span>${b}</span>`).join('');
   }
 
@@ -645,11 +653,19 @@
 
   function beginDrag(index, world) {
     const rect = state.map.rectangles[index];
+    const handleRadius = 13 / state.zoom;
+    const nearResize =
+      Math.abs(world.x - (rect.x + rect.w)) <= handleRadius &&
+      Math.abs(world.y - (rect.y + rect.h)) <= handleRadius;
+
     state.drag = {
       index,
+      mode:nearResize ? 'resize' : 'move',
       before:snapshot(),
       offsetX:world.x - rect.x,
-      offsetY:world.y - rect.y
+      offsetY:world.y - rect.y,
+      originX:rect.x,
+      originY:rect.y
     };
   }
 
@@ -767,16 +783,35 @@
     if (state.drag) {
       const rect = state.map.rectangles[state.drag.index];
       if (rect) {
-        rect.x = clamp(
-          snap(world.x - state.drag.offsetX),
-          0,
-          Math.max(0, state.map.width - rect.w)
-        );
-        rect.y = clamp(
-          snap(world.y - state.drag.offsetY),
-          0,
-          Math.max(0, state.map.height - rect.h)
-        );
+        if (state.drag.mode === 'resize') {
+          rect.w = Math.max(
+            state.grid,
+            clamp(
+              snap(world.x) - state.drag.originX,
+              state.grid,
+              state.map.width - state.drag.originX
+            )
+          );
+          rect.h = Math.max(
+            state.grid,
+            clamp(
+              snap(world.y) - state.drag.originY,
+              state.grid,
+              state.map.height - state.drag.originY
+            )
+          );
+        } else {
+          rect.x = clamp(
+            snap(world.x - state.drag.offsetX),
+            0,
+            Math.max(0, state.map.width - rect.w)
+          );
+          rect.y = clamp(
+            snap(world.y - state.drag.offsetY),
+            0,
+            Math.max(0, state.map.height - rect.h)
+          );
+        }
         syncSelection();
       }
       render();
