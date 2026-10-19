@@ -396,6 +396,41 @@ class Game {
     return true;
   }
 
+  startImpactKnockdown(slot, impact) {
+    if (
+      !slot ||
+      !impact ||
+      slot.ragdoll ||
+      slot.knockdown ||
+      slot.attackRagdoll ||
+      slot.actor.dead
+    ) {
+      return false;
+    }
+
+    const actor = slot.actor;
+
+    // Collision resolution may already have stopped the normal Player body.
+    // Restore the pre-impact motion before constructing the ragdoll so crashes
+    // keep their real incoming momentum instead of becoming canned flops.
+    actor.vx = impact.vx;
+    actor.vy = impact.vy;
+    actor.bodyAngularVelocity = impact.angularVelocity;
+
+    slot.knockdown = new Ragdoll({
+      actor,
+      terrain:this.terrain,
+      lifetime:Math.max(1.25, impact.duration + 0.45),
+      dropWeapon:false,
+      fadeOut:false
+    });
+    slot.knockdown.body.vx = impact.vx;
+    slot.knockdown.body.vy = impact.vy;
+    slot.knockdown.body.av = impact.angularVelocity;
+    slot.knockdownRemaining = impact.duration;
+    return true;
+  }
+
   recoverKnockdown(slot) {
     if (!slot?.knockdown) return;
 
@@ -634,6 +669,9 @@ class Game {
     const actor = slot.actor;
     actor.update(dt, aimWorld);
     if (actor.dead || actor.health <= 0) return;
+
+    const impact = actor.consumeImpactRagdoll?.();
+    if (impact && this.startImpactKnockdown(slot, impact)) return;
 
     const weapon = actor.weaponMount.weapon;
     if (weapon?.chargeRate > 0) this.gainCharge(slot, weapon.chargeRate * dt);
