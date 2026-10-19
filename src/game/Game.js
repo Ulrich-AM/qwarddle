@@ -833,7 +833,7 @@ class Game {
   render() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.width, this.height);
-    ctx.fillStyle = '#242a30';
+    ctx.fillStyle = this.terrain.map?.background || '#242a30';
     ctx.fillRect(0, 0, this.width, this.height);
 
     this.camera.begin(ctx);
