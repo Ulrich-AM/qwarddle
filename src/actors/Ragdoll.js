@@ -50,6 +50,17 @@ class Ragdoll {
       12
     );
 
+    this.lowerLeg0Length = MathEx.clamp(
+      MathEx.hypot(this.foot0.x - this.knee0.x, this.foot0.y - this.knee0.y),
+      18,
+      this.cfg.lowerLeg
+    );
+    this.lowerLeg1Length = MathEx.clamp(
+      MathEx.hypot(this.foot1.x - this.knee1.x, this.foot1.y - this.knee1.y),
+      18,
+      this.cfg.lowerLeg
+    );
+
     this.weapon = dropWeapon ? this.createDroppedWeapon(actor) : null;
   }
 
@@ -195,9 +206,9 @@ class Ragdoll {
       this.constrainPointToAnchor(this.elbow, shoulder, upperArm);
       this.constrainPair(this.elbow, this.hand, lowerArm);
       this.constrainPointToAnchor(this.knee0, hip0, this.cfg.upperLeg);
-      this.constrainPair(this.knee0, this.foot0, this.cfg.lowerLeg);
+      this.constrainPair(this.knee0, this.foot0, this.lowerLeg0Length);
       this.constrainPointToAnchor(this.knee1, hip1, this.cfg.upperLeg);
-      this.constrainPair(this.knee1, this.foot1, this.cfg.lowerLeg);
+      this.constrainPair(this.knee1, this.foot1, this.lowerLeg1Length);
     }
   }
 
