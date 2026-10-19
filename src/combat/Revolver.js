@@ -5,7 +5,7 @@ class Revolver extends Weapon {
     super({
       id:'revolver',
       name:'REVOLVER',
-      damage:23,
+      damage:CombatBalance.revolver.primaryDamage,
       cooldown:0,
       knockback:390,
       recoil:285,
@@ -40,7 +40,7 @@ class Revolver extends Weapon {
     this.hudAngle = 0;
     this.hudAngleTarget = 0;
 
-    this.chargedDamage = 52;
+    this.chargedDamage = CombatBalance.revolver.chargedDamage;
     this.chargedKnockback = 820;
     this.chargedHandRecoil = 720;
     this.chargedBodyRecoil = 940;
@@ -254,8 +254,8 @@ class Revolver extends Weapon {
     this.reloadStartHudAngle = this.hudAngle;
     this.reloadSpinAngle = 0;
     this.cooldownRemaining = Math.max(this.cooldownRemaining, this.reloadDuration);
-    player?.grantTemporaryHealth?.(15, 1.0);
-    player?.addBuff?.('revolver-reload-defense', 1, { defense:0.75 });
+    player?.grantTemporaryHealth?.(CombatBalance.revolver.reloadTempHealth, 1.0);
+    player?.addBuff?.('revolver-reload-defense', 1, { defense:CombatBalance.revolver.reloadDefense });
     game?.addStatusVisual?.(
       player,
       'assets/sprites/characters/enlightned-particle.png',
