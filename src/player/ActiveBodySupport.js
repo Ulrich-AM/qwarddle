@@ -45,12 +45,10 @@ class ActiveBodySupport {
       1
     );
 
-    leg.contactStrength = MathEx.expLerp(
-      leg.contactStrength ?? 0,
-      positional * velocity,
-      18,
-      1 / 120
-    );
+    const physicalContact =
+      positional *
+      velocity *
+      MathEx.clamp(leg.contactStrength ?? 0, 0, 1);
 
     const hip = this.player.hipFor(leg.index);
     const maxReach = Math.max(1, this.cfg.upperLeg + this.cfg.lowerLeg);
@@ -61,7 +59,7 @@ class ActiveBodySupport {
       x:leg.foot.x,
       y:surface,
       reach,
-      strength:leg.contactStrength
+      strength:physicalContact
     };
   }
 
