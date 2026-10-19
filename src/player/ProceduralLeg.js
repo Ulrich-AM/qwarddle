@@ -42,7 +42,10 @@ class ProceduralLeg {
     } else {
       // A new contact begins softly. Active support ramps up as the physical
       // foot converges on the contact target.
-      this.contactStrength = Math.min(this.contactStrength, 0.35);
+      this.contactStrength = Math.max(
+        0.18,
+        Math.min(this.contactStrength, 0.35)
+      );
     }
   }
 
