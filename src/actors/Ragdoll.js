@@ -20,7 +20,9 @@ class Ragdoll {
       vx:baseVx,
       vy:baseVy,
       angle:actor.bodyAngle || 0,
-      av:MathEx.clamp(baseVx * 0.004 + (Math.random() - 0.5) * 2.2, -4, 4),
+      av:Number.isFinite(actor.bodyAngularVelocity)
+        ? MathEx.clamp(actor.bodyAngularVelocity, -5, 5)
+        : MathEx.clamp(baseVx * 0.004, -4, 4),
       radius:Math.max(this.cfg.bodyW, this.cfg.bodyH) * 0.48
     };
 
