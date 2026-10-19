@@ -106,6 +106,24 @@ Room discovery currently lists rooms available from the LAN server address the c
 
 The main menu includes a lightweight nickname field. It is stored locally in the browser and is only used to identify players in the UI/LAN room. It is not an account system.
 
+## Active-body locomotion
+
+Standing movement now uses an experimental foot-supported active-body model rather than extending the invisible torso collider down through the legs.
+
+- The visible torso uses its real body-sized collision box.
+- Planted feet form the support base.
+- A spring/damper support motor applies vertical stabilization toward the standing height while the feet have credible contact.
+- Two feet provide strong support. One foot provides weaker support.
+- When the torso moves beyond the planted support base, stabilization progressively weakens until gravity wins and the fighter falls.
+- A free foot performs a recovery step instead of instantly snapping to the floor after a one-foot landing.
+- The torso keeps vertical and angular velocity during normal movement. Ragdolls inherit that angular motion, making Slip/death transitions much closer to removing active support rather than switching models.
+- The normal body sprite now uses quantized visible rotation, so its hips/arm root visually follow the same body angle used by the procedural limbs.
+- Walk speed is 270 and run speed is 445. Acceleration/deceleration are deliberately softer than before.
+- Reversing direction has stronger braking than ordinary acceleration.
+- Repeated clean jumps can bhop up to about 1.18x normal run speed. Momentum is preserved in air rather than being immediately clamped away.
+
+The active-body system lives in `src/player/ActiveBodySupport.js` so support/ledge physics do not further inflate `Player.js`.
+
 ## Architecture checkpoint
 
 The multiplayer refactor is holding up well overall.
