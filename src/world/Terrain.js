@@ -26,7 +26,8 @@ class Terrain {
       x:Math.round(rect.x || 0),
       y:Math.round(rect.y || 0),
       w:Math.max(1, Math.round(rect.w || 1)),
-      h:Math.max(1, Math.round(rect.h || 1))
+      h:Math.max(1, Math.round(rect.h || 1)),
+      material:String(rect.material || 'default')
     }));
 
     if (this.rectangles.length) {
@@ -134,6 +135,33 @@ class Terrain {
 
   slopeAt() {
     return 0;
+  }
+
+  surfaceResponseAt(x, referenceY = null) {
+    const ref = referenceY ?? this.groundYAt(x);
+    let best = null;
+    let bestDistance = Infinity;
+
+    for (const rect of this.rectangles || []) {
+      if (x < rect.x || x > rect.x + rect.w) continue;
+      const distance = ref == null ? 0 : Math.abs(rect.y - ref);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = rect;
+      }
+    }
+
+    const definitions = this.map?.surfaceMaterials || {};
+    const material = best?.material || this.map?.defaultMaterial || 'default';
+    const response = definitions[material] || definitions.default || {};
+
+    return {
+      material,
+      acceleration:Number.isFinite(response.acceleration) ? response.acceleration : 1,
+      deceleration:Number.isFinite(response.deceleration) ? response.deceleration : 1,
+      reverse:Number.isFinite(response.reverse) ? response.reverse : 1,
+      footGrip:Number.isFinite(response.footGrip) ? response.footGrip : 1
+    };
   }
 
   circleIntersectsSolid(x, y, radius = 0) {
