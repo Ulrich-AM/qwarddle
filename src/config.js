@@ -28,7 +28,7 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   bodyHeight:48,
   supportSpring:145,
   supportDamping:18,
-  supportSingleFootRadius:52,
+  supportSingleFootRadius:68,
   supportEdgeFalloff:64,
   supportMinStrength:0.08,
   supportLandingTolerance:14,
@@ -59,7 +59,7 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   // walking. Two steps occur per gait cycle.
   gaitWalkHz:2.60,
   gaitRunHz:3.20,
-  gaitSwingFraction:0.43,
+  gaitSwingFraction:0.40,
   gaitRearStride:0.42,
   gaitFrontStride:0.50,
 
