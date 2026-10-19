@@ -432,7 +432,8 @@ class Game {
 
   actorTouchesWater(actor) {
     if (!actor || actor.dead) return false;
-    return actor.collisionBox().bottom >= this.terrain.waterY + 8;
+    const contactY = actor.footReferenceY?.() ?? actor.collisionBox().bottom;
+    return contactY >= this.terrain.waterY + 8;
   }
 
   startAttackRagdoll(slot, {
