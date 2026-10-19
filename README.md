@@ -106,31 +106,24 @@ Room discovery currently lists rooms available from the LAN server address the c
 
 The main menu includes a lightweight nickname field. It is stored locally in the browser and is only used to identify players in the UI/LAN room. It is not an account system.
 
-## Active-body locomotion
+## Procedural locomotion
 
-Normal locomotion uses an active-body / active-ragdoll hybrid, but the ground gait is now deterministic rather than trigger-driven.
+The active-body / active-ragdoll standing experiment was rolled back after multiplayer and video testing showed that it made normal movement less readable and caused the character to slide while the legs trailed behind.
 
-- The torso uses its real body-sized collision box.
-- Ground walking/running advances a gait phase continuously while moving.
-- The two legs are offset by half a cycle, so one leg swings while the other provides support.
-- Walk cadence is 2.60 gait cycles per second and run cadence is 3.20 cycles per second. Two steps occur per cycle.
-- The swing portion occupies 40% of each leg cycle, leaving brief double-support windows between steps.
-- Swing foot targets are body-relative and move from a rear stride position to a forward stride position. The visible foot still spring-follows that target, so the gait remains floppy without being able to stall.
-- Planted feet remain soft spring contacts rather than teleported points.
-- One-foot support now spans 68 px, close to the actual leg reach, so a normal run step stays supported while true overextension still causes release/fall.
-- Upper-leg and lower-leg lengths are enforced every fixed update with soft positional constraints.
-- Knees and feet are projected out of floor rectangles so active knees cannot sink through platforms.
-- Jumping releases both ground contacts and drives both feet toward compact airborne targets inside the reachable two-bone chain, preventing the long stretched-leg jump pose.
-- Ragdolls continue to inherit torso, knee, foot, elbow, and hand velocities from active mode.
-- Slip/Dagger recovery still adopts the ragdoll pose instead of rebuilding a fresh standing skeleton.
+Normal locomotion is again based on the original procedural system:
 
-The menu and customization preview run the same Player locomotion at an internal 120 Hz and implement the same ground-contact API as real maps.
+- The standing collision body extends through the leg height, providing reliable ground support and ledge behavior.
+- Feet use explicit `plant`, `swing`, and `air` states.
+- A planted foot is fixed to its contact point.
+- A swinging foot follows the original Hermite step arc.
+- Knees are solved from the hip/foot pair and eased toward the IK target.
+- Jumping releases both feet into the original airborne tuck behavior.
+- Landing restores the original foot-snap/recovery behavior.
+- Ragdoll creation and recovery use the original geometry that matches this locomotion model.
 
-### Surface response
+The failed active-body implementation remains available in Git history, but its runtime module has been removed so there is only one normal locomotion model again.
 
-Ground acceleration, braking, reversing, and planted-foot grip are separate multipliers so future map materials can change slipperiness without rewriting movement.
-
-Default movement tuning:
+Movement tuning from the experiment was kept where it is independent of the gait model:
 
 ```text
 walk speed        270
@@ -138,11 +131,17 @@ run speed         445
 acceleration      720
 reverse braking  1450
 deceleration     1500
+air acceleration 460
+jump speed        780
 ```
 
-Maps do not need materials. Existing rectangles automatically use the default response.
+Capped bhop momentum remains available, up to about 1.18x normal run speed.
 
-Future rectangles may optionally provide a `material` and maps may define:
+### Surface response
+
+Ground movement still queries optional surface multipliers, so future materials can change slipperiness without modifying the procedural gait itself.
+
+Existing maps require no changes. Future map rectangles may optionally declare a `material`, while the map defines multipliers such as:
 
 ```json
 {
@@ -150,14 +149,18 @@ Future rectangles may optionally provide a `material` and maps may define:
     "ice": {
       "acceleration": 0.45,
       "deceleration": 0.18,
-      "reverse": 0.35,
-      "footGrip": 0.28
+      "reverse": 0.35
+    },
+    "mud": {
+      "acceleration": 0.55,
+      "deceleration": 1.65,
+      "reverse": 1.20
     }
   }
 }
 ```
 
-`footGrip` scales the planted-foot motor as well as movement response, so a slippery surface can affect both stopping distance and how securely the active legs hold contact.
+These values multiply normal ground acceleration, release/deceleration, and reversal braking.
 
 ## Architecture checkpoint
 
