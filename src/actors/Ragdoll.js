@@ -20,7 +20,9 @@ class Ragdoll {
       vx:baseVx,
       vy:baseVy,
       angle:actor.bodyAngle || 0,
-      av:MathEx.clamp(baseVx * 0.004 + (Math.random() - 0.5) * 2.2, -4, 4),
+      av:Number.isFinite(actor.bodyAngularVelocity)
+        ? MathEx.clamp(actor.bodyAngularVelocity, -5, 5)
+        : MathEx.clamp(baseVx * 0.004, -4, 4),
       radius:Math.max(this.cfg.bodyW, this.cfg.bodyH) * 0.48
     };
 
@@ -32,9 +34,21 @@ class Ragdoll {
     this.elbow = this.makePoint(elbow.x, elbow.y, baseVx, baseVy, 8);
     this.hand = this.makePoint(hand.x, hand.y, hand.vx ?? baseVx, hand.vy ?? baseVy, 11);
     this.knee0 = this.makePoint(leg0?.knee?.x ?? actor.x - 10, leg0?.knee?.y ?? actor.y + 38, baseVx, baseVy, 8);
-    this.foot0 = this.makePoint(leg0?.foot?.x ?? actor.x - 12, leg0?.foot?.y ?? actor.y + 70, leg0?.foot?.vx ?? baseVx, leg0?.foot?.vy ?? baseVy, 12);
+    this.foot0 = this.makePoint(
+      leg0?.foot?.x ?? actor.x - 12,
+      (leg0?.foot?.y ?? actor.y + 70) - 12,
+      leg0?.foot?.vx ?? baseVx,
+      leg0?.foot?.vy ?? baseVy,
+      12
+    );
     this.knee1 = this.makePoint(leg1?.knee?.x ?? actor.x + 10, leg1?.knee?.y ?? actor.y + 38, baseVx, baseVy, 8);
-    this.foot1 = this.makePoint(leg1?.foot?.x ?? actor.x + 12, leg1?.foot?.y ?? actor.y + 70, leg1?.foot?.vx ?? baseVx, leg1?.foot?.vy ?? baseVy, 12);
+    this.foot1 = this.makePoint(
+      leg1?.foot?.x ?? actor.x + 12,
+      (leg1?.foot?.y ?? actor.y + 70) - 12,
+      leg1?.foot?.vx ?? baseVx,
+      leg1?.foot?.vy ?? baseVy,
+      12
+    );
 
     this.weapon = dropWeapon ? this.createDroppedWeapon(actor) : null;
   }
