@@ -250,6 +250,47 @@ Recommended next structural split before CPU grows complicated:
 3. Make `RoundManager` own actual match lifecycle before adding stocks/rematch.
 4. Keep CPU as another controller implementation rather than putting AI logic into `Player` or `Game`.
 
+## Standalone map creator
+
+Open `map-creator.html` directly. It is intentionally separate from the game and does not require npm, a build step, or the LAN server.
+
+Editor features:
+
+- snapped grid sizes: 10, 20, 25, 50, or 100 px
+- click-drag block creation
+- snapped block movement
+- bottom-right resize handle for selected blocks
+- per-block colors
+- optional per-block material names
+- P1 and P2 spawn placement
+- water-line placement
+- pan with middle mouse or Space-drag
+- cursor-centered wheel zoom
+- undo / redo with Ctrl+Z and Ctrl+Y
+- JSON import, copy, and download
+- true-scale P1/P2 silhouettes using the live dimensions from `src/config.js`
+- movable translucent player-scale ghost
+- optional real torso collision-box overlay
+
+Tool shortcuts:
+
+```text
+1  SELECT
+2  BLOCK
+3  P1 SPAWN
+4  P2 SPAWN
+5  WATER
+6  ERASE
+
+F  FIT MAP
+G  TOGGLE GRID
+DEL  DELETE SELECTED BLOCK
+```
+
+The creator exports the runtime map shape directly. A downloaded JSON can be sent back for review/registration in `MapRegistry`, or committed to the repo for conversion into a selectable map.
+
+Per-block `color` is now understood by both the runtime terrain renderer and map-selection thumbnails. Maps without block colors still use `groundColor` exactly as before.
+
 ## Map format
 
 Map definitions use this shape:
@@ -271,12 +312,19 @@ Map definitions use this shape:
     { "x": 1640, "y": 500 }
   ],
   "rectangles": [
-    { "x": 300, "y": 560, "w": 1600, "h": 180 }
+    {
+      "x": 300,
+      "y": 560,
+      "w": 1600,
+      "h": 180,
+      "color": "#596057",
+      "material": "default"
+    }
   ]
 }
 ```
 
-Map rectangles are full solid collision geometry for the physical torso. Procedural feet provide support/step contacts on rectangle tops, while torso sides and undersides still block walls and ceilings. A depenetration pass also ejects characters that somehow begin a frame overlapping a block, preventing them from walking around inside solids. Visual rectangles may touch or overlap freely.
+Map rectangles are full solid collision geometry for the physical torso. Procedural feet provide support/step contacts on rectangle tops, while torso sides and undersides still block walls and ceilings. A depenetration pass also ejects characters that somehow begin a frame overlapping a block, preventing them from walking around inside solids. Visual rectangles may touch or overlap freely. Rectangle `color` is optional and overrides the map-level `groundColor` for that block. Rectangle `material` is also optional and defaults to `default`.
 
 ## Current maps
 
