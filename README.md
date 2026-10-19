@@ -1,4 +1,4 @@
-# QWARDDLE v0.0.21
+# QWARDDLE v0.0.22
 
 A local-first 2D fighter prototype built with plain HTML, CSS, JavaScript, and Canvas 2D.
 
@@ -9,6 +9,23 @@ Open `index.html` directly. No npm, bundler, or local server is required.
 MAIN MENU -> SOLO / LOCAL -> SETUP -> MAP / CUSTOMIZE -> FIGHT
 
 LOCAL now contains COUCH and LAN. COUCH uses one computer plus a controller. LAN uses two computers on the same network, with separate keyboard/mouse input on each machine. ONLINE remains disabled. SOLO still uses an idle P2 placeholder until the CPU session.
+
+## v0.0.22
+
+This pass re-audits every stage of the hybrid movement system after v0.0.21, focusing on visible sprint dragging and jump/landing continuity.
+
+- Sprinting no longer waits for one procedural swing to finish before the other rear foot is allowed to lift. Above sprint-transfer speed, the next foot can begin after weight transfer while the previous swing is still finishing.
+- Each foot tracks real plant age. Overlapping sprint steps require a minimum planted interval, and newly landed feet get a short stance before another normal step can begin.
+- Full-sprint transfer now starts much earlier in the stride, with faster landing prediction and reach-based lookahead, reducing the long stretched rear-leg pose that looked like dragging.
+- The short floor-backed support grace is reduced to 0.11 s and now respects surface grip. It remains long enough to cover the brief double-swing phase but cannot replace actual floor contact.
+- Jump takeoff gives released feet part of the torso's current velocity instead of leaving them motionless for the first airborne frame.
+- Descending airborne legs progressively extend and lead into their landing positions, so the landing state does not begin from a fully tucked pose.
+- Landing foot recovery uses a much smaller arc and shorter distance-aware timing.
+- The torso now preserves more downward velocity at contact, dips under inertia through a short compression curve, then rebounds toward standing height.
+- Running landings cannot plant and immediately re-lift the same foot during the same update.
+- Floor crash severity now treats upright horizontal running as relatively safe, while excess speed above normal run speed is counted separately. Normal sprint-jumps stay below crash thresholds, while high-speed recoil launches and large falls can still ragdoll.
+- Overlapping swings drive body sway symmetrically instead of implicitly favoring the first leg.
+- Ragdoll recovery enables its crash cooldown before trying to reacquire the floor, closing the immediate re-knockdown window.
 
 ## v0.0.21
 
