@@ -30,11 +30,27 @@ class ActiveBodySupport {
   footContact(leg) {
     if (!leg || leg.state !== 'plant') return null;
 
-    const surface = this.player.terrain.surfaceYAt?.(leg.foot.x, leg.foot.y);
+    const surface = this.player.terrain.surfaceYAt?.(leg.plantX, leg.plantY);
     if (surface == null) return null;
 
-    const tolerance = Math.max(5, this.cfg.supportLandingTolerance * 0.5);
-    if (Math.abs(surface - leg.foot.y) > tolerance) return null;
+    const anchorError = MathEx.hypot(
+      leg.foot.x - leg.plantX,
+      leg.foot.y - surface
+    );
+    const range = Math.max(4, this.cfg.footContactRange);
+    const positional = MathEx.clamp(1 - anchorError / range, 0, 1);
+    const velocity = MathEx.clamp(
+      1 - MathEx.hypot(leg.foot.vx, leg.foot.vy) / 900,
+      0.35,
+      1
+    );
+
+    leg.contactStrength = MathEx.expLerp(
+      leg.contactStrength ?? 0,
+      positional * velocity,
+      18,
+      1 / 120
+    );
 
     const hip = this.player.hipFor(leg.index);
     const maxReach = Math.max(1, this.cfg.upperLeg + this.cfg.lowerLeg);
@@ -44,7 +60,8 @@ class ActiveBodySupport {
       leg,
       x:leg.foot.x,
       y:surface,
-      reach
+      reach,
+      strength:leg.contactStrength
     };
   }
 
@@ -84,8 +101,12 @@ class ActiveBodySupport {
 
     const worstReach = Math.max(...contacts.map((contact) => contact.reach));
     const stretchStrength = MathEx.clamp((1.04 - worstReach) / 0.14, 0, 1);
+    const contactStrength = contacts.reduce((sum, contact) => sum + contact.strength, 0) / contacts.length;
 
-    this.strength = MathEx.clamp(horizontalStrength, 0, 1) * stretchStrength;
+    this.strength =
+      MathEx.clamp(horizontalStrength, 0, 1) *
+      stretchStrength *
+      contactStrength;
     this.targetY = surfaceY - this.standingOffset();
     this.centerX = centerX;
 
@@ -186,13 +207,9 @@ class ActiveBodySupport {
       }
     }
 
-    const surfaceY = candidates.reduce((sum, candidate) => sum + candidate.y, 0) / candidates.length;
-    const targetY = surfaceY - this.standingOffset();
-
-    // Leave a little compression/velocity for the support spring to absorb so
-    // landing does not look like a hard teleport.
-    player.y = Math.min(player.y, targetY + 5);
-    player.vy *= this.cfg.supportLandingDamping;
+    // Do not move the torso here. Feet acquire soft contact targets and the
+    // support spring catches the body over subsequent fixed steps.
+    player.vy *= 0.62;
     player.onGround = true;
     player.landingPulse = MathEx.clamp((impact - 90) / 430, 0, 1);
 
@@ -206,12 +223,19 @@ class ActiveBodySupport {
     for (let i = 0; i < player.legs.length; i++) {
       const x = player.clampFootXToReach(i, player.x + player.stanceOffset(i));
       const y = player.terrain.surfaceYAt?.(x, surfaceY) ?? surfaceY;
-      player.legs[i].plant(x, y);
+      player.legs[i].plant(x, y, false);
     }
 
     this.targetY = surfaceY - this.standingOffset();
-    player.y = this.targetY + Math.min(5, impact * 0.005);
-    player.vy *= this.cfg.supportLandingDamping;
+
+    // Torso collision is only a last-resort safety catch. Move it only enough
+    // to leave solid terrain, then let the leg/support motors recover the pose.
+    const torsoBottom = player.y + player.cfg.bodyH * 0.5;
+    if (torsoBottom > surfaceY) {
+      player.y -= torsoBottom - surfaceY + 0.01;
+    }
+
+    player.vy = Math.min(player.vy * 0.38, 120);
     player.onGround = true;
     player.landingPulse = MathEx.clamp((impact - 90) / 430, 0, 1);
     this.evaluate();
