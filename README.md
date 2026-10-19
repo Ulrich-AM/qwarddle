@@ -118,7 +118,7 @@ Normal locomotion now uses an experimental active-body / active-ragdoll hybrid.
 - Ground contacts stay where they were made. If the torso stretches too far from a planted foot, support weakens and the foot releases instead of dragging its floor anchor along.
 - Two feet provide the strongest support; one-foot catches and ledge balance remain possible.
 - Torso support, rotation and vertical bob are spring driven and intentionally softer than the first active-body prototype.
-- Walk speed is 270 and run speed is 445, with acceleration/deceleration based movement and capped bhop momentum.
+- Walk speed is 270 and run speed is 445. Ground acceleration is softer than the previous pass, while release/deceleration is intentionally faster. Bhop momentum remains capped.
 
 Ragdoll continuity:
 
@@ -129,6 +129,48 @@ Ragdoll continuity:
 - Spawn/reset still snap into a valid initial stance intentionally; runtime walking, landing and recovery use the soft motors.
 
 The support model lives in `src/player/ActiveBodySupport.js`, while per-leg physical state remains in `src/player/ProceduralLeg.js`.
+
+### Surface response
+
+Ground movement now queries an optional material response instead of baking slipperiness directly into the controller.
+
+Default movement tuning:
+
+```text
+acceleration      720
+reverse braking  1450
+deceleration     1500
+```
+
+Maps do not need to define materials. Existing rectangles automatically use the default response.
+
+Future maps may optionally assign a material to a rectangle and define material multipliers:
+
+```json
+{
+  "defaultMaterial": "stone",
+  "surfaceMaterials": {
+    "stone": {
+      "acceleration": 1.0,
+      "deceleration": 1.0,
+      "reverse": 1.0,
+      "footGrip": 1.0
+    },
+    "ice": {
+      "acceleration": 0.45,
+      "deceleration": 0.18,
+      "reverse": 0.35,
+      "footGrip": 0.28
+    }
+  },
+  "rectangles": [
+    { "x": 300, "y": 560, "w": 800, "h": 180, "material": "stone" },
+    { "x": 1100, "y": 560, "w": 800, "h": 180, "material": "ice" }
+  ]
+}
+```
+
+These values multiply the normal movement response. `footGrip` also scales the planted-foot motor, so low-grip surfaces can affect both stopping distance and how securely the active-ragdoll legs hold contact.
 
 ## Architecture checkpoint
 
