@@ -1,4 +1,4 @@
-# QWARDDLE v0.0.20
+# QWARDDLE v0.0.21
 
 A local-first 2D fighter prototype built with plain HTML, CSS, JavaScript, and Canvas 2D.
 
@@ -9,6 +9,20 @@ Open `index.html` directly. No npm, bundler, or local server is required.
 MAIN MENU -> SOLO / LOCAL -> SETUP -> MAP / CUSTOMIZE -> FIGHT
 
 LOCAL now contains COUCH and LAN. COUCH uses one computer plus a controller. LAN uses two computers on the same network, with separate keyboard/mouse input on each machine. ONLINE remains disabled. SOLO still uses an idle P2 placeholder until the CPU session.
+
+## v0.0.21
+
+This patch stabilizes the hybrid locomotion model and gives the torso more physical character without turning the normal legs into active ragdolls.
+
+- Fast running no longer depends on perfect planted-foot contact every fixed step. A 0.14 s floor-backed continuity window keeps the torso supported while a procedural step catches up, but it immediately stops working when there is no real floor under the body.
+- Running steps begin from projected future leg reach instead of waiting until the support leg is already close to overstretching.
+- The original deterministic plant / swing / air leg states remain authoritative. Planted anchors are never dragged along with the torso.
+- Torso rotation is more underdamped and reacts to acceleration, reversals, gait timing, edge support, recoil, and hard landings.
+- Hard but survivable impacts enter a short balance-recovery state with extra wobble instead of instantly returning upright.
+- High-speed floor, wall, and ceiling impacts can now hand control to the existing non-lethal ragdoll system.
+- Impact ragdolls preserve incoming linear and angular momentum, keep the equipped weapon, and recover through the normal procedural-leg reacquisition path.
+- Ordinary run speed and normal jumps remain below the crash thresholds; unusually high recoil/launch speeds are where the ragdoll handoff becomes likely.
+- Intentional knockback and jumping clear stride-support grace so the continuity fix cannot act like invisible air support.
 
 ## v0.0.20
 
