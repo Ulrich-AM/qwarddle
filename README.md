@@ -330,7 +330,7 @@ Map rectangles are full solid collision geometry for the physical torso. Procedu
 
 - COMPLEX
 
-COMPLEX is currently the only registered arena while the new map-creator workflow is being tested. Its world size is 5000 x 3000, and the map picker is skipped while it is the only entry. More exported arenas can be registered later without changing the game flow code.
+COMPLEX is currently the only registered arena while the new map-creator workflow is being tested. Its current test scale is 2500 x 1500, reduced to 0.5x from the original export so the stacked platforms are reachable with the current jump. The map picker is skipped while it is the only entry. More exported arenas can be registered later without changing the game flow code.
 
 ## Sprite staging areas
 
