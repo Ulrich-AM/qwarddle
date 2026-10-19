@@ -106,6 +106,33 @@ Room discovery currently lists rooms available from the LAN server address the c
 
 The main menu includes a lightweight nickname field. It is stored locally in the browser and is only used to identify players in the UI/LAN room. It is not an account system.
 
+## Architecture checkpoint
+
+The multiplayer refactor is holding up well overall.
+
+Healthy boundaries:
+
+- `FighterSlot` owns fighter-specific combat state.
+- Controllers are swappable between keyboard/mouse, gamepad, LAN network input, and future CPU input.
+- `FighterGameView` keeps weapon charge/targeting scoped to the correct fighter.
+- Projectiles carry ownership and share one projectile simulation.
+- LAN remains host-authoritative, so only one simulation owns ragdolls, random movement, hazards, and projectiles.
+- Major tuning values now live in `src/combat/Balance.js`.
+
+Technical-debt watchlist before CPU/match rules:
+
+- `Game.js` is still responsible for too many concerns: fighter lifecycle, Slip/death state, hazards, status VFX, HUD, charge, camera-facing orchestration, and match updates.
+- Hazards are still ad-hoc classes rather than one shared combat-impact interface.
+- Sake still caches a fighter-scoped game reference internally for some delayed effects.
+- `RoundManager` is not yet the authoritative match/stock/winner state.
+
+Recommended next structural split before CPU grows complicated:
+
+1. Move fighter death/Slip/respawn transitions into a dedicated fighter-state or match-combat system.
+2. Move hazard/status-VFX updating out of `Game`.
+3. Make `RoundManager` own actual match lifecycle before adding stocks/rematch.
+4. Keep CPU as another controller implementation rather than putting AI logic into `Player` or `Game`.
+
 ## Map format
 
 Map definitions use this shape:
@@ -164,45 +191,50 @@ The body uses `qward-body.png` plus `qward-body-color.png`. Generated limbs, han
 
 ## Revolver
 
-The revolver still uses a six-slot ordered ammo chain.
+The revolver remains the high-knockback burst weapon, but raw damage has been reduced for longer matches.
 
-- LMB fires the next round.
-- Each shot performs the revolver spin/cooldown.
-- Q fills empty chambers with normal rounds without replacing charged rounds and grants 15 temporary health plus 25% damage reduction for 1 second.
-- E requires full charge, consumes it, dumps the cylinder, and loads six charged rounds.
-- Charged rounds deal more damage and produce extreme recoil.
-
-The held revolver sprite remains active. The separate `revolver-cylinder.png` sprite has been removed. Revolver projectiles are outlined circles, with different colors for normal and charged rounds.
+- Normal shot damage: 10.
+- Charged shot damage: 20.
+- LMB still uses the weapon spin as its fire cooldown.
+- Q reload grants 10 temporary health and 15% damage reduction for 1 second.
+- E still requires full charge and loads six charged rounds.
+- Recoil and knockback remain intentionally extreme so the weapon keeps its identity without relying on huge health damage.
 
 ## Wand
 
-- LMB: larger spinning star, low damage, phases through map solids.
-- Q: three larger lightly-homing stars that fade after about three seconds.
-- E: requires full charge, then fires a large pass-through star with one angle-based ricochet and a twelve-star radial burst on the next wall impact.
+Wand is tuned around persistent space control rather than raw burst damage.
+
+- LMB damage: 4. The star passes through terrain and fighters, damaging each fighter only once.
+- Q damage: 2.5 per homing star.
+- E contact damage: 3.5.
+- E no longer ricochets. The large star phases through fighters and bursts into twelve smaller stars on its first terrain impact.
+- E burst fragments deal 2.25 damage each.
 
 ## Sake
 
-- LMB, Drink: 5 second cooldown. Pulls the gourd toward the mouth and tips it.
-- Each Drink fills one of 8 drunk-meter slots and gives one equal 1/3 result: +25% melee damage for 5 seconds, 25% damage reduction for 5 seconds, or 8 health regenerated over 5 seconds.
-- Filling all 8 slots automatically enters the 15 second drunk state and resets the meter.
-- Q during the 5 second mouthful window, Sake Spit: randomized fading droplets emitted from the fighter's body, damage plus knockback, 4 second cooldown.
-- Q without an active mouthful, Sake Spill: tips the gourd and emits falling droplets before leaving a #e2a417 puddle, 5 second cooldown.
-- E, Chug: available only after at least 5 drinks or at full charge. Full charge is consumed only when it substitutes for the 5-drink requirement.
-- Sake builds charge passively at 4 per second and gains a small bonus from offensive hits.
-- Drunk state: +50% damage, defense, movement, and jump strength, drunken swirls, and stronger random horizontal movement.
-- Drunk LMB, Gourd Throw: 3 second cooldown. Throws toward the cursor, causes 3 seconds of bleed on fighter hits, and bursts thick-outlined #bf7950 shards outward on terrain impact.
-- Drunk Q, Gourd Swing: 1.25 second cooldown. Swings toward the nearest enemy and deals melee damage plus knockback.
-- Shards stop dealing damage once they fade to 50% opacity. The held gourd fades back into the hand after a throw.
+Sake keeps its utility/chaos identity, but its old drunk-state multipliers were too strong for real matches.
+
+- Drink melee buff: +15%.
+- Drink defense buff: 18% damage reduction.
+- Drink regeneration: 6 health over 5 seconds.
+- Drunk state: 30% damage reduction, +25% general damage, +20% melee, while keeping the strong movement/jump boost.
+- Spit damage: 1 per damaging pulse during the sustained 1.5 second spray.
+- Spill puddle damage: 4 plus Slip.
+- Shards: 1.5 direct damage plus 1.5 bleed DPS for 3 seconds.
+- Drunk swing base damage: 8 before current buffs.
+- Gourd throw base damage: 10 plus 2 bleed DPS for 3 seconds.
+- Gourd shards now inherit the thrower's owner identity and cannot damage their owner.
 
 ## Dagger
 
-- LMB, Lunge: 3 second cooldown. Briefly turns the fighter into an offensive ragdoll and launches them toward the mouse with the dagger pointed outward.
-- The arm stays actively aimed during the lunge while the rest of the body remains floppy.
-- Q, Throw: 5 second cooldown. The dagger disappears from the hand, spins through the air at the same visual size, sticks into a fighter, and applies bleed.
-- While the thrown dagger is out, the held dagger fades back into the hand instead of appearing instantly.
-- E, Cloak: 17 second cooldown. The fighter is translucent for 8 seconds and invulnerable for the first 4 seconds.
-- Cloak enhances Lunge and Throw.
-- Held, thrown, stuck, and dropped dagger rendering now share consistent scaling. The held dagger pivots from the bottom-center handle point.
+Dagger remains a mobility/burst weapon, with lower damage so Cloak does not compress matches too heavily.
+
+- LMB Lunge: 9 damage, or 13 while cloaked.
+- Q Throw: 3 impact damage.
+- Normal throw bleed: 2.5 DPS for 3 seconds.
+- Cloaked throw bleed: 3.25 DPS for 6 seconds.
+- E Cloak remains 8 seconds with invulnerability during the first 4 seconds.
+- Held/thrown/stuck/drop visuals and the short offensive-ragdoll Lunge are unchanged.
 
 ## Slip
 
@@ -231,6 +263,8 @@ Each fighter now has its own five-bar combat HUD. P1 is shown on the left and P2
 - CHARGE: yellow.
 
 Charge is stored per fighter. It rises passively at that fighter's weapon-specific rate and gains weapon-specific hit bonuses.
+
+Major multiplayer tuning values are centralized in `src/combat/Balance.js`.
 
 ## Language files
 
