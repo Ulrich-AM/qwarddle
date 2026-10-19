@@ -28,6 +28,18 @@ class Ragdoll {
 
     const leg0 = actor.legs?.[0];
     const leg1 = actor.legs?.[1];
+    const leg0Vx = leg0?.state === 'plant'
+      ? baseVx * 0.38
+      : (leg0?.foot?.vx ?? baseVx);
+    const leg0Vy = leg0?.state === 'plant'
+      ? baseVy * 0.38
+      : (leg0?.foot?.vy ?? baseVy);
+    const leg1Vx = leg1?.state === 'plant'
+      ? baseVx * 0.38
+      : (leg1?.foot?.vx ?? baseVx);
+    const leg1Vy = leg1?.state === 'plant'
+      ? baseVy * 0.38
+      : (leg1?.foot?.vy ?? baseVy);
     const elbow = actor.arm?.elbow || { x:actor.x + 24, y:actor.y };
     const hand = actor.hand || { x:actor.x + 54, y:actor.y };
 
@@ -37,16 +49,16 @@ class Ragdoll {
     this.foot0 = this.makePoint(
       leg0?.foot?.x ?? actor.x - 12,
       (leg0?.foot?.y ?? actor.y + 70) - 12,
-      leg0?.foot?.vx ?? baseVx,
-      leg0?.foot?.vy ?? baseVy,
+      leg0Vx,
+      leg0Vy,
       12
     );
     this.knee1 = this.makePoint(leg1?.knee?.x ?? actor.x + 10, leg1?.knee?.y ?? actor.y + 38, baseVx, baseVy, 8);
     this.foot1 = this.makePoint(
       leg1?.foot?.x ?? actor.x + 12,
       (leg1?.foot?.y ?? actor.y + 70) - 12,
-      leg1?.foot?.vx ?? baseVx,
-      leg1?.foot?.vy ?? baseVy,
+      leg1Vx,
+      leg1Vy,
       12
     );
 
@@ -332,7 +344,7 @@ class Ragdoll {
 
     ctx.save();
     ctx.translate(Math.round(this.body.x), Math.round(this.body.y));
-    const angleStep = Math.PI / 32;
+    const angleStep = Math.PI / 64;
     ctx.rotate(Math.round(this.body.angle / angleStep) * angleStep);
     ctx.imageSmoothingEnabled = false;
 
