@@ -106,24 +106,55 @@ Room discovery currently lists rooms available from the LAN server address the c
 
 The main menu includes a lightweight nickname field. It is stored locally in the browser and is only used to identify players in the UI/LAN room. It is not an account system.
 
-## Procedural locomotion
+## Hybrid locomotion
 
-The active-body / active-ragdoll standing experiment was rolled back after multiplayer and video testing showed that it made normal movement less readable and caused the character to slide while the legs trailed behind.
+Normal movement now deliberately splits responsibilities between a physical torso and the original procedural legs.
 
-Normal locomotion is again based on the original procedural system:
+### Torso/body
 
-- The standing collision body extends through the leg height, providing reliable ground support and ledge behavior.
-- Feet use explicit `plant`, `swing`, and `air` states.
-- A planted foot is fixed to its contact point.
-- A swinging foot follows the original Hermite step arc.
-- Knees are solved from the hip/foot pair and eased toward the IK target.
-- Jumping releases both feet into the original airborne tuck behavior.
-- Landing restores the original foot-snap/recovery behavior.
-- Ragdoll creation and recovery use the original geometry that matches this locomotion model.
+- The visible torso uses its real body-sized collision box. The old invisible leg-height body collider is not used during normal movement.
+- Vertical motion uses a spring/damper support force while procedural feet have credible planted contacts.
+- One planted foot can support the body near an edge, but a planted anchor is never dragged along with the torso.
+- If the hip outruns a planted leg's reachable chain, that contact is released and the leg returns through the normal air/landing path.
+- The torso carries vertical velocity, body angle, and angular velocity through normal movement.
+- Acceleration/deceleration, recoil overspeed, capped bhopping, and surface-response multipliers remain active.
+- Torso visual rotation uses smaller quantized steps so it stays pixel-readable without obvious angle popping.
 
-The failed active-body implementation remains available in Git history, but its runtime module has been removed so there is only one normal locomotion model again.
+### Procedural legs
 
-Movement tuning from the experiment was kept where it is independent of the gait model:
+The original stable leg model is retained:
+
+- explicit `plant`, `swing`, and `air` states
+- original Hermite swing arcs
+- original two-bone IK knee solving/easing
+- original airborne tuck behavior
+- no spring-driven foot or knee physics
+- no gait clock or active-ragdoll leg solver
+
+The old gait timing was shortened slightly to match the faster 270/445 walk/run speeds:
+
+```text
+step trigger       14 px
+walk swing         0.150 s
+run swing          0.105 s
+landing prediction 0.095 s
+```
+
+This keeps the old visual cadence while preventing the torso from outrunning the planted support leg at the new run speed.
+
+### Landing and ragdoll transitions
+
+Runtime landing no longer teleports the torso or calls a hard two-foot snap.
+
+- When the body reaches the floor plane, a short landing-assist support force catches the torso.
+- Airborne procedural legs use their normal Hermite swing path to reach the floor.
+- The assist expires after 0.20 seconds, so it cannot become permanent invisible support.
+- The emergency torso-floor collision may only depenetrate the actual torso. It cannot restart an in-progress landing swing.
+- Ragdolls inherit torso angle/angular velocity and some planted-leg body momentum.
+- Normal visual foot centers are converted to ragdoll foot-circle centers at handoff.
+- Slip and Dagger-ragdoll recovery restore the ragdoll torso state and then let the procedural legs reacquire the floor instead of calling `placeAt()`.
+
+### Movement tuning
 
 ```text
 walk speed        270
@@ -133,15 +164,12 @@ reverse braking  1450
 deceleration     1500
 air acceleration 460
 jump speed        780
+bhop cap          ~1.18x run speed
 ```
-
-Capped bhop momentum remains available, up to about 1.18x normal run speed.
 
 ### Surface response
 
-Ground movement still queries optional surface multipliers, so future materials can change slipperiness without modifying the procedural gait itself.
-
-Existing maps require no changes. Future map rectangles may optionally declare a `material`, while the map defines multipliers such as:
+Existing maps require no material data. Future map rectangles may optionally define material multipliers for acceleration, deceleration, reversal braking, and foot grip.
 
 ```json
 {
@@ -149,18 +177,20 @@ Existing maps require no changes. Future map rectangles may optionally declare a
     "ice": {
       "acceleration": 0.45,
       "deceleration": 0.18,
-      "reverse": 0.35
+      "reverse": 0.35,
+      "footGrip": 0.55
     },
     "mud": {
       "acceleration": 0.55,
       "deceleration": 1.65,
-      "reverse": 1.20
+      "reverse": 1.20,
+      "footGrip": 1.0
     }
   }
 }
 ```
 
-These values multiply normal ground acceleration, release/deceleration, and reversal braking.
+The support code lives in `src/player/ActiveBodySupport.js`, but it only controls the torso. `ProceduralLeg.js` remains the authoritative normal-leg state model.
 
 ## Architecture checkpoint
 
@@ -215,7 +245,7 @@ Map definitions use this shape:
 }
 ```
 
-Map rectangles are full solid collision geometry for the player's standing body. Sides block horizontal movement, tops catch falls, and undersides catch jumps. A depenetration pass also ejects characters that somehow begin a frame overlapping a block, preventing them from walking around inside solids. Visual rectangles may touch or overlap freely.
+Map rectangles are full solid collision geometry for the physical torso. Procedural feet provide support/step contacts on rectangle tops, while torso sides and undersides still block walls and ceilings. A depenetration pass also ejects characters that somehow begin a frame overlapping a block, preventing them from walking around inside solids. Visual rectangles may touch or overlap freely.
 
 ## Current maps
 
