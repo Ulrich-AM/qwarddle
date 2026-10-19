@@ -33,6 +33,16 @@ class MenuDemoTerrain {
   hasGroundAt() { return true; }
   clampGroundX(x, margin = 0) { return MathEx.clamp(x, margin, this.width - margin); }
   groundYAt() { return this.floor; }
+  surfaceYAt() { return this.floor; }
+  surfaceResponseAt() {
+    return {
+      material:'demo',
+      acceleration:1,
+      deceleration:1,
+      reverse:1,
+      footGrip:1
+    };
+  }
   yAt() { return this.floor; }
   slopeAt() { return 0; }
 }
@@ -117,6 +127,17 @@ class MenuDemo {
     this.nextDecision = this.time + 0.72 + Math.random() * 1.10;
   }
 
+  stepPlayer(dt) {
+    let remaining = Math.max(0, dt);
+    const fixed = 1 / 120;
+
+    while (remaining > 0.000001) {
+      const step = Math.min(fixed, remaining);
+      this.player.update(step, this.aim);
+      remaining -= step;
+    }
+  }
+
   update(dt) {
     if (!this.active) return;
     this.time += dt;
@@ -133,9 +154,7 @@ class MenuDemo {
       }
       this.aim.x = this.player.x + 112;
       this.aim.y = this.player.y - 10 + Math.sin(this.time * 1.7) * 18;
-      this.player.update(dt, this.aim);
-      this.player.x = this.logicalWidth * 0.5;
-      this.player.vx = 0;
+      this.stepPlayer(dt);
       return;
     }
 
@@ -154,7 +173,7 @@ class MenuDemo {
       this.aim.x = this.player.x + (this.input.move || this.player.facing) * lookDistance;
       this.aim.y = this.player.y - 12 + Math.sin(this.time * 2.5) * 42;
     }
-    this.player.update(dt, this.aim);
+    this.stepPlayer(dt);
   }
 
   render() {
