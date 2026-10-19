@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>QWARDDLE Map Creator</title>
+  <link rel="stylesheet" href="map-creator.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><strong>QWARDDLE</strong><span>MAP CREATOR</span></div>
+    <div class="topActions">
+      <button id="newBtn">NEW</button>
+      <button id="importFileBtn">IMPORT</button>
+      <button id="copyBtn">COPY JSON</button>
+      <button id="downloadBtn">DOWNLOAD JSON</button>
+      <button id="fitBtn">FIT</button>
+      <input id="fileInput" type="file" accept=".json,application/json" hidden />
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel leftPanel">
+      <section>
+        <h2>TOOLS</h2>
+        <div class="toolGrid">
+          <button class="tool active" data-tool="select">1 SELECT</button>
+          <button class="tool" data-tool="block">2 BLOCK</button>
+          <button class="tool" data-tool="spawn0">3 P1 SPAWN</button>
+          <button class="tool" data-tool="spawn1">4 P2 SPAWN</button>
+          <button class="tool" data-tool="water">5 WATER</button>
+          <button class="tool danger" data-tool="erase">6 ERASE</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>GRID</h2>
+        <label>SIZE
+          <select id="gridSize">
+            <option value="10">10 PX</option>
+            <option value="20">20 PX</option>
+            <option value="25" selected>25 PX</option>
+            <option value="50">50 PX</option>
+            <option value="100">100 PX</option>
+          </select>
+        </label>
+        <label class="checkRow"><input id="showGrid" type="checkbox" checked /> SHOW GRID</label>
+        <label class="checkRow"><input id="showPlayers" type="checkbox" checked /> SHOW PLAYERS</label>
+        <label class="checkRow"><input id="showGhost" type="checkbox" checked /> PLAYER GHOST</label>
+        <label class="checkRow"><input id="showCollision" type="checkbox" checked /> BODY COLLISION</label>
+      </section>
+
+      <section>
+        <h2>BLOCK BRUSH</h2>
+        <label>COLOR <input id="brushColor" type="color" value="#596057" /></label>
+        <div id="palette" class="palette"></div>
+        <label>MATERIAL <input id="brushMaterial" type="text" value="default" maxlength="24" /></label>
+      </section>
+
+      <section>
+        <h2>MAP</h2>
+        <label>ID <input id="mapId" value="my-map" maxlength="32" /></label>
+        <label>NAME <input id="mapName" value="MY MAP" maxlength="40" /></label>
+        <div class="twoCols">
+          <label>WIDTH <input id="mapWidth" type="number" value="2750" min="320" step="25" /></label>
+          <label>HEIGHT <input id="mapHeight" type="number" value="1225" min="240" step="25" /></label>
+        </div>
+        <label>BACKGROUND <input id="backgroundColor" type="color" value="#242a30" /></label>
+        <label>DEFAULT BLOCK <input id="groundColor" type="color" value="#596057" /></label>
+        <label>OUTLINE <input id="outlineColor" type="color" value="#202020" /></label>
+        <label>OUTLINE SIZE <input id="outlineSize" type="number" value="10" min="0" max="40" step="1" /></label>
+        <label>WATER Y <input id="waterY" type="number" value="950" step="25" /></label>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <canvas id="editorCanvas"></canvas>
+      <div class="canvasHud">
+        <span id="coordText">X 0 / Y 0</span>
+        <span id="zoomText">100%</span>
+        <span id="statusText">SELECT</span>
+      </div>
+      <div class="help">MMB / SPACE+DRAG PAN | WHEEL ZOOM | DEL DELETE | CTRL+Z/Y</div>
+    </section>
+
+    <aside class="panel rightPanel">
+      <section>
+        <h2>SELECTION</h2>
+        <div id="emptySelection" class="muted">NO BLOCK SELECTED</div>
+        <div id="selectionEditor" class="hidden">
+          <div class="twoCols">
+            <label>X <input id="selX" type="number" /></label>
+            <label>Y <input id="selY" type="number" /></label>
+            <label>W <input id="selW" type="number" min="1" /></label>
+            <label>H <input id="selH" type="number" min="1" /></label>
+          </div>
+          <label>COLOR <input id="selColor" type="color" /></label>
+          <label>MATERIAL <input id="selMaterial" type="text" maxlength="24" /></label>
+          <div class="buttonRow">
+            <button id="duplicateBtn">DUPLICATE</button>
+            <button id="deleteBtn" class="danger">DELETE</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>TRUE PLAYER SCALE</h2>
+        <div id="playerScaleInfo" class="scaleInfo"></div>
+        <p class="muted small">Spawn silhouettes use the live body and leg dimensions from src/config.js. The dashed box is the real torso collision box.</p>
+      </section>
+
+      <section class="jsonSection">
+        <h2>JSON</h2>
+        <textarea id="jsonText" spellcheck="false"></textarea>
+        <div class="buttonRow">
+          <button id="refreshJsonBtn">REFRESH</button>
+          <button id="applyJsonBtn">APPLY JSON</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="src/config.js"></script>
+  <script src="map-creator.js"></script>
+</body>
+</html>
