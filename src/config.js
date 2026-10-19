@@ -11,10 +11,17 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
 
   walkSpeed:270,
   runSpeed:445,
-  accel:1050,
-  reverseAccel:1650,
-  airAccel:520,
-  friction:760,
+  accel:720,
+  reverseAccel:1450,
+  airAccel:460,
+  friction:1500,
+
+  // Ground response is intentionally separate from movement speed so future
+  // terrain materials can change grip/slipperiness without changing controls.
+  surfaceAcceleration:1.0,
+  surfaceDeceleration:1.0,
+  surfaceReverse:1.0,
+  surfaceFootGrip:1.0,
   jumpSpeed:780,
   gravity:1450,
 
@@ -45,7 +52,7 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   stepTrigger:18,
   swingTime:0.22,
   runSwingTime:0.17,
-  landingPrediction:0.085,
+  landingPrediction:0.12,
   stanceSpread:12,
   restRecenter:5,
 
@@ -56,9 +63,9 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   kneeLagMax:10,
   kneeWobble:2.0,
 
-  footPlantSpring:155,
+  footPlantSpring:165,
   footPlantDamping:20,
-  footSwingSpring:125,
+  footSwingSpring:150,
   footSwingDamping:15,
   footMaxSpeed:760,
   footContactRange:24,
