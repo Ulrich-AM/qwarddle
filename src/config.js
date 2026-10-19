@@ -110,6 +110,7 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   floorCrashSpeed:980,
   floorImpactUprightHorizontalWeight:0.16,
   floorCrashHorizontalWeight:0.72,
+  floorOverspeedImpactWeight:0.55,
   floorSafeTilt:0.12,
   floorCrashTiltRelief:110,
   wallStumbleSpeed:535,
