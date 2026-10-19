@@ -119,7 +119,18 @@ class ActiveBodySupport {
       return this.cfg.gravity;
     }
 
-    const error = this.targetY - this.player.y;
+    const motion01 = MathEx.clamp(
+      Math.abs(this.player.vx) / Math.max(1, this.cfg.runSpeed),
+      0,
+      1
+    );
+    const bob =
+      Math.sin(this.player.time * (7.0 + motion01 * 4.5)) *
+      this.cfg.bodyBob *
+      motion01 * 0.55;
+
+    const dynamicTargetY = this.targetY + bob;
+    const error = dynamicTargetY - this.player.y;
     const supportAccel =
       error * this.cfg.supportSpring -
       this.player.vy * this.cfg.supportDamping;
