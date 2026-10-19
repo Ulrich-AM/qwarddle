@@ -542,9 +542,71 @@ class Player {
     return x;
   }
 
+  surfaceResponse() {
+    const response = this.terrain.surfaceResponseAt?.(
+      this.x,
+      this.footReferenceY()
+    ) || {};
+
+    return {
+      acceleration:Number.isFinite(response.acceleration)
+        ? response.acceleration
+        : this.cfg.surfaceAcceleration,
+      deceleration:Number.isFinite(response.deceleration)
+        ? response.deceleration
+        : this.cfg.surfaceDeceleration,
+      reverse:Number.isFinite(response.reverse)
+        ? response.reverse
+        : this.cfg.surfaceReverse,
+      footGrip:Number.isFinite(response.footGrip)
+        ? response.footGrip
+        : this.cfg.surfaceFootGrip
+    };
+  }
+
+  planGroundStep(moving, speed01, direction) {
+    if (!this.onGround || !moving || this.anySwing()) return;
+    if (this.legs.some((leg) => leg.state !== 'plant')) return;
+
+    const index = this.chooseTrailingLeg(direction);
+    const leg = this.legs[index];
+    const hip = this.hipFor(index);
+    const projectedBodyX =
+      this.x +
+      this.vx * (this.cfg.landingPrediction * 0.72);
+
+    const bodyLead = (projectedBodyX - leg.foot.x) * direction;
+    const reach = MathEx.hypot(
+      leg.foot.x - hip.x,
+      leg.foot.y - hip.y
+    ) / Math.max(1, this.cfg.upperLeg + this.cfg.lowerLeg);
+
+    const speedTrigger = MathEx.lerp(
+      this.cfg.stepTrigger * 0.72,
+      this.cfg.stepTrigger * 0.48,
+      MathEx.clamp(speed01, 0, 1)
+    );
+
+    if (
+      !this.wasMoving ||
+      bodyLead > speedTrigger ||
+      reach > 0.84
+    ) {
+      this.startNormalStep(
+        index,
+        direction,
+        MathEx.clamp(speed01, 0, 1)
+      );
+    }
+  }
+
   predictedLandingX(index, direction, speed01) {
     const stride = this.cfg.stepLength + this.cfg.runStepBonus * speed01;
-    let x = this.x + this.vx * this.cfg.landingPrediction + direction * stride * 0.42 + this.stanceOffset(index);
+    let x =
+      this.x +
+      this.vx * this.cfg.landingPrediction +
+      direction * stride * 0.58 +
+      this.stanceOffset(index);
     return this.clampFootXToReach(index, x);
   }
 
@@ -600,12 +662,13 @@ class Player {
       leg.lastFootY = leg.foot.y;
 
       if (leg.state === 'plant') {
+        const grip = this.currentSurfaceResponse?.footGrip ?? 1;
         this.driveLegPoint(
           leg.foot,
           leg.plantX,
           leg.plantY,
-          this.cfg.footPlantSpring,
-          this.cfg.footPlantDamping,
+          this.cfg.footPlantSpring * grip,
+          this.cfg.footPlantDamping * Math.sqrt(Math.max(0.05, grip)),
           this.cfg.footMaxSpeed,
           dt
         );
@@ -629,6 +692,22 @@ class Player {
         const swing = leg.swing;
         swing.t = Math.min(1, swing.t + dt / swing.duration);
         const t = swing.t;
+
+        // During the first half of a normal step, keep adjusting the landing
+        // point so the leg follows the accelerating torso instead of aiming at
+        // a stale point chosen several frames ago.
+        if (!swing.landing && t < 0.58 && moving) {
+          const desiredX = this.predictedLandingX(
+            leg.index,
+            direction,
+            MathEx.clamp(speed01, 0, 1)
+          );
+          swing.tx = MathEx.expLerp(swing.tx, desiredX, 10, dt);
+          swing.ty = this.footSurfaceY(
+            swing.tx,
+            this.footReferenceY()
+          );
+        }
 
         const targetX = MathEx.hermite(
           swing.sx,
@@ -661,8 +740,15 @@ class Player {
         );
 
         if (t >= 1) {
-          leg.plant(swing.tx, swing.ty, false);
-          this.stepPulse = 1;
+          const landingError = MathEx.hypot(
+            leg.foot.x - swing.tx,
+            leg.foot.y - swing.ty
+          );
+
+          if (landingError <= Math.max(10, this.cfg.footContactRange * 0.72)) {
+            leg.plant(swing.tx, swing.ty, false);
+            this.stepPulse = 1;
+          }
         }
       } else {
         const hip = this.hipFor(leg.index);
@@ -722,20 +808,7 @@ class Player {
 
     if (this.anySwing()) return;
 
-    if (moving) {
-      const index = this.chooseTrailingLeg(direction);
-      const leg = this.legs[index];
-      const hip = this.hipFor(index);
-      const trailing = (this.x - leg.foot.x) * direction;
-      const reach = MathEx.hypot(
-        leg.foot.x - hip.x,
-        leg.foot.y - hip.y
-      ) / (this.cfg.upperLeg + this.cfg.lowerLeg);
-
-      if (!this.wasMoving || trailing > this.cfg.stepTrigger || reach > 0.90) {
-        this.startNormalStep(index, direction, MathEx.clamp(speed01, 0, 1));
-      }
-    } else if (Math.abs(this.vx) < 6) {
+    if (!moving && Math.abs(this.vx) < 6) {
       let worst = -1;
       let worstDistance = 0;
 
@@ -972,6 +1045,7 @@ class Player {
     const running = !stunned && this.input.down('run');
     const moveMultiplier = this.buffMultiplier('move');
     const maxSpeed = (running ? this.cfg.runSpeed : this.cfg.walkSpeed) * moveMultiplier;
+    this.currentSurfaceResponse = this.surfaceResponse();
 
     this.activeBody.evaluate();
     this.onGround = this.activeBody.strength > this.cfg.supportMinStrength;
@@ -983,7 +1057,11 @@ class Player {
 
       const reversing = Math.sign(this.vx) !== 0 && Math.sign(this.vx) !== Math.sign(axis);
       const baseAcceleration = this.onGround
-        ? (reversing ? this.cfg.reverseAccel : this.cfg.accel)
+        ? (
+            reversing
+              ? this.cfg.reverseAccel * this.currentSurfaceResponse.reverse
+              : this.cfg.accel * this.currentSurfaceResponse.acceleration
+          )
         : this.cfg.airAccel;
       const acceleration = baseAcceleration * moveMultiplier;
       const desired = axis * maxSpeed;
@@ -999,7 +1077,10 @@ class Player {
         this.vx = Math.max(desired, this.vx - step);
       }
     } else if (this.onGround) {
-      const drag = this.cfg.friction * dt;
+      const drag =
+        this.cfg.friction *
+        this.currentSurfaceResponse.deceleration *
+        dt;
       this.vx = Math.abs(this.vx) <= drag
         ? 0
         : this.vx - Math.sign(this.vx) * drag;
@@ -1030,6 +1111,8 @@ class Player {
       1.25
     );
     const direction = Math.sign(this.vx) || this.facing;
+
+    this.planGroundStep(moving, speed01, direction);
 
     const previousX = this.x;
     this.x += this.vx * dt;
