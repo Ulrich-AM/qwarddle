@@ -27,7 +27,8 @@ class Terrain {
       y:Math.round(rect.y || 0),
       w:Math.max(1, Math.round(rect.w || 1)),
       h:Math.max(1, Math.round(rect.h || 1)),
-      material:String(rect.material || 'default')
+      material:String(rect.material || 'default'),
+      color:typeof rect.color === 'string' ? rect.color : null
     }));
 
     if (this.rectangles.length) {
@@ -199,8 +200,8 @@ class Terrain {
       );
     }
 
-    ctx.fillStyle = fillColor;
     for (const rect of this.rectangles) {
+      ctx.fillStyle = rect.color || fillColor;
       ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
     }
   }
