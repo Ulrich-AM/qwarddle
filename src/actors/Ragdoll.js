@@ -42,7 +42,7 @@ class Ragdoll {
     );
     this.foot0 = this.makePoint(
       leg0?.foot?.x ?? actor.x - 12,
-      leg0?.foot?.y ?? actor.y + 70,
+      (leg0?.foot?.y ?? actor.y + 70) - 12,
       leg0?.foot?.vx ?? baseVx,
       leg0?.foot?.vy ?? baseVy,
       12
@@ -56,7 +56,7 @@ class Ragdoll {
     );
     this.foot1 = this.makePoint(
       leg1?.foot?.x ?? actor.x + 12,
-      leg1?.foot?.y ?? actor.y + 70,
+      (leg1?.foot?.y ?? actor.y + 70) - 12,
       leg1?.foot?.vx ?? baseVx,
       leg1?.foot?.vy ?? baseVy,
       12
