@@ -39,26 +39,58 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   supportLandingAssist:0.20,
   supportEdgeLean:0.10,
 
-  bodyAngularSpring:24,
-  bodyAngularDamping:7.2,
-  bodyAngularAirDamping:1.2,
-  bodyAngularMax:0.30,
-  bodyWobble:0.020,
+  // A fast procedural stride is allowed to momentarily lose a planted contact
+  // without making the torso fall. Continuity only applies while a real floor
+  // still exists under the body, so it cannot bridge gaps or ledges.
+  supportContactGrace:0.14,
+  supportGraceStrength:0.76,
+  supportFloorContinuityTolerance:34,
+
+  // The torso is intentionally a little underdamped. Locomotion stays
+  // deterministic at the feet while acceleration, recoil and landings can
+  // visibly throw the upper body around.
+  bodyAngularSpring:18,
+  bodyAngularDamping:4.8,
+  bodyAngularAirDamping:0.85,
+  bodyAngularMax:0.42,
+  bodyWobble:0.034,
+  bodyStepLean:0.030,
+  bodyAngularAccelerationKick:2.8,
+  bodyRecoverySpringScale:0.68,
+  bodyRecoveryDampingScale:0.52,
 
   bodyBob:2.4,
   bodySway:2.0,
-  accelLean:0.11,
+  accelLean:0.13,
   landingSquash:9,
 
   stepLength:52,
   runStepBonus:18,
   stepHeight:25,
-  stepTrigger:14,
+  stepTrigger:12,
   swingTime:0.15,
-  runSwingTime:0.105,
-  landingPrediction:0.095,
+  runSwingTime:0.10,
+  landingPrediction:0.10,
+  stepLookahead:0.78,
+  stepReachTrigger:0.86,
   stanceSpread:12,
   restRecenter:5,
+
+  // Hard impacts first disturb balance, then hand control over to the existing
+  // non-lethal ragdoll state once speed crosses the crash threshold.
+  balanceRecoveryDuration:0.55,
+  hardLandingSpeed:590,
+  floorCrashSpeed:900,
+  floorCrashHorizontalWeight:0.82,
+  floorCrashTiltRelief:140,
+  wallStumbleSpeed:535,
+  wallCrashSpeed:760,
+  ceilingStumbleSpeed:690,
+  ceilingCrashSpeed:930,
+  impactCrashCooldown:0.38,
+  impactRagdollMinDuration:0.78,
+  impactRagdollMaxDuration:1.35,
+  impactRagdollMaxSeverity:1.75,
 
   kneeBend:1.0,
   kneeResponse:18,
