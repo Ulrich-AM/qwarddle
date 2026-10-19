@@ -166,6 +166,12 @@ class App {
   }
 
   showMaps() {
+    if (MapRegistry.list.length === 1) {
+      this.selectedMapId = MapRegistry.list[0].id;
+      this.showCustomize();
+      return;
+    }
+
     this.screen = 'map';
     this.hideScreens();
     this.mapScreen.classList.remove('hidden');
