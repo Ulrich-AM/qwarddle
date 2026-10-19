@@ -392,13 +392,17 @@ class Player {
     this.resolveBodyPenetration();
     this.activeBody.landingAssistTime = 0;
     this.activeBody.landingAssistY = null;
-    this.activeBody.beginRecoveryLanding();
-    this.activeBody.evaluate();
-    this.onGround = this.activeBody.strength > this.cfg.supportMinStrength;
+
+    // Recovery landing must not be allowed to immediately classify the same
+    // remaining ragdoll velocity as a brand-new crash.
     this.impactCrashCooldown = Math.max(
       this.impactCrashCooldown,
       this.cfg.impactCrashCooldown
     );
+
+    this.activeBody.beginRecoveryLanding();
+    this.activeBody.evaluate();
+    this.onGround = this.activeBody.strength > this.cfg.supportMinStrength;
     this.beginBalanceRecovery(0.55, 0, this.cfg.balanceRecoveryDuration * 0.75);
     return true;
   }
@@ -591,14 +595,30 @@ class Player {
     let torqueDirection = 0;
 
     if (kind === 'floor') {
+      const unsafeTilt = Math.max(
+        0,
+        Math.abs(this.bodyAngle) - this.cfg.floorSafeTilt
+      );
       const tilt01 = MathEx.clamp(
-        Math.abs(this.bodyAngle) / Math.max(0.001, this.cfg.bodyAngularMax),
+        unsafeTilt /
+          Math.max(
+            0.001,
+            this.cfg.bodyAngularMax - this.cfg.floorSafeTilt
+          ),
         0,
         1
       );
+      const horizontalWeight = MathEx.lerp(
+        this.cfg.floorImpactUprightHorizontalWeight,
+        this.cfg.floorCrashHorizontalWeight,
+        tilt01
+      );
+
+      // Upright feet-first landings mostly care about vertical impact. Sideways
+      // momentum only becomes dangerous as the torso loses its landing posture.
       speed = MathEx.hypot(
         Math.max(0, vy),
-        Math.abs(vx) * this.cfg.floorCrashHorizontalWeight
+        Math.abs(vx) * horizontalWeight
       );
       crashThreshold =
         this.cfg.floorCrashSpeed -
@@ -725,15 +745,57 @@ class Player {
   }
 
   startNormalStep(index, direction, speed01) {
-    const duration = MathEx.lerp(this.cfg.swingTime, this.cfg.runSwingTime, speed01);
-    const targetX = this.predictedLandingX(index, direction, speed01);
+    const speed = MathEx.clamp(speed01, 0, 1);
+    const duration = MathEx.lerp(
+      this.cfg.swingTime,
+      this.cfg.runSwingTime,
+      speed
+    );
+    const targetX = this.predictedLandingX(index, direction, speed);
     this.legs[index].beginSwing(
       targetX,
       this.footSurfaceY(targetX, this.footReferenceY()),
       duration,
-      this.cfg.stepHeight * (0.85 + 0.35 * speed01),
+      this.cfg.stepHeight * (0.85 + 0.35 * speed),
       false
     );
+  }
+
+  legStepMetrics(index, direction, speed01) {
+    const leg = this.legs[index];
+    const hip = this.hipFor(index);
+    const speed = MathEx.clamp(speed01, 0, 1);
+    const trailing = (this.x - leg.foot.x) * direction;
+    const reach =
+      MathEx.hypot(leg.foot.x - hip.x, leg.foot.y - hip.y) /
+      (this.cfg.upperLeg + this.cfg.lowerLeg);
+    const swingDuration = MathEx.lerp(
+      this.cfg.swingTime,
+      this.cfg.runSwingTime,
+      speed
+    );
+    const predictedHipX =
+      hip.x + this.vx * swingDuration * this.cfg.stepLookahead;
+    const predictedReach =
+      MathEx.hypot(
+        leg.foot.x - predictedHipX,
+        leg.foot.y - hip.y
+      ) /
+      (this.cfg.upperLeg + this.cfg.lowerLeg);
+
+    return {
+      leg,
+      hip,
+      speed,
+      trailing,
+      reach,
+      predictedReach,
+      trigger:MathEx.lerp(
+        this.cfg.stepTrigger,
+        this.cfg.stepTrigger * 0.68,
+        speed
+      )
+    };
   }
 
   releaseFeetToAir() {
@@ -742,11 +804,14 @@ class Player {
 
 
   updateFootStates(dt, moving, speed01, direction) {
+    const speed = MathEx.clamp(speed01, 0, 1);
+
     for (const leg of this.legs) {
       leg.lastFootX = leg.foot.x;
       leg.lastFootY = leg.foot.y;
 
       if (leg.state === 'plant') {
+        leg.plantAge += dt;
         leg.foot.x = leg.plantX;
         leg.foot.y = leg.plantY;
         leg.foot.vx = 0;
@@ -755,8 +820,24 @@ class Player {
         const s = leg.swing;
         s.t = Math.min(1, s.t + dt / s.duration);
         const t = s.t;
-        leg.foot.x = MathEx.hermite(s.sx, s.svx, s.tx, 0, t, s.duration);
-        leg.foot.y = MathEx.hermite(s.sy, s.svy, s.ty, 0, t, s.duration) - MathEx.hump(t) * s.height;
+        leg.foot.x = MathEx.hermite(
+          s.sx,
+          s.svx,
+          s.tx,
+          0,
+          t,
+          s.duration
+        );
+        leg.foot.y =
+          MathEx.hermite(
+            s.sy,
+            s.svy,
+            s.ty,
+            0,
+            t,
+            s.duration
+          ) -
+          MathEx.hump(t) * s.height;
         leg.foot.vx = (leg.foot.x - leg.lastFootX) / dt;
         leg.foot.vy = (leg.foot.y - leg.lastFootY) / dt;
 
@@ -766,11 +847,49 @@ class Player {
         }
       } else if (leg.state === 'air') {
         const hip = this.hipFor(leg.index);
-        const targetX = hip.x - this.vx * 0.020 - this.facing * this.cfg.airTuckX + this.stanceOffset(leg.index)
-          + (leg.index ? this.cfg.airSpread : -this.cfg.airSpread) * 0.5;
-        const targetY = hip.y + this.cfg.airTuckY + (leg.index ? 2 : -2);
-        const ax = (targetX - leg.foot.x) * this.cfg.airFootSpring - leg.foot.vx * this.cfg.airFootDamping;
-        const ay = (targetY - leg.foot.y) * this.cfg.airFootSpring - leg.foot.vy * this.cfg.airFootDamping + this.cfg.gravity * 0.18;
+        const descend01 = MathEx.clamp(
+          (this.vy - this.cfg.airLandingExtendStart) /
+            Math.max(
+              1,
+              this.cfg.airLandingExtendFull -
+                this.cfg.airLandingExtendStart
+            ),
+          0,
+          1
+        );
+        const velocityOffset = MathEx.lerp(
+          -0.020,
+          this.cfg.airLandingLead,
+          descend01
+        );
+        const targetX =
+          hip.x +
+          this.vx * velocityOffset -
+          this.facing * this.cfg.airTuckX +
+          this.stanceOffset(leg.index) +
+          (leg.index ? this.cfg.airSpread : -this.cfg.airSpread) * 0.5;
+
+        let targetY =
+          hip.y +
+          this.cfg.airTuckY +
+          this.cfg.airLandingExtendY * descend01 +
+          (leg.index ? 2 : -2);
+
+        // Never visually drive an airborne foot through a nearby floor while it
+        // is extending in preparation for contact.
+        const surfaceY = this.terrain.surfaceYAt?.(
+          targetX,
+          this.footReferenceY()
+        );
+        if (surfaceY != null) targetY = Math.min(targetY, surfaceY);
+
+        const ax =
+          (targetX - leg.foot.x) * this.cfg.airFootSpring -
+          leg.foot.vx * this.cfg.airFootDamping;
+        const ay =
+          (targetY - leg.foot.y) * this.cfg.airFootSpring -
+          leg.foot.vy * this.cfg.airFootDamping +
+          this.cfg.gravity * 0.18;
         leg.foot.vx += ax * dt;
         leg.foot.vy += ay * dt;
         leg.foot.vx = MathEx.clamp(leg.foot.vx, -720, 720);
@@ -782,79 +901,106 @@ class Player {
 
     if (!this.onGround) return;
 
-    if (this.legs.some((leg) => leg.state === 'air')) {
-      // One planted foot may catch the body first. Do not instantly teleport the
-      // other foot onto the floor: let it perform a real recovery step so ledge
-      // catches and partial support remain visible.
-      if (!this.anySwing() && this.activeBody.strength > 0.18) {
-        const airIndex = this.legs.findIndex((leg) => leg.state === 'air');
-        if (airIndex >= 0) {
-          const targetX = this.clampFootXToReach(
-            airIndex,
-            this.x + this.stanceOffset(airIndex)
-          );
-          const surfaceY = this.terrain.surfaceYAt?.(
-            targetX,
-            this.activeBody.targetY + this.activeBody.standingOffset()
-          );
+    let swingLegs = this.legs.filter((leg) => leg.state === 'swing');
+    const airLegs = this.legs.filter((leg) => leg.state === 'air');
 
-          if (surfaceY != null) {
-            this.legs[airIndex].beginSwing(
-              targetX,
-              surfaceY,
-              this.cfg.landingTime,
-              this.cfg.stepHeight * 0.62,
-              true
+    if (airLegs.length) {
+      // Recovery no longer waits for the other leg to finish completely at
+      // sprint speed. Once weight transfer is visibly underway, an overreached
+      // rear leg can start its recovery step instead of trailing behind.
+      const transferReady =
+        swingLegs.length === 0 ||
+        (
+          speed >= this.cfg.sprintOverlapMinSpeed &&
+          swingLegs.every(
+            (leg) => leg.swing.t >= this.cfg.sprintOverlapStart
+          )
+        );
+
+      if (transferReady && this.activeBody.strength > 0.18) {
+        const leg = airLegs[0];
+        const targetX = moving
+          ? this.predictedLandingX(leg.index, direction, speed)
+          : this.clampFootXToReach(
+              leg.index,
+              this.x + this.stanceOffset(leg.index)
             );
-          }
+        const surfaceY = this.terrain.surfaceYAt?.(
+          targetX,
+          this.activeBody.targetY + this.activeBody.standingOffset()
+        );
+
+        if (surfaceY != null) {
+          leg.beginSwing(
+            targetX,
+            surfaceY,
+            moving ? this.cfg.runSwingTime : this.cfg.landingTime,
+            moving ? this.cfg.stepHeight * 0.72 : this.cfg.landingFootHeight,
+            !moving
+          );
+          swingLegs = this.legs.filter(
+            (candidate) => candidate.state === 'swing'
+          );
         }
       }
+
       return;
     }
 
-    if (this.anySwing()) return;
-
     if (moving) {
-      const index = this.chooseTrailingLeg(direction);
-      const leg = this.legs[index];
-      const hip = this.hipFor(index);
-      const speed = MathEx.clamp(speed01, 0, 1);
-      const trailing = (this.x - leg.foot.x) * direction;
-      const reach =
-        MathEx.hypot(leg.foot.x - hip.x, leg.foot.y - hip.y) /
-        (this.cfg.upperLeg + this.cfg.lowerLeg);
+      const planted = this.legs.filter((leg) => leg.state === 'plant');
 
-      // At run speed the old trigger waited until the support leg was already
-      // near its limit. Predict where that same hip will be near the end of the
-      // next swing and step before support has to collapse.
-      const swingDuration = MathEx.lerp(
-        this.cfg.swingTime,
-        this.cfg.runSwingTime,
-        speed
-      );
-      const predictedHipX =
-        hip.x + this.vx * swingDuration * this.cfg.stepLookahead;
-      const predictedReach =
-        MathEx.hypot(
-          leg.foot.x - predictedHipX,
-          leg.foot.y - hip.y
-        ) /
-        (this.cfg.upperLeg + this.cfg.lowerLeg);
-      const trigger = MathEx.lerp(
-        this.cfg.stepTrigger,
-        this.cfg.stepTrigger * 0.68,
-        speed
-      );
+      if (swingLegs.length === 0 && planted.length) {
+        const index = this.chooseTrailingLeg(direction);
+        const metrics = this.legStepMetrics(index, direction, speed);
 
-      if (
-        !this.wasMoving ||
-        trailing > trigger ||
-        reach > this.cfg.stepReachTrigger ||
-        predictedReach > 0.92
-      ) {
-        this.startNormalStep(index, direction, speed01);
+        if (
+          !this.wasMoving ||
+          metrics.trailing > metrics.trigger ||
+          metrics.reach > this.cfg.stepReachTrigger ||
+          metrics.predictedReach > 0.92
+        ) {
+          this.startNormalStep(index, direction, speed);
+        }
+        return;
       }
-    } else if (Math.abs(this.vx) < 2) {
+
+      // At sprint speed, allow one controlled overlap. The planted rear foot
+      // must have spent a real minimum time on the floor and the other swing
+      // must already be past weight transfer. This produces a running cycle
+      // instead of alternating long planted drags.
+      if (
+        swingLegs.length === 1 &&
+        planted.length === 1 &&
+        speed >= this.cfg.sprintOverlapMinSpeed &&
+        swingLegs[0].swing.t >= this.cfg.sprintOverlapStart
+      ) {
+        const leg = planted[0];
+
+        if (leg.plantAge >= this.cfg.sprintMinPlantTime) {
+          const metrics = this.legStepMetrics(
+            leg.index,
+            direction,
+            speed
+          );
+
+          if (
+            metrics.trailing > this.cfg.sprintOverlapTrailing ||
+            metrics.reach > this.cfg.stepReachTrigger ||
+            metrics.predictedReach >
+              this.cfg.sprintOverlapPredictedReach
+          ) {
+            this.startNormalStep(leg.index, direction, speed);
+          }
+        }
+      }
+
+      return;
+    }
+
+    if (swingLegs.length) return;
+
+    if (Math.abs(this.vx) < 2) {
       let worst = -1;
       let worstDistance = 0;
       for (let i = 0; i < 2; i++) {
@@ -866,7 +1012,10 @@ class Player {
         }
       }
       if (worst >= 0 && worstDistance > this.cfg.restRecenter) {
-        const targetX = this.clampFootXToReach(worst, this.x + this.stanceOffset(worst));
+        const targetX = this.clampFootXToReach(
+          worst,
+          this.x + this.stanceOffset(worst)
+        );
         this.legs[worst].beginSwing(
           targetX,
           this.footSurfaceY(targetX, this.footReferenceY()),
