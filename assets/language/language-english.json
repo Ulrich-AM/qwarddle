@@ -31,7 +31,7 @@
   "weapons": {
     "revolver": {
       "name": "REVOLVER",
-      "description": "A six-shot revolver built around timing, recoil, and loaded-round order.",
+      "description": "A six-shot revolver built around timing, recoil, loaded-round order, and strong knockback.",
       "moves": [
         {
           "input": "LEFT CLICK",
@@ -41,7 +41,7 @@
         {
           "input": "Q",
           "name": "RELOAD",
-          "description": "Reload missing normal rounds. Reloading also grants 15 temporary health and 25% damage reduction for 1 second."
+          "description": "Reload missing normal rounds. Reloading grants 10 temporary health and 15% damage reduction for 1 second."
         },
         {
           "input": "E",
@@ -52,12 +52,12 @@
     },
     "wand": {
       "name": "WAND",
-      "description": "A light magic weapon that throws spinning stars with strange movement.",
+      "description": "A space-control weapon that throws persistent stars through walls and fighters.",
       "moves": [
         {
           "input": "LEFT CLICK",
           "name": "STAR",
-          "description": "Fire a small spinning star that passes through walls."
+          "description": "Fire a spinning star that passes through walls and fighters, damaging each fighter once."
         },
         {
           "input": "Q",
@@ -66,14 +66,14 @@
         },
         {
           "input": "E",
-          "name": "BOUNCING STAR",
-          "description": "At full charge, fire a large star that ricochets once, then bursts into twelve smaller stars on its next wall impact."
+          "name": "BURST STAR",
+          "description": "At full charge, fire a large pass-through star that bursts into twelve smaller stars on its first terrain impact."
         }
       ]
     },
     "sake": {
       "name": "SAKE",
-      "description": "A difficult stance weapon built around drinking, spills, buffs, charge, and a dangerous drunk state.",
+      "description": "A stance weapon built around drinking, slips, buffs, charge, and a chaotic drunk state.",
       "moves": [
         {
           "input": "LEFT CLICK",
@@ -88,7 +88,7 @@
         {
           "input": "E",
           "name": "CHUG",
-          "description": "Chug only after at least 5 drinks, or when charge is full. Enter a 15 second drunk state with +50% damage, defense, movement, and jump strength. If full charge substitutes for the 5-drink requirement, the charge is consumed."
+          "description": "Chug after at least 5 drinks, or at full charge. Enter a 15 second drunk state with moderate offense/defense boosts and stronger movement."
         }
       ]
     },
