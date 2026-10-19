@@ -195,7 +195,7 @@ class Dagger extends Weapon {
       dirX,
       dirY,
       speed:cloaked ? 930 : 790,
-      damage:cloaked ? 21 : 15,
+      damage:cloaked ? CombatBalance.dagger.cloakedLungeDamage : CombatBalance.dagger.lungeDamage,
       knockback:cloaked ? 390 : 320
     });
 
@@ -209,8 +209,8 @@ class Dagger extends Weapon {
 
     const cloaked = this.isCloaked();
     const speed = cloaked ? 1260 : 900;
-    const dotDuration = cloaked ? 6 : 3;
-    const dotDps = cloaked ? 5.5 : 4.5;
+    const dotDuration = cloaked ? CombatBalance.dagger.cloakedBleedDuration : CombatBalance.dagger.bleedDuration;
+    const dotDps = cloaked ? CombatBalance.dagger.cloakedBleedDps : CombatBalance.dagger.bleedDps;
     const hand = mount.position();
 
     const projectile = new DaggerProjectile({
@@ -221,7 +221,7 @@ class Dagger extends Weapon {
       y:hand.y + mount.dirY * 28,
       vx:mount.dirX * speed,
       vy:mount.dirY * speed,
-      damage:5 * player.buffMultiplier('damage'),
+      damage:CombatBalance.dagger.throwImpactDamage * player.buffMultiplier('damage'),
       knockback:0,
       life:2.2,
       width:this.visualSize,
