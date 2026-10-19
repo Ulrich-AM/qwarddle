@@ -4,87 +4,37 @@ const MapRegistry = Object.freeze({
   list:[
     {
       version:1,
-      id:'enclosed',
-      name:'ENCLOSED',
-      width:2750,
-      height:1225,
-      waterY:950,
-      background:'#242a30',
+      id:'complex',
+      name:'COMPLEX',
+      width:5000,
+      height:3000,
+      waterY:3000,
+      background:'#dfe8eb',
       groundColor:'#596057',
       outlineColor:'#202020',
       outlineSize:10,
       spawns:[
-        { x:700, y:625 },
-        { x:2050, y:625 }
+        { x:1250, y:2525 },
+        { x:3750, y:2550 }
       ],
       rectangles:[
-        { x:375, y:700, w:2000, h:225 },
-        { x:375, y:150, w:225, h:575 },
-        { x:2150, y:150, w:225, h:575 },
-        { x:600, y:150, w:1550, h:75 }
-      ]
-    },
-    {
-      version:1,
-      id:'platform',
-      name:'PLATFORM',
-      width:2750,
-      height:1225,
-      waterY:950,
-      background:'#242a30',
-      groundColor:'#596057',
-      outlineColor:'#202020',
-      outlineSize:10,
-      spawns:[
-        { x:700, y:625 },
-        { x:2050, y:625 }
-      ],
-      rectangles:[
-        { x:675, y:675, w:1400, h:50 },
-        { x:1275, y:725, w:200, h:500 }
-      ]
-    },
-    {
-      version:1,
-      id:'sunken',
-      name:'SUNKEN',
-      width:2750,
-      height:1225,
-      waterY:950,
-      background:'#242a30',
-      groundColor:'#596057',
-      outlineColor:'#202020',
-      outlineSize:10,
-      spawns:[
-        { x:700, y:625 },
-        { x:2050, y:625 }
-      ],
-      rectangles:[
-        { x:375, y:700, w:2000, h:225 },
-        { x:375, y:575, w:225, h:150 },
-        { x:2150, y:575, w:225, h:150 }
-      ]
-    },
-    {
-      version:1,
-      id:'castle',
-      name:'CASTLE',
-      width:2750,
-      height:1225,
-      waterY:950,
-      background:'#242a30',
-      groundColor:'#596057',
-      outlineColor:'#202020',
-      outlineSize:10,
-      spawns:[
-        { x:575, y:625 },
-        { x:2175, y:625 }
-      ],
-      rectangles:[
-        { x:550, y:700, w:1650, h:225 },
-        { x:1087, y:450, w:576, h:325 },
-        { x:838, y:575, w:125, h:150 },
-        { x:1787, y:575, w:125, h:150 }
+        { x:0, y:0, w:250, h:3000, color:'#35444b', material:'default' },
+        { x:4750, y:0, w:250, h:3000, color:'#35444b', material:'default' },
+        { x:75, y:0, w:4775, h:250, color:'#35444b', material:'default' },
+        { x:150, y:2750, w:4775, h:250, color:'#35444b', material:'default' },
+
+        { x:1000, y:2375, w:3000, h:125, color:'#596057', material:'default' },
+
+        { x:625, y:2000, w:975, h:125, color:'#596057', material:'default' },
+        { x:3400, y:2000, w:975, h:125, color:'#596057', material:'default' },
+
+        { x:875, y:1700, w:975, h:125, color:'#596057', material:'default' },
+        { x:3150, y:1700, w:975, h:125, color:'#596057', material:'default' },
+
+        { x:1125, y:1400, w:975, h:125, color:'#596057', material:'default' },
+        { x:2775, y:1400, w:975, h:125, color:'#596057', material:'default' },
+
+        { x:1625, y:1125, w:1750, h:125, color:'#596057', material:'default' }
       ]
     }
   ],
