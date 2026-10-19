@@ -108,69 +108,56 @@ The main menu includes a lightweight nickname field. It is stored locally in the
 
 ## Active-body locomotion
 
-Normal locomotion now uses an experimental active-body / active-ragdoll hybrid.
+Normal locomotion uses an active-body / active-ragdoll hybrid, but the ground gait is now deterministic rather than trigger-driven.
 
-- The torso uses its real body-sized collision box. The old invisible leg-height collider is gone.
-- Planted feet form the support base, but a planted foot is no longer teleported to its floor point every frame.
-- Feet are velocity-carrying points driven toward floor/step targets by spring-damper motors.
-- Swinging feet chase a moving step arc physically instead of being assigned directly to the arc position.
-- Knees are also velocity-carrying spring points. Normal mode therefore already has moving limb state that can be handed directly to ragdoll mode.
-- Ground contacts stay where they were made. If the torso stretches too far from a planted foot, support weakens and the foot releases instead of dragging its floor anchor along.
-- Two feet provide the strongest support; one-foot catches and ledge balance remain possible.
-- Torso support, rotation and vertical bob are spring driven and intentionally softer than the first active-body prototype.
-- Walk speed is 270 and run speed is 445. Ground acceleration is softer than the previous pass, while release/deceleration is intentionally faster. Bhop momentum remains capped.
+- The torso uses its real body-sized collision box.
+- Ground walking/running advances a gait phase continuously while moving.
+- The two legs are offset by half a cycle, so one leg swings while the other provides support.
+- Walk cadence is 2.60 gait cycles per second and run cadence is 3.20 cycles per second. Two steps occur per cycle.
+- The swing portion occupies 40% of each leg cycle, leaving brief double-support windows between steps.
+- Swing foot targets are body-relative and move from a rear stride position to a forward stride position. The visible foot still spring-follows that target, so the gait remains floppy without being able to stall.
+- Planted feet remain soft spring contacts rather than teleported points.
+- One-foot support now spans 68 px, close to the actual leg reach, so a normal run step stays supported while true overextension still causes release/fall.
+- Upper-leg and lower-leg lengths are enforced every fixed update with soft positional constraints.
+- Knees and feet are projected out of floor rectangles so active knees cannot sink through platforms.
+- Jumping releases both ground contacts and drives both feet toward compact airborne targets inside the reachable two-bone chain, preventing the long stretched-leg jump pose.
+- Ragdolls continue to inherit torso, knee, foot, elbow, and hand velocities from active mode.
+- Slip/Dagger recovery still adopts the ragdoll pose instead of rebuilding a fresh standing skeleton.
 
-Ragdoll continuity:
-
-- Ragdolls inherit torso velocity, body angle/angular velocity, knee velocity, foot velocity, elbow velocity and hand velocity.
-- Normal-mode foot contact points are converted to the ragdoll foot-circle centers so there is no one-frame foot-position jump.
-- Ragdoll joint constraints fade in over roughly 0.16 seconds instead of instantly yanking the limbs to exact lengths.
-- Slip and Dagger-ragdoll recovery no longer call `placeAt()`. The normal fighter adopts the current ragdoll pose/velocities and lets the active support motors pull it back toward a controllable stance.
-- Spawn/reset still snap into a valid initial stance intentionally; runtime walking, landing and recovery use the soft motors.
-
-The support model lives in `src/player/ActiveBodySupport.js`, while per-leg physical state remains in `src/player/ProceduralLeg.js`.
+The menu and customization preview run the same Player locomotion at an internal 120 Hz and implement the same ground-contact API as real maps.
 
 ### Surface response
 
-Ground movement now queries an optional material response instead of baking slipperiness directly into the controller.
+Ground acceleration, braking, reversing, and planted-foot grip are separate multipliers so future map materials can change slipperiness without rewriting movement.
 
 Default movement tuning:
 
 ```text
+walk speed        270
+run speed         445
 acceleration      720
 reverse braking  1450
 deceleration     1500
 ```
 
-Maps do not need to define materials. Existing rectangles automatically use the default response.
+Maps do not need materials. Existing rectangles automatically use the default response.
 
-Future maps may optionally assign a material to a rectangle and define material multipliers:
+Future rectangles may optionally provide a `material` and maps may define:
 
 ```json
 {
-  "defaultMaterial": "stone",
   "surfaceMaterials": {
-    "stone": {
-      "acceleration": 1.0,
-      "deceleration": 1.0,
-      "reverse": 1.0,
-      "footGrip": 1.0
-    },
     "ice": {
       "acceleration": 0.45,
       "deceleration": 0.18,
       "reverse": 0.35,
       "footGrip": 0.28
     }
-  },
-  "rectangles": [
-    { "x": 300, "y": 560, "w": 800, "h": 180, "material": "stone" },
-    { "x": 1100, "y": 560, "w": 800, "h": 180, "material": "ice" }
-  ]
+  }
 }
 ```
 
-These values multiply the normal movement response. `footGrip` also scales the planted-foot motor, so low-grip surfaces can affect both stopping distance and how securely the active-ragdoll legs hold contact.
+`footGrip` scales the planted-foot motor as well as movement response, so a slippery surface can affect both stopping distance and how securely the active legs hold contact.
 
 ## Architecture checkpoint
 
