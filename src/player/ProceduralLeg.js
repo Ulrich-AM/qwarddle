@@ -8,6 +8,7 @@ class ProceduralLeg {
     this.knee = { x:0, y:0 };
     this.plantX = 0;
     this.plantY = 0;
+    this.plantAge = 1;
     this.lastFootX = 0;
     this.lastFootY = 0;
     this.swing = {
@@ -25,6 +26,7 @@ class ProceduralLeg {
     this.state = 'plant';
     this.plantX = x;
     this.plantY = y;
+    this.plantAge = 0;
     this.foot.x = x;
     this.foot.y = y;
     this.foot.vx = 0;
@@ -33,6 +35,7 @@ class ProceduralLeg {
 
   releaseToAir() {
     this.state = 'air';
+    this.plantAge = 0;
   }
 
   beginSwing(targetX, targetY, duration, height, landing = false) {
@@ -46,6 +49,7 @@ class ProceduralLeg {
     this.swing.duration = Math.max(0.055, duration);
     this.swing.height = height;
     this.swing.landing = landing;
+    this.plantAge = 0;
     this.state = 'swing';
   }
 }
