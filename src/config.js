@@ -42,8 +42,8 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   // A fast procedural stride is allowed to momentarily lose a planted contact
   // without making the torso fall. Continuity only applies while a real floor
   // still exists under the body, so it cannot bridge gaps or ledges.
-  supportContactGrace:0.14,
-  supportGraceStrength:0.76,
+  supportContactGrace:0.11,
+  supportGraceStrength:0.72,
   supportFloorContinuityTolerance:34,
 
   // The torso is intentionally a little underdamped. Locomotion stays
@@ -65,24 +65,53 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   landingSquash:9,
 
   stepLength:52,
-  runStepBonus:18,
-  stepHeight:25,
-  stepTrigger:12,
+  runStepBonus:20,
+  stepHeight:26,
+  stepTrigger:10,
   swingTime:0.15,
-  runSwingTime:0.10,
-  landingPrediction:0.10,
-  stepLookahead:0.78,
-  stepReachTrigger:0.86,
+  runSwingTime:0.095,
+  landingPrediction:0.11,
+  stepLookahead:0.92,
+  stepReachTrigger:0.82,
+
+  // Sprinting uses a short double-support transfer: the rear leg may begin its
+  // next swing before the other foot has fully finished. This removes the long
+  // planted-leg stretch that visually looked like dragging.
+  sprintOverlapMinSpeed:0.68,
+  sprintOverlapStart:0.52,
+  sprintMinPlantTime:0.035,
+  sprintOverlapTrailing:5,
+  sprintOverlapPredictedReach:0.86,
+
   stanceSpread:12,
   restRecenter:5,
+
+  // Airborne legs extend before contact so jump landings meet the ground rather
+  // than suddenly switching from a tucked pose into a landing swing.
+  airLandingExtendStart:120,
+  airLandingExtendFull:680,
+  airLandingExtendY:16,
+  airLandingLead:0.025,
+
+  // Landing response preserves some downward inertia and then compresses the
+  // torso briefly before the standing spring rebounds.
+  landingTime:0.115,
+  landingFootHeight:4,
+  landingVelocityCarry:0.68,
+  landingCompressionDuration:0.21,
+  landingCompressionStartSpeed:240,
+  landingCompressionMin:3,
+  landingCompressionMax:12,
 
   // Hard impacts first disturb balance, then hand control over to the existing
   // non-lethal ragdoll state once speed crosses the crash threshold.
   balanceRecoveryDuration:0.55,
-  hardLandingSpeed:590,
-  floorCrashSpeed:900,
-  floorCrashHorizontalWeight:0.82,
-  floorCrashTiltRelief:140,
+  hardLandingSpeed:560,
+  floorCrashSpeed:980,
+  floorImpactUprightHorizontalWeight:0.16,
+  floorCrashHorizontalWeight:0.72,
+  floorSafeTilt:0.12,
+  floorCrashTiltRelief:110,
   wallStumbleSpeed:535,
   wallCrashSpeed:760,
   ceilingStumbleSpeed:690,
@@ -102,7 +131,6 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   airSpread:14,
   airFootSpring:115,
   airFootDamping:16,
-  landingTime:0.15,
   landingSnap:1,
   stopSettleTime:0.16,
 
