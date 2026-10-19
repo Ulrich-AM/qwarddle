@@ -19,6 +19,9 @@ class ActiveBodySupport {
 
     this.landingAssistTime = 0;
     this.landingAssistY = null;
+    this.landingCompressionTime = 0;
+    this.landingCompressionDuration = this.cfg.landingCompressionDuration;
+    this.landingCompressionAmount = 0;
 
     // Brief floor-backed continuity prevents a fast procedural stride from
     // turning one overextended planted foot into a full-body airborne state.
@@ -38,6 +41,9 @@ class ActiveBodySupport {
     this.edgeBias = 0;
     this.landingAssistTime = 0;
     this.landingAssistY = null;
+    this.landingCompressionTime = 0;
+    this.landingCompressionDuration = this.cfg.landingCompressionDuration;
+    this.landingCompressionAmount = 0;
     this.contactGraceTime = this.cfg.supportContactGrace;
     this.lastStableTargetY = this.player.y;
     this.evaluate();
@@ -52,6 +58,36 @@ class ActiveBodySupport {
     if (this.contactGraceTime > 0) {
       this.contactGraceTime = Math.max(0, this.contactGraceTime - dt);
     }
+
+    if (this.landingCompressionTime > 0) {
+      this.landingCompressionTime = Math.max(
+        0,
+        this.landingCompressionTime - dt
+      );
+      if (this.landingCompressionTime <= 0) {
+        this.landingCompressionAmount = 0;
+      }
+    }
+  }
+
+  landingCompressionOffset() {
+    if (
+      this.landingCompressionTime <= 0 ||
+      this.landingCompressionDuration <= 0 ||
+      this.landingCompressionAmount <= 0
+    ) {
+      return 0;
+    }
+
+    const progress = MathEx.clamp(
+      1 - this.landingCompressionTime / this.landingCompressionDuration,
+      0,
+      1
+    );
+
+    // Zero displacement at first contact, a downward dip at mid-response, then
+    // a natural rebound to standing height.
+    return Math.sin(progress * Math.PI) * this.landingCompressionAmount;
   }
 
   floorContinuitySurface() {
@@ -74,9 +110,17 @@ class ActiveBodySupport {
       1
     );
 
+    const grip = MathEx.clamp(
+      this.player.currentSurfaceResponse?.footGrip ?? 1,
+      0.05,
+      1.5
+    );
+    const graceStrength =
+      this.cfg.supportGraceStrength * Math.min(1, Math.sqrt(grip));
+
     this.strength = Math.max(
       this.strength,
-      MathEx.lerp(0.24, this.cfg.supportGraceStrength, ratio)
+      MathEx.lerp(0.24 * Math.min(1, grip), graceStrength, ratio)
     );
     this.targetY = surfaceY - this.standingOffset();
     this.centerX = this.player.x;
@@ -239,6 +283,8 @@ class ActiveBodySupport {
     this.edgeBias = 0;
     this.landingAssistTime = 0;
     this.landingAssistY = null;
+    this.landingCompressionTime = 0;
+    this.landingCompressionAmount = 0;
     this.contactGraceTime = 0;
     this.player.onGround = false;
     this.player.releaseFeetToAir();
@@ -263,7 +309,10 @@ class ActiveBodySupport {
       motion01 *
       0.42;
 
-    const dynamicTargetY = this.targetY + bob;
+    const dynamicTargetY =
+      this.targetY +
+      bob +
+      this.landingCompressionOffset();
     const error = dynamicTargetY - this.player.y;
     const supportAccel =
       error * this.cfg.supportSpring -
@@ -326,25 +375,53 @@ class ActiveBodySupport {
       if (leg.state === 'plant') continue;
       if (leg.state === 'swing' && leg.swing?.landing) continue;
 
+      const distance = MathEx.hypot(
+        candidate.x - leg.foot.x,
+        candidate.y - leg.foot.y
+      );
+      const duration = MathEx.clamp(
+        this.cfg.landingTime + distance * 0.00045,
+        this.cfg.landingTime * 0.82,
+        this.cfg.landingTime * 1.28
+      );
+
       leg.beginSwing(
         candidate.x,
         candidate.y,
-        this.cfg.landingTime,
-        this.cfg.stepHeight * 0.48,
+        duration,
+        this.cfg.landingFootHeight,
         true
       );
     }
 
     this.landingAssistY = surfaceY;
     this.landingAssistTime = this.cfg.supportLandingAssist;
+
+    const impact01 = MathEx.clamp(
+      (impact - this.cfg.landingCompressionStartSpeed) /
+        Math.max(
+          1,
+          this.cfg.floorCrashSpeed - this.cfg.landingCompressionStartSpeed
+        ),
+      0,
+      1
+    );
+    this.landingCompressionDuration = this.cfg.landingCompressionDuration;
+    this.landingCompressionTime = this.landingCompressionDuration;
+    this.landingCompressionAmount = MathEx.lerp(
+      this.cfg.landingCompressionMin,
+      this.cfg.landingCompressionMax,
+      impact01
+    );
+
     // Landing assist already provides the temporary support here. Do not let
     // running continuity override its stronger catch spring.
     this.contactGraceTime = 0;
     this.lastStableTargetY = surfaceY - this.standingOffset();
 
-    // Remove only part of the fall speed. The torso spring absorbs the rest,
-    // so there is no y-position teleport at contact.
-    player.vy *= 0.55;
+    // Keep enough downward velocity for the torso to visibly compress after
+    // contact. The support spring and compression curve absorb and return it.
+    player.vy *= this.cfg.landingVelocityCarry;
     player.onGround = true;
     player.landingPulse = MathEx.clamp((impact - 90) / 430, 0, 1);
 
