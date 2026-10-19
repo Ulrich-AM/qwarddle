@@ -93,13 +93,11 @@ class WandStarProjectile extends Projectile {
   }
 }
 
-class WandBouncingStar extends WandStarProjectile {
+class WandBurstStar extends WandStarProjectile {
   constructor({ system = null, smallSprite = null, ...options } = {}) {
     super({ ...options, pierceTargets:true, ignoresTerrain:true });
     this.system = system;
     this.smallSprite = smallSprite;
-    this.terrainBounces = 0;
-    this.bounceLock = 0;
     this.handlesTerrain = true;
     this.hitRadius = this.size * 0.46;
     this.noPhysicalHit = true;
@@ -118,7 +116,7 @@ class WandBouncingStar extends WandStarProjectile {
     this.dead = true;
     if (!this.system) return;
 
-    const count = 12;
+    const count = CombatBalance.wand.eBurstCount;
     const speed = 520;
     for (let i = 0; i < count; i++) {
       const angle = i / count * Math.PI * 2;
@@ -127,8 +125,8 @@ class WandBouncingStar extends WandStarProjectile {
         y:this.y,
         vx:Math.cos(angle) * speed,
         vy:Math.sin(angle) * speed,
-        damage:5,
-        knockback:130,
+        damage:CombatBalance.wand.eBurstDamage,
+        knockback:95,
         life:2.4,
         size:32,
         color:'#fff3a6',
@@ -141,64 +139,13 @@ class WandBouncingStar extends WandStarProjectile {
     }
   }
 
-  resolveBounce(prevX, prevY, rect) {
-    const r = this.hitRadius;
-    const closestX = MathEx.clamp(this.x, rect.x, rect.x + rect.w);
-    const closestY = MathEx.clamp(this.y, rect.y, rect.y + rect.h);
-    let nx = this.x - closestX;
-    let ny = this.y - closestY;
-    let length = MathEx.hypot(nx, ny);
-
-    if (length > 0.001) {
-      nx /= length;
-      ny /= length;
-      this.x = closestX + nx * (r + 1);
-      this.y = closestY + ny * (r + 1);
-    } else {
-      // If the center crossed fully into a block in one fixed step, use the
-      // incoming direction to choose the face that was approached.
-      if (Math.abs(this.vx) > Math.abs(this.vy)) {
-        nx = this.vx > 0 ? -1 : 1;
-        ny = 0;
-      } else {
-        nx = 0;
-        ny = this.vy > 0 ? -1 : 1;
-      }
-      this.x = prevX + nx * 2;
-      this.y = prevY + ny * 2;
-    }
-
-    // Reflect the velocity across the collision normal. This preserves the
-    // incoming angle instead of forcing a canned horizontal/vertical bounce.
-    let dot = this.vx * nx + this.vy * ny;
-    if (dot > 0) {
-      nx = -nx;
-      ny = -ny;
-      dot = -dot;
-    }
-    this.vx -= 2 * dot * nx;
-    this.vy -= 2 * dot * ny;
-  }
-
   update(dt, context = {}) {
-    const prevX = this.x;
-    const prevY = this.y;
-    this.bounceLock = Math.max(0, this.bounceLock - dt);
     super.update(dt, context);
-    if (this.dead || this.bounceLock > 0) return;
+    if (this.dead) return;
 
-    const rectangles = context.terrain?.rectangles || [];
-    for (const rect of rectangles) {
+    for (const rect of context.terrain?.rectangles || []) {
       if (!this.circleTouchesRect(rect)) continue;
-
-      this.terrainBounces += 1;
-      if (this.terrainBounces >= 2) {
-        this.burst();
-        return;
-      }
-
-      this.resolveBounce(prevX, prevY, rect);
-      this.bounceLock = 0.055;
+      this.burst();
       return;
     }
   }
@@ -209,7 +156,7 @@ class Wand extends Weapon {
     super({
       id:'wand',
       name:'WAND',
-      damage:7,
+      damage:CombatBalance.wand.primaryDamage,
       cooldown:0.22,
       knockback:110,
       recoil:30,
@@ -276,6 +223,7 @@ class Wand extends Weapon {
       sprite:this.sprites.small,
       spinSpeed:11,
       ignoresTerrain:true,
+      pierceTargets:true,
       onHit:() => game?.gainCharge(this.chargeOnHit)
     }));
 
@@ -300,7 +248,7 @@ class Wand extends Weapon {
         y:muzzle.y,
         vx:Math.cos(angle) * speed,
         vy:Math.sin(angle) * speed,
-        damage:4,
+        damage:CombatBalance.wand.qDamage,
         knockback:85,
         life:3,
         size:this.smallStarSize,
@@ -317,14 +265,14 @@ class Wand extends Weapon {
     return true;
   }
 
-  // E slot. The large star ignores fighters physically, damages each fighter
-  // once while passing through, ricochets once, then bursts on the second impact.
+  // E slot. The large star phases through fighters, damages each fighter once,
+  // then bursts immediately on its first terrain impact.
   special({ mount, projectiles, player, game }) {
     if (!projectiles || this.eCooldownRemaining > 0 || !game?.hasFullCharge()) return false;
 
     const muzzle = this.muzzle(mount, 54);
     const speed = 540;
-    projectiles.spawn(new WandBouncingStar({
+    projectiles.spawn(new WandBurstStar({
       owner:player,
       system:projectiles,
       smallSprite:this.sprites.small,
@@ -332,7 +280,7 @@ class Wand extends Weapon {
       y:muzzle.y,
       vx:mount.dirX * speed,
       vy:mount.dirY * speed,
-      damage:6,
+      damage:CombatBalance.wand.eContactDamage,
       knockback:0,
       life:7,
       size:this.largeStarSize,
