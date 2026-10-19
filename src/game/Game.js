@@ -400,15 +400,12 @@ class Game {
     if (!slot?.knockdown) return;
 
     const actor = slot.actor;
-    const body = slot.knockdown.body;
+    const ragdoll = slot.knockdown;
     const health = actor.health;
-    const x = MathEx.clamp(body.x, 40, this.terrain.worldWidth - 40);
 
-    actor.placeAt(x, body.y + this.config.bodyHeight + this.config.bodyH);
+    actor.recoverPhysicalBodyFromRagdoll?.(ragdoll, 0.30);
     actor.health = health;
     actor.dead = health <= 0;
-    actor.vx = body.vx * 0.18;
-    actor.vy = 0;
 
     slot.knockdown = null;
     slot.knockdownRemaining = 0;
@@ -493,27 +490,11 @@ class Game {
     const actor = slot.actor;
     const ragdoll = slot.attackRagdoll;
 
-    actor.x = MathEx.clamp(ragdoll.body.x, 40, this.terrain.worldWidth - 40);
-    actor.y = ragdoll.body.y;
-    actor.vx = ragdoll.body.vx * 0.42;
-    actor.vy = ragdoll.body.vy * 0.42;
-    actor.onGround = false;
-    actor.releaseFeetToAir?.();
-
-    actor.hand.x = ragdoll.hand.x;
-    actor.hand.y = ragdoll.hand.y;
-    actor.hand.vx = ragdoll.hand.vx;
-    actor.hand.vy = ragdoll.hand.vy;
-
-    if (actor.arm?.elbow) {
-      actor.arm.elbow.x = ragdoll.elbow.x;
-      actor.arm.elbow.y = ragdoll.elbow.y;
-    }
+    actor.recoverPhysicalBodyFromRagdoll?.(ragdoll, 0.48);
 
     slot.attackRagdoll = null;
     slot.attackRemaining = 0;
     slot.attackData = null;
-    actor.resolveBodyPenetration?.();
   }
 
   hitAttackRagdollTarget(slot, target, tipX, tipY, data) {
