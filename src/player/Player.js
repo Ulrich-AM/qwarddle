@@ -559,17 +559,6 @@ class Player {
     for (const leg of this.legs) leg.releaseToAir();
   }
 
-  snapFeetOnLanding() {
-    for (let i = 0; i < 2; i++) {
-      const leg = this.legs[i];
-      let x = this.clampFootXToReach(i, leg.foot.x);
-      x = MathEx.clamp(x, this.x - 44, this.x + 44);
-      const gy = this.footSurfaceY(x, this.footReferenceY());
-      if (gy != null) leg.plant(x, gy);
-      else leg.releaseToAir();
-    }
-    this.stepPulse = 1;
-  }
 
   updateFootStates(dt, moving, speed01, direction) {
     for (const leg of this.legs) {
