@@ -616,9 +616,19 @@ class Player {
 
       // Upright feet-first landings mostly care about vertical impact. Sideways
       // momentum only becomes dangerous as the torso loses its landing posture.
+      // Horizontal speed above normal run speed is treated separately so recoil
+      // launches can still produce violent floor crashes.
+      const overspeed = Math.max(
+        0,
+        Math.abs(vx) - this.cfg.runSpeed
+      );
+      const horizontalImpact =
+        Math.abs(vx) * horizontalWeight +
+        overspeed * this.cfg.floorOverspeedImpactWeight;
+
       speed = MathEx.hypot(
         Math.max(0, vy),
-        Math.abs(vx) * horizontalWeight
+        horizontalImpact
       );
       crashThreshold =
         this.cfg.floorCrashSpeed -
@@ -676,8 +686,26 @@ class Player {
   }
 
   currentSwingInfo() {
-    const leg = this.legs.find((candidate) => candidate.state === 'swing');
-    return leg ? { leg, t:leg.swing.t, landing:leg.swing.landing } : null;
+    const swings = this.legs.filter(
+      (candidate) => candidate.state === 'swing'
+    );
+    if (!swings.length) return null;
+
+    // Sprint overlap may have both legs swinging briefly. Drive body sway from
+    // whichever foot is currently deepest into its visible swing arc instead
+    // of always biasing leg 0.
+    let leg = swings[0];
+    let activity = Math.sin(Math.PI * leg.swing.t);
+    for (let i = 1; i < swings.length; i++) {
+      const candidate = swings[i];
+      const candidateActivity = Math.sin(Math.PI * candidate.swing.t);
+      if (candidateActivity > activity) {
+        leg = candidate;
+        activity = candidateActivity;
+      }
+    }
+
+    return { leg, t:leg.swing.t, landing:leg.swing.landing };
   }
 
   chooseTrailingLeg(direction) {
