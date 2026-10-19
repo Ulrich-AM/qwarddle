@@ -1088,7 +1088,7 @@ class Player {
 
     ctx.save();
     ctx.translate(Math.round(this.x + sway), Math.round(this.y));
-    const bodyAngleStep = Math.PI / 32;
+    const bodyAngleStep = Math.PI / 64;
     ctx.rotate(Math.round(this.bodyAngle / bodyAngleStep) * bodyAngleStep);
     ctx.imageSmoothingEnabled = false;
     if (!this.drawCharacterPart(
