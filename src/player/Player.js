@@ -520,7 +520,32 @@ class Player {
     if (!this.onGround) return;
 
     if (this.legs.some((leg) => leg.state === 'air')) {
-      if (!this.anySwing()) this.snapFeetOnLanding();
+      // One planted foot may catch the body first. Do not instantly teleport the
+      // other foot onto the floor: let it perform a real recovery step so ledge
+      // catches and partial support remain visible.
+      if (!this.anySwing() && this.activeBody.strength > 0.18) {
+        const airIndex = this.legs.findIndex((leg) => leg.state === 'air');
+        if (airIndex >= 0) {
+          const targetX = this.clampFootXToReach(
+            airIndex,
+            this.x + this.stanceOffset(airIndex)
+          );
+          const surfaceY = this.terrain.surfaceYAt?.(
+            targetX,
+            this.activeBody.targetY + this.activeBody.standingOffset()
+          );
+
+          if (surfaceY != null) {
+            this.legs[airIndex].beginSwing(
+              targetX,
+              surfaceY,
+              this.cfg.landingTime,
+              this.cfg.stepHeight * 0.62,
+              true
+            );
+          }
+        }
+      }
       return;
     }
 
