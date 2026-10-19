@@ -78,6 +78,7 @@ class SakeGourdProjectile extends Projectile {
     this.game?.addHazard?.(new SakeShardField({
       x:this.x,
       y:this.y,
+      owner:this.owner,
       terrain:this.game.terrain,
       impactVx:this.vx,
       impactVy:this.vy
@@ -112,7 +113,7 @@ class SakePuddle {
     owner = null,
     duration = 8,
     width = 132,
-    damage = 7,
+    damage = CombatBalance.sake.puddleDamage,
     stun = 0.85,
     color = '#e2a417'
   } = {}) {
@@ -164,12 +165,14 @@ class SakeShardField {
   constructor({
     x,
     y,
+    owner = null,
     terrain,
     impactVx = 0,
     impactVy = 0,
     duration = 7
   } = {}) {
     this.terrain = terrain;
+    this.owner = owner;
     this.duration = duration;
     this.age = 0;
     this.dead = false;
@@ -232,7 +235,7 @@ class SakeShardField {
     if (alpha <= 0.5) return;
 
     for (const actor of game.getHazardActors()) {
-      if (!actor || this.cooldowns.has(actor)) continue;
+      if (!actor || actor === this.owner || this.cooldowns.has(actor)) continue;
       const box = actor.collisionBox();
 
       const touching = this.shards.some((shard) => {
@@ -246,8 +249,11 @@ class SakeShardField {
 
       if (!touching) continue;
 
-      actor.takeDamage(4);
-      actor.applyBleed?.(3, 4);
+      actor.takeDamage(CombatBalance.sake.shardDamage);
+      actor.applyBleed?.(
+        CombatBalance.sake.shardBleedDuration,
+        CombatBalance.sake.shardBleedDps
+      );
       actor.applyStun?.(0.18);
       if (actor.health <= 0 && 'dead' in actor) actor.dead = true;
       this.cooldowns.set(actor, 0.65);
@@ -375,9 +381,9 @@ class Sake extends Weapon {
     game.removeStatusVisual?.(player, 'sake-drink');
 
     player.addBuff('sake-drunk', this.drunkDuration, {
-      defense:0.5,
-      damage:1.5,
-      melee:1.5,
+      defense:CombatBalance.sake.drunkDefense,
+      damage:CombatBalance.sake.drunkDamage,
+      melee:CombatBalance.sake.drunkMelee,
       move:1.5,
       jump:1.5
     });
@@ -466,11 +472,11 @@ class Sake extends Weapon {
 
     const outcome = Math.floor(Math.random() * 3);
     if (outcome === 0) {
-      player.addBuff('sake-melee', 5, { melee:1.25 });
+      player.addBuff('sake-melee', 5, { melee:CombatBalance.sake.drinkMelee });
     } else if (outcome === 1) {
-      player.addBuff('sake-defense', 5, { defense:0.75 });
+      player.addBuff('sake-defense', 5, { defense:CombatBalance.sake.drinkDefense });
     } else {
-      player.addBuff('sake-regen', 5, { regen:8 / 5 });
+      player.addBuff('sake-regen', 5, { regen:CombatBalance.sake.drinkRegenTotal / 5 });
     }
 
     game.addStatusVisual(
@@ -566,7 +572,7 @@ class Sake extends Weapon {
         y:origin.y + (Math.random() - 0.5) * 10,
         vx:Math.cos(angle) * speed,
         vy:Math.sin(angle) * speed + (Math.random() - 0.5) * 45,
-        damage:combatDroplet ? 2.0 * totalDamageScale : 0,
+        damage:combatDroplet ? CombatBalance.sake.spitDamage * totalDamageScale : 0,
         knockback:combatDroplet ? 22 : 0,
         life,
         width:size,
@@ -605,7 +611,9 @@ class Sake extends Weapon {
     this.beginPose('swing', 0.24, player.facing);
 
     if (target && bestDistance <= 155 && !target.isInvulnerable?.()) {
-      const damage = 15 * player.buffMultiplier('damage') * player.buffMultiplier('melee');
+      const damage = CombatBalance.sake.swingDamage *
+        player.buffMultiplier('damage') *
+        player.buffMultiplier('melee');
       target.takeDamage(damage);
       target.vx += nx * 330;
       target.vy += ny * 100 - 55;
@@ -628,7 +636,7 @@ class Sake extends Weapon {
       owner:player,
       duration:8,
       width:138,
-      damage:7,
+      damage:CombatBalance.sake.puddleDamage,
       stun:0.85,
       color:'#e2a417'
     }));
@@ -673,7 +681,7 @@ class Sake extends Weapon {
     const gravity = 900;
     const vx = dx / flightTime;
     const vy = (dy - 0.5 * gravity * flightTime * flightTime) / flightTime;
-    const damage = 18 * player.buffMultiplier('damage');
+    const damage = CombatBalance.sake.gourdDamage * player.buffMultiplier('damage');
 
     projectiles.spawn(new SakeGourdProjectile({
       owner:player,
@@ -688,7 +696,10 @@ class Sake extends Weapon {
       knockback:320,
       life:3.2,
       onHit:(target) => {
-        target.applyBleed?.(3, 4);
+        target.applyBleed?.(
+          CombatBalance.sake.gourdBleedDuration,
+          CombatBalance.sake.gourdBleedDps
+        );
         game.gainCharge?.(this.chargeOnHit);
       }
     }));
