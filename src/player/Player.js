@@ -827,7 +827,18 @@ class Player {
   }
 
   releaseFeetToAir() {
-    for (const leg of this.legs) leg.releaseToAir();
+    for (const leg of this.legs) {
+      // A planted foot should not remain motionless in world space for the
+      // first airborne frame. Inherit part of the torso velocity so jumping,
+      // ledge departure and knockback transition into the air pose smoothly.
+      leg.foot.vx =
+        leg.foot.vx * 0.55 +
+        this.vx * this.cfg.airReleaseBodyVelocityX;
+      leg.foot.vy =
+        leg.foot.vy * 0.55 +
+        this.vy * this.cfg.airReleaseBodyVelocityY;
+      leg.releaseToAir();
+    }
   }
 
 
@@ -979,6 +990,19 @@ class Player {
       const planted = this.legs.filter((leg) => leg.state === 'plant');
 
       if (swingLegs.length === 0 && planted.length) {
+        // Give a newly planted foot at least a few real fixed steps of stance.
+        // This is especially important after a running landing, where the old
+        // gait could plant and re-lift a foot during the same update.
+        const newestPlantAge = Math.min(
+          ...planted.map((leg) => leg.plantAge)
+        );
+        if (
+          this.wasMoving &&
+          newestPlantAge < this.cfg.stepMinPlantTime
+        ) {
+          return;
+        }
+
         const index = this.chooseTrailingLeg(direction);
         const metrics = this.legStepMetrics(index, direction, speed);
 
