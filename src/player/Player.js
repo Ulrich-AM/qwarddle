@@ -35,6 +35,7 @@ class Player {
     this.onGround = true;
     this.facing = 1;
     this.bodyAngle = 0;
+    this.bodyAngularVelocity = 0;
     this.wasMoving = false;
     this.landingPulse = 0;
     this.stepPulse = 0;
@@ -54,6 +55,7 @@ class Player {
     this.stunTime = 0;
 
     this.legs = [new ProceduralLeg(0), new ProceduralLeg(1)];
+    this.activeBody = new ActiveBodySupport(this);
     this.hand = new FloatingHand({ terrain:this.terrain, config:this.cfg });
     this.arm = new ProceduralArm({ config:this.cfg });
     this.weaponMount = new WeaponMount({ hand:this.hand });
@@ -236,6 +238,8 @@ class Player {
     this.vy = 0;
     this.prevVx = 0;
     this.onGround = true;
+    this.bodyAngle = 0;
+    this.bodyAngularVelocity = 0;
     this.landingPulse = 0;
     this.stepPulse = 0;
 
@@ -252,6 +256,7 @@ class Player {
       leg.lastFootY = footY;
     }
 
+    this.activeBody.reset();
     this.hand.reset(this);
     this.arm.reset(this, this.hand);
   }
@@ -266,6 +271,7 @@ class Player {
     this.onGround = true;
     this.facing = 1;
     this.bodyAngle = 0;
+    this.bodyAngularVelocity = 0;
     this.wasMoving = false;
     this.landingPulse = 0;
     this.stepPulse = 0;
@@ -297,6 +303,7 @@ class Player {
       leg.lastFootY = footY;
     }
 
+    this.activeBody.reset();
     this.hand.reset(this);
     this.arm.reset(this, this.hand);
   }
@@ -388,6 +395,7 @@ class Player {
       const dy = projectile.vy / speed;
       this.vx += dx * projectile.knockback;
       this.vy += dy * projectile.knockback * 0.16 - 55;
+      this.bodyAngularVelocity += dx * projectile.knockback * 0.0024;
       if (this.onGround && Math.abs(projectile.knockback) > 0) {
         this.onGround = false;
         this.releaseFeetToAir?.();
@@ -588,24 +596,18 @@ class Player {
 
   collisionBox(x = this.x, y = this.y) {
     const halfW = this.cfg.bodyW * 0.5;
-    const topOffset = this.cfg.bodyH * 0.5;
-    const bottomOffset = this.cfg.bodyH * 0.5 + this.cfg.bodyHeight;
+    const halfH = this.cfg.bodyH * 0.5;
     return {
       left:x - halfW,
       right:x + halfW,
-      top:y - topOffset,
-      bottom:y + bottomOffset
+      top:y - halfH,
+      bottom:y + halfH
     };
   }
 
   bodyHasSupport() {
-    const box = this.collisionBox();
-    const inset = 5;
-    for (const rect of this.terrain.rectangles || []) {
-      if (box.right - inset <= rect.x || box.left + inset >= rect.x + rect.w) continue;
-      if (Math.abs(box.bottom - rect.y) <= 2.5) return true;
-    }
-    return false;
+    this.activeBody.evaluate();
+    return this.activeBody.strength > this.cfg.supportMinStrength;
   }
 
   resolveHorizontalBodyCollision(previousX) {
@@ -644,14 +646,8 @@ class Player {
 
       if (landingTop < Infinity) {
         const impact = this.vy;
-        const wasGrounded = this.onGround;
-        this.y = landingTop - (this.cfg.bodyH * 0.5 + this.cfg.bodyHeight);
-        this.vy = 0;
-        this.onGround = true;
-        if (!wasGrounded) {
-          this.landingPulse = MathEx.clamp((impact - 120) / 430, 0, 1);
-          if (this.cfg.landingSnap >= 0.5) this.snapFeetOnLanding();
-        }
+        // This is a safety catch. Normal landings happen through the feet first.
+        this.activeBody.forceLanding(landingTop, impact);
       }
       return;
     }
@@ -703,7 +699,6 @@ class Player {
         } else if (minimum === pushUp) {
           this.y -= pushUp + 0.01;
           if (this.vy > 0) this.vy = 0;
-          this.onGround = true;
         } else {
           this.y += pushDown + 0.01;
           if (this.vy < 0) this.vy = 0;
@@ -743,10 +738,12 @@ class Player {
 
   update(dt, pointer) {
     if (this.dead) return;
+
     this.time += dt;
     this.hitFlash = Math.max(0, this.hitFlash - dt);
     this.resolveBodyPenetration();
     this.updateStatusEffects(dt);
+
     if (this.health <= 0) {
       this.dead = true;
       return;
@@ -758,64 +755,116 @@ class Player {
     const moveMultiplier = this.buffMultiplier('move');
     const maxSpeed = (running ? this.cfg.runSpeed : this.cfg.walkSpeed) * moveMultiplier;
 
+    this.activeBody.evaluate();
+    this.onGround = this.activeBody.strength > this.cfg.supportMinStrength;
+
     this.prevVx = this.vx;
+
     if (axis) {
       this.facing = axis;
-      const acceleration = (this.onGround ? this.cfg.accel : this.cfg.airAccel) * moveMultiplier;
-      this.vx = MathEx.clamp(this.vx + axis * acceleration * dt, -maxSpeed, maxSpeed);
+
+      const reversing = Math.sign(this.vx) !== 0 && Math.sign(this.vx) !== Math.sign(axis);
+      const baseAcceleration = this.onGround
+        ? (reversing ? this.cfg.reverseAccel : this.cfg.accel)
+        : this.cfg.airAccel;
+      const acceleration = baseAcceleration * moveMultiplier;
+      const desired = axis * maxSpeed;
+      const step = acceleration * dt;
+
+      // Preserve recoil and bhop overspeed instead of clamping it away the
+      // instant movement input is held in the same direction.
+      if (Math.sign(this.vx) === Math.sign(desired) && Math.abs(this.vx) > Math.abs(desired)) {
+        // no drive force while already exceeding the intended running speed
+      } else if (this.vx < desired) {
+        this.vx = Math.min(desired, this.vx + step);
+      } else if (this.vx > desired) {
+        this.vx = Math.max(desired, this.vx - step);
+      }
     } else if (this.onGround) {
       const drag = this.cfg.friction * dt;
-      this.vx = Math.abs(this.vx) <= drag ? 0 : this.vx - Math.sign(this.vx) * drag;
+      this.vx = Math.abs(this.vx) <= drag
+        ? 0
+        : this.vx - Math.sign(this.vx) * drag;
     }
 
-    if (!stunned && this.input.down('jump') && this.onGround) {
+    const wantsJump = !stunned && this.input.down('jump');
+    if (wantsJump && this.activeBody.canJump()) {
+      const bhopWindow = this.landingPulse > 0.12;
+      const bhopThreshold = this.cfg.walkSpeed * 0.72 * moveMultiplier;
+
+      if (bhopWindow && Math.abs(this.vx) > bhopThreshold) {
+        const maxBhop = this.cfg.runSpeed * this.cfg.bhopMaxSpeedMultiplier * moveMultiplier;
+        this.vx = Math.sign(this.vx) * Math.min(
+          maxBhop,
+          Math.abs(this.vx) * this.cfg.bhopBoost
+        );
+      }
+
       this.vy = -this.cfg.jumpSpeed * this.buffMultiplier('jump');
-      this.onGround = false;
       this.landingPulse = 0;
-      this.releaseFeetToAir();
+      this.activeBody.release();
     }
 
     const moving = Math.abs(this.vx) > 14;
-    const speed01 = MathEx.clamp(Math.abs(this.vx) / Math.max(1, this.cfg.runSpeed * moveMultiplier), 0, 1);
+    const speed01 = MathEx.clamp(
+      Math.abs(this.vx) / Math.max(1, this.cfg.runSpeed * moveMultiplier),
+      0,
+      1.25
+    );
     const direction = Math.sign(this.vx) || this.facing;
 
     const previousX = this.x;
     this.x += this.vx * dt;
-    this.x = MathEx.clamp(this.x, this.cfg.bodyW / 2 + 16, this.worldWidth - this.cfg.bodyW / 2 - 16);
+    this.x = MathEx.clamp(
+      this.x,
+      this.cfg.bodyW / 2 + 16,
+      this.worldWidth - this.cfg.bodyW / 2 - 16
+    );
     this.resolveHorizontalBodyCollision(previousX);
 
-    // Grounded state is now based on actual contact under the collision body,
-    // not whichever rectangle happens to be highest at the player's X.
-    if (this.onGround && !this.bodyHasSupport()) {
-      this.onGround = false;
-      this.releaseFeetToAir();
+    this.activeBody.evaluate();
+    if (this.onGround && this.activeBody.strength <= this.cfg.supportMinStrength) {
+      this.activeBody.release();
+    } else {
+      this.onGround = this.activeBody.strength > this.cfg.supportMinStrength;
     }
 
     this.landingPulse = Math.max(0, this.landingPulse - dt * 5.2);
     this.stepPulse = Math.max(0, this.stepPulse - dt * 8.0);
 
-    if (!this.onGround) this.vy += this.cfg.gravity * dt;
-    else this.vy = 0;
-
     const previousY = this.y;
+    const verticalAcceleration = this.activeBody.verticalAcceleration();
+    this.vy += verticalAcceleration * dt;
     this.y += this.vy * dt;
+
+    // Feet get first chance to catch the body. The torso collision below is only
+    // a safety net for very fast falls or awkward wall/ledge interactions.
+    if (!this.onGround) {
+      this.activeBody.tryLanding(previousY, this.y);
+    }
+
     this.resolveVerticalBodyCollision(previousY);
     this.resolveBodyPenetration();
 
-    const acceleration = (this.vx - this.prevVx) / Math.max(dt, 0.0001);
-    const velocityLean = (this.vx / this.cfg.runSpeed) * this.cfg.accelLean;
-    const accelKick = MathEx.clamp(acceleration / this.cfg.accel, -1, 1) * this.cfg.accelLean * 0.38;
-    this.bodyAngle = MathEx.expLerp(
-      this.bodyAngle,
-      MathEx.clamp(velocityLean + accelKick, -0.19, 0.19),
-      this.onGround ? 11 : 4,
-      dt
-    );
+    this.activeBody.evaluate();
+    this.onGround = this.activeBody.strength > this.cfg.supportMinStrength;
+
+    const horizontalAcceleration =
+      (this.vx - this.prevVx) / Math.max(dt, 0.0001);
+    this.activeBody.updateOrientation(dt, horizontalAcceleration);
 
     this.updateFootStates(dt, moving, speed01, direction);
     this.constrainLegReach(0);
     this.constrainLegReach(1);
-    this.updateKnees(dt, speed01);
+    this.activeBody.evaluate();
+
+    if (this.activeBody.strength <= this.cfg.supportMinStrength && this.onGround) {
+      this.activeBody.release();
+    } else {
+      this.onGround = this.activeBody.strength > this.cfg.supportMinStrength;
+    }
+
+    this.updateKnees(dt, MathEx.clamp(speed01, 0, 1));
     this.hand.update(dt, this, pointer);
     this.arm.update(dt, this, this.hand);
     this.weaponMount.update(dt, this, pointer);
@@ -916,9 +965,10 @@ class Player {
       : 0;
 
     ctx.save();
-    // Pixel body art stays axis-aligned and snaps to integer coordinates.
-    // Rotating a low-res sprite is what caused the soft/blurred appearance.
     ctx.translate(Math.round(this.x + sway), Math.round(this.y));
+    const bodyAngleStep = Math.PI / 32;
+    ctx.rotate(Math.round(this.bodyAngle / bodyAngleStep) * bodyAngleStep);
+    ctx.imageSmoothingEnabled = false;
     if (!this.drawCharacterPart(
       ctx,
       this.characterSprites.body,
@@ -958,6 +1008,6 @@ class Player {
   }
 
   debugText() {
-    return `vx ${this.vx.toFixed(1)}  vy ${this.vy.toFixed(1)}  grounded ${this.onGround}  slope ${this.terrain.slopeAt(this.x).toFixed(2)}  L:${this.legs[0].state.toUpperCase()} R:${this.legs[1].state.toUpperCase()}`;
+    return `vx ${this.vx.toFixed(1)}  vy ${this.vy.toFixed(1)}  support ${this.activeBody.strength.toFixed(2)}  grounded ${this.onGround}  L:${this.legs[0].state.toUpperCase()} R:${this.legs[1].state.toUpperCase()}`;
   }
 }
