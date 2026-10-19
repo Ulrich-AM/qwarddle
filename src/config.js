@@ -79,6 +79,7 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   // planted-leg stretch that visually looked like dragging.
   sprintOverlapMinSpeed:0.68,
   sprintOverlapStart:0.52,
+  stepMinPlantTime:0.025,
   sprintMinPlantTime:0.035,
   sprintOverlapTrailing:5,
   sprintOverlapPredictedReach:0.86,
@@ -92,6 +93,8 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   airLandingExtendFull:680,
   airLandingExtendY:16,
   airLandingLead:0.025,
+  airReleaseBodyVelocityX:0.45,
+  airReleaseBodyVelocityY:0.30,
 
   // Landing response preserves some downward inertia and then compresses the
   // torso briefly before the standing spring rebounds.
