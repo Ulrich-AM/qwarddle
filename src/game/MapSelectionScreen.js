@@ -70,8 +70,8 @@ class MapSelectionScreen {
       );
     }
 
-    ctx.fillStyle = map.groundColor || '#596057';
     for (const rect of map.rectangles) {
+      ctx.fillStyle = rect.color || map.groundColor || '#596057';
       ctx.fillRect(
         Math.round(ox + rect.x * scale),
         Math.round(oy + rect.y * scale),
