@@ -256,6 +256,7 @@ class ActiveBodySupport {
       const leg = player.legs[candidate.index];
 
       if (leg.state === 'plant') continue;
+      if (leg.state === 'swing' && leg.swing?.landing) continue;
 
       leg.beginSwing(
         candidate.x,
@@ -287,22 +288,25 @@ class ActiveBodySupport {
 
   forceLanding(surfaceY, impact = 0) {
     const player = this.player;
-    const candidates = [];
 
-    for (let i = 0; i < player.legs.length; i++) {
-      const x = player.clampFootXToReach(
-        i,
-        player.x + player.stanceOffset(i)
-      );
-      const y = player.terrain.surfaceYAt?.(x, surfaceY) ?? surfaceY;
-      candidates.push({ index:i, x, y });
+    if (this.landingAssistTime <= 0) {
+      const candidates = [];
+
+      for (let i = 0; i < player.legs.length; i++) {
+        const x = player.clampFootXToReach(
+          i,
+          player.x + player.stanceOffset(i)
+        );
+        const y = player.terrain.surfaceYAt?.(x, surfaceY) ?? surfaceY;
+        candidates.push({ index:i, x, y });
+      }
+
+      this.beginLanding(candidates, impact);
     }
 
-    this.beginLanding(candidates, impact);
-
     // Safety only: if the actual torso itself entered solid terrain, move it
-    // the minimum amount necessary to leave the rectangle. This is not the
-    // normal standing-height solver.
+    // the minimum amount necessary to leave the rectangle. Never restart an
+    // in-progress landing swing from this safety path.
     const torsoBottom = player.y + player.cfg.bodyH * 0.5;
     if (torsoBottom > surfaceY) {
       player.y -= torsoBottom - surfaceY + 0.01;
