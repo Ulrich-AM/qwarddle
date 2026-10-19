@@ -50,9 +50,20 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   restRecenter:5,
 
   kneeBend:1.0,
-  kneeResponse:18,
-  kneeLagMax:7,
+  kneeSpring:118,
+  kneeDamping:17,
+  kneeMaxSpeed:760,
+  kneeLagMax:10,
   kneeWobble:2.0,
+
+  footPlantSpring:210,
+  footPlantDamping:26,
+  footSwingSpring:165,
+  footSwingDamping:19,
+  footMaxSpeed:900,
+  footContactRange:24,
+  footReleaseReach:1.07,
+  footSoftReach:0.97,
 
   airTuckX:8,
   airTuckY:43,
