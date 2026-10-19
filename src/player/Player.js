@@ -265,6 +265,8 @@ class Player {
       const knee = this.solveKnee(hip.x, hip.y, footX, footY, -this.facing * this.cfg.kneeBend);
       leg.knee.x = knee.x;
       leg.knee.y = knee.y;
+      leg.knee.vx = 0;
+      leg.knee.vy = 0;
       leg.lastFootX = footX;
       leg.lastFootY = footY;
     }
@@ -312,6 +314,8 @@ class Player {
       const knee = this.solveKnee(hip.x, hip.y, footX, footY, -this.facing * this.cfg.kneeBend);
       leg.knee.x = knee.x;
       leg.knee.y = knee.y;
+      leg.knee.vx = 0;
+      leg.knee.vy = 0;
       leg.lastFootX = footX;
       leg.lastFootY = footY;
     }
@@ -321,6 +325,87 @@ class Player {
     this.arm.reset(this, this.hand);
   }
 
+
+  adoptRagdollPose(ragdoll, {
+    velocityScale = 1,
+    settleFeet = true
+  } = {}) {
+    if (!ragdoll?.body) return false;
+
+    this.x = MathEx.clamp(
+      ragdoll.body.x,
+      this.cfg.bodyW * 0.5 + 16,
+      this.worldWidth - this.cfg.bodyW * 0.5 - 16
+    );
+    this.y = ragdoll.body.y;
+    this.vx = ragdoll.body.vx * velocityScale;
+    this.vy = ragdoll.body.vy * velocityScale;
+    this.prevVx = this.vx;
+    this.bodyAngle = ragdoll.body.angle || 0;
+    this.bodyAngularVelocity = (ragdoll.body.av || 0) * velocityScale;
+
+    const sources = [
+      { knee:ragdoll.knee0, foot:ragdoll.foot0 },
+      { knee:ragdoll.knee1, foot:ragdoll.foot1 }
+    ];
+
+    for (let i = 0; i < this.legs.length; i++) {
+      const leg = this.legs[i];
+      const source = sources[i];
+      if (!source?.knee || !source?.foot) continue;
+
+      leg.knee.x = source.knee.x;
+      leg.knee.y = source.knee.y;
+      leg.knee.vx = source.knee.vx * velocityScale;
+      leg.knee.vy = source.knee.vy * velocityScale;
+
+      // Ragdoll feet are circle centers; active feet use the bottom contact
+      // point. Convert back without throwing away momentum.
+      const footRadius = source.foot.radius || 12;
+      leg.foot.x = source.foot.x;
+      leg.foot.y = source.foot.y + footRadius;
+      leg.foot.vx = source.foot.vx * velocityScale;
+      leg.foot.vy = source.foot.vy * velocityScale;
+      leg.lastFootX = leg.foot.x;
+      leg.lastFootY = leg.foot.y;
+
+      if (settleFeet) {
+        const surface = this.terrain.surfaceYAt?.(
+          leg.foot.x,
+          leg.foot.y
+        );
+
+        if (surface != null && Math.abs(surface - leg.foot.y) < 72) {
+          leg.plant(leg.foot.x, surface, false);
+        } else {
+          leg.releaseToAir();
+        }
+      } else {
+        leg.releaseToAir();
+      }
+    }
+
+    if (ragdoll.hand) {
+      this.hand.x = ragdoll.hand.x;
+      this.hand.y = ragdoll.hand.y;
+      this.hand.vx = ragdoll.hand.vx * velocityScale;
+      this.hand.vy = ragdoll.hand.vy * velocityScale;
+    }
+
+    if (ragdoll.elbow) {
+      this.arm.elbow.x = ragdoll.elbow.x;
+      this.arm.elbow.y = ragdoll.elbow.y;
+      this.arm.elbow.vx = ragdoll.elbow.vx * velocityScale;
+      this.arm.elbow.vy = ragdoll.elbow.vy * velocityScale;
+      this.arm.target.x = ragdoll.elbow.x;
+      this.arm.target.y = ragdoll.elbow.y;
+    }
+
+    this.resolveBodyPenetration();
+    this.activeBody.evaluate();
+    this.onGround = this.activeBody.strength > this.cfg.supportMinStrength;
+    return true;
+  }
 
   grantTemporaryHealth(amount, duration) {
     this.tempHealth = Math.max(this.tempHealth, amount);
@@ -1099,7 +1184,7 @@ class Player {
 
     ctx.save();
     ctx.translate(Math.round(this.x + sway), Math.round(this.y));
-    const bodyAngleStep = Math.PI / 32;
+    const bodyAngleStep = Math.PI / 64;
     ctx.rotate(Math.round(this.bodyAngle / bodyAngleStep) * bodyAngleStep);
     ctx.imageSmoothingEnabled = false;
     if (!this.drawCharacterPart(
