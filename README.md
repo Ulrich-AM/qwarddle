@@ -6,9 +6,9 @@ Open `index.html` directly. No npm, bundler, or local server is required.
 
 ## Current flow
 
-MAIN MENU -> SOLO / LOCAL -> SETUP -> MAP / CUSTOMIZE -> FIGHT
+MAIN MENU -> SOLO / LOCAL -> SETUP -> CUSTOMIZE -> FIGHT
 
-LOCAL now contains COUCH and LAN. COUCH uses one computer plus a controller. LAN uses two computers on the same network, with separate keyboard/mouse input on each machine. ONLINE remains disabled. SOLO still uses an idle P2 placeholder until the CPU session.
+LOCAL now contains COUCH and LAN. COUCH uses one computer plus a controller. LAN uses two computers on the same network, with separate keyboard/mouse input on each machine. ONLINE remains disabled. SOLO still uses an idle P2 placeholder until the CPU session. While only one map is registered, the map-selection screen is skipped automatically and that arena is used directly.
 
 ## v0.0.22
 
@@ -303,7 +303,7 @@ Map definitions use this shape:
   "width": 2200,
   "height": 980,
   "waterY": 760,
-  "background": "#242a30",
+  "background": "#dfe8eb",
   "groundColor": "#596057",
   "outlineColor": "#202020",
   "outlineSize": 10,
@@ -328,12 +328,9 @@ Map rectangles are full solid collision geometry for the physical torso. Procedu
 
 ## Current maps
 
-- ENCLOSED
-- PLATFORM
-- SUNKEN
-- CASTLE
+- COMPLEX
 
-The old TRAINING BLOCKS and SPLIT LEVELS maps have been removed.
+COMPLEX is currently the only registered arena while the new map-creator workflow is being tested. Its world size is 5000 x 3000, and the map picker is skipped while it is the only entry. More exported arenas can be registered later without changing the game flow code.
 
 ## Sprite staging areas
 
