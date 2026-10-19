@@ -337,7 +337,9 @@ class ActiveBodySupport {
 
     this.landingAssistY = surfaceY;
     this.landingAssistTime = this.cfg.supportLandingAssist;
-    this.contactGraceTime = this.cfg.supportContactGrace;
+    // Landing assist already provides the temporary support here. Do not let
+    // running continuity override its stronger catch spring.
+    this.contactGraceTime = 0;
     this.lastStableTargetY = surfaceY - this.standingOffset();
 
     // Remove only part of the fall speed. The torso spring absorbs the rest,
