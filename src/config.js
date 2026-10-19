@@ -28,11 +28,26 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   bhopMaxSpeedMultiplier:1.18,
 
   bodyHeight:48,
-  supportSpring:165,
-  supportDamping:21,
-  bodyBob:4.0,
+
+  // Physical torso support. The legs remain procedural and deterministic.
+  supportSpring:145,
+  supportDamping:20,
+  supportSingleFootRadius:68,
+  supportEdgeFalloff:72,
+  supportMinStrength:0.08,
+  supportLandingTolerance:18,
+  supportLandingAssist:0.20,
+  supportEdgeLean:0.10,
+
+  bodyAngularSpring:24,
+  bodyAngularDamping:7.2,
+  bodyAngularAirDamping:1.2,
+  bodyAngularMax:0.30,
+  bodyWobble:0.020,
+
+  bodyBob:2.4,
   bodySway:2.0,
-  accelLean:0.13,
+  accelLean:0.11,
   landingSquash:9,
 
   stepLength:52,
