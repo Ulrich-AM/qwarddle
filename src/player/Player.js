@@ -491,8 +491,9 @@ class Player {
       this.vy += dy * projectile.knockback * 0.16 - 55;
       this.bodyAngularVelocity += dx * projectile.knockback * 0.0024;
       if (this.onGround && Math.abs(projectile.knockback) > 0) {
-        this.onGround = false;
-        this.releaseFeetToAir?.();
+        // This is an intentional loss of support, not a gait hiccup. Clear the
+        // floor-continuity grace so projectile/recoil launches stay airborne.
+        this.activeBody.release();
       }
     }
 
