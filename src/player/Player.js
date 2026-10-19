@@ -41,6 +41,14 @@ class Player {
     this.stepPulse = 0;
     this.time = 0;
 
+    // Balance is a lightweight locomotion state, not another leg solver.
+    // Severe impacts request the existing ragdoll system through Game.
+    this.balanceRecoveryTime = 0;
+    this.balanceRecoveryMaxTime = 0;
+    this.balanceRecoveryStrength = 0;
+    this.impactCrashCooldown = 0;
+    this.pendingImpactRagdoll = null;
+
     // Minimal combat state. tempHealth is a disposable buffer used by
     // effects such as the revolver reload buff.
     this.maxHealth = 100;
@@ -248,6 +256,11 @@ class Player {
     this.bodyAngularVelocity = 0;
     this.landingPulse = 0;
     this.stepPulse = 0;
+    this.balanceRecoveryTime = 0;
+    this.balanceRecoveryMaxTime = 0;
+    this.balanceRecoveryStrength = 0;
+    this.impactCrashCooldown = 0;
+    this.pendingImpactRagdoll = null;
 
     for (let i = 0; i < 2; i++) {
       const leg = this.legs[i];
@@ -282,6 +295,11 @@ class Player {
     this.landingPulse = 0;
     this.stepPulse = 0;
     this.time = 0;
+    this.balanceRecoveryTime = 0;
+    this.balanceRecoveryMaxTime = 0;
+    this.balanceRecoveryStrength = 0;
+    this.impactCrashCooldown = 0;
+    this.pendingImpactRagdoll = null;
 
     // Minimal combat state. tempHealth is a disposable buffer used by
     // effects such as the revolver reload buff.
@@ -377,6 +395,11 @@ class Player {
     this.activeBody.beginRecoveryLanding();
     this.activeBody.evaluate();
     this.onGround = this.activeBody.strength > this.cfg.supportMinStrength;
+    this.impactCrashCooldown = Math.max(
+      this.impactCrashCooldown,
+      this.cfg.impactCrashCooldown
+    );
+    this.beginBalanceRecovery(0.55, 0, this.cfg.balanceRecoveryDuration * 0.75);
     return true;
   }
 
@@ -478,6 +501,155 @@ class Player {
     return this.dead;
   }
 
+  balanceRecoveryRatio() {
+    if (this.balanceRecoveryTime <= 0 || this.balanceRecoveryMaxTime <= 0) {
+      return 0;
+    }
+    return MathEx.clamp(
+      (this.balanceRecoveryTime / this.balanceRecoveryMaxTime) *
+        this.balanceRecoveryStrength,
+      0,
+      1
+    );
+  }
+
+  beginBalanceRecovery(
+    strength = 1,
+    torque = 0,
+    duration = this.cfg.balanceRecoveryDuration
+  ) {
+    const amount = MathEx.clamp(strength, 0, 1);
+    const time = Math.max(0.08, duration * MathEx.lerp(0.65, 1, amount));
+
+    if (time >= this.balanceRecoveryTime) {
+      this.balanceRecoveryMaxTime = time;
+    }
+    this.balanceRecoveryTime = Math.max(this.balanceRecoveryTime, time);
+    this.balanceRecoveryStrength = Math.max(this.balanceRecoveryStrength, amount);
+    this.bodyAngularVelocity += torque * amount;
+  }
+
+  updateBalanceRecovery(dt) {
+    this.balanceRecoveryTime = Math.max(0, this.balanceRecoveryTime - dt);
+    this.impactCrashCooldown = Math.max(0, this.impactCrashCooldown - dt);
+
+    if (this.balanceRecoveryTime <= 0) {
+      this.balanceRecoveryMaxTime = 0;
+      this.balanceRecoveryStrength = 0;
+    }
+  }
+
+  queueImpactRagdoll(kind, speed, threshold, vx, vy) {
+    if (this.pendingImpactRagdoll || this.impactCrashCooldown > 0) return false;
+
+    const excess = Math.max(0, speed - threshold);
+    const severity = MathEx.clamp(
+      excess / Math.max(1, threshold * 0.72),
+      0,
+      this.cfg.impactRagdollMaxSeverity
+    );
+    const durationRatio = MathEx.clamp(severity / 0.85, 0, 1);
+    const duration = MathEx.lerp(
+      this.cfg.impactRagdollMinDuration,
+      this.cfg.impactRagdollMaxDuration,
+      durationRatio
+    );
+
+    let spinKick = 0;
+    if (kind === 'wall') {
+      spinKick = -Math.sign(vx || this.facing) * (1.15 + severity * 2.0);
+    } else if (kind === 'ceiling') {
+      spinKick = Math.sign(vx || this.facing) * (0.75 + severity * 1.4);
+    } else {
+      spinKick = -Math.sign(vx || this.facing) * (0.65 + severity * 1.8);
+    }
+
+    this.pendingImpactRagdoll = {
+      kind,
+      speed,
+      severity,
+      duration,
+      vx,
+      vy,
+      angularVelocity:MathEx.clamp(
+        this.bodyAngularVelocity + spinKick,
+        -6.5,
+        6.5
+      )
+    };
+    this.impactCrashCooldown = this.cfg.impactCrashCooldown;
+    return true;
+  }
+
+  considerImpact(kind, vx = this.vx, vy = this.vy) {
+    if (this.pendingImpactRagdoll) return true;
+
+    let speed = 0;
+    let crashThreshold = Infinity;
+    let stumbleThreshold = Infinity;
+    let torqueDirection = 0;
+
+    if (kind === 'floor') {
+      const tilt01 = MathEx.clamp(
+        Math.abs(this.bodyAngle) / Math.max(0.001, this.cfg.bodyAngularMax),
+        0,
+        1
+      );
+      speed = MathEx.hypot(
+        Math.max(0, vy),
+        Math.abs(vx) * this.cfg.floorCrashHorizontalWeight
+      );
+      crashThreshold =
+        this.cfg.floorCrashSpeed -
+        tilt01 * this.cfg.floorCrashTiltRelief;
+      stumbleThreshold = this.cfg.hardLandingSpeed;
+      torqueDirection = -Math.sign(vx || this.facing);
+    } else if (kind === 'wall') {
+      speed = MathEx.hypot(Math.abs(vx), Math.abs(vy) * 0.22);
+      crashThreshold = this.cfg.wallCrashSpeed;
+      stumbleThreshold = this.cfg.wallStumbleSpeed;
+      torqueDirection = -Math.sign(vx || this.facing);
+    } else if (kind === 'ceiling') {
+      speed = MathEx.hypot(Math.abs(vy), Math.abs(vx) * 0.30);
+      crashThreshold = this.cfg.ceilingCrashSpeed;
+      stumbleThreshold = this.cfg.ceilingStumbleSpeed;
+      torqueDirection = Math.sign(vx || this.facing);
+    }
+
+    if (
+      this.impactCrashCooldown <= 0 &&
+      speed >= crashThreshold &&
+      this.queueImpactRagdoll(kind, speed, crashThreshold, vx, vy)
+    ) {
+      return true;
+    }
+
+    if (speed >= stumbleThreshold) {
+      const recovery = MathEx.clamp(
+        (speed - stumbleThreshold) /
+          Math.max(1, crashThreshold - stumbleThreshold),
+        0.18,
+        1
+      );
+      this.beginBalanceRecovery(
+        recovery,
+        torqueDirection * MathEx.lerp(0.45, 2.0, recovery)
+      );
+    }
+
+    return false;
+  }
+
+  handleLandingImpact(impact) {
+    return this.considerImpact('floor', this.vx, Math.max(0, impact));
+  }
+
+  consumeImpactRagdoll() {
+    const request = this.pendingImpactRagdoll;
+    this.pendingImpactRagdoll = null;
+    return request;
+  }
+
   anySwing() {
     return this.legs.some((leg) => leg.state === 'swing');
   }
@@ -538,8 +710,16 @@ class Player {
   }
 
   predictedLandingX(index, direction, speed01) {
-    const stride = this.cfg.stepLength + this.cfg.runStepBonus * speed01;
-    let x = this.x + this.vx * this.cfg.landingPrediction + direction * stride * 0.42 + this.stanceOffset(index);
+    const speed = MathEx.clamp(speed01, 0, 1);
+    const stride = this.cfg.stepLength + this.cfg.runStepBonus * speed;
+    const prediction =
+      this.cfg.landingPrediction *
+      MathEx.lerp(0.90, 1.18, speed);
+    let x =
+      this.x +
+      this.vx * prediction +
+      direction * stride * 0.42 +
+      this.stanceOffset(index);
     return this.clampFootXToReach(index, x);
   }
 
@@ -637,9 +817,40 @@ class Player {
       const index = this.chooseTrailingLeg(direction);
       const leg = this.legs[index];
       const hip = this.hipFor(index);
+      const speed = MathEx.clamp(speed01, 0, 1);
       const trailing = (this.x - leg.foot.x) * direction;
-      const reach = MathEx.hypot(leg.foot.x - hip.x, leg.foot.y - hip.y) / (this.cfg.upperLeg + this.cfg.lowerLeg);
-      if (!this.wasMoving || trailing > this.cfg.stepTrigger || reach > 0.90) {
+      const reach =
+        MathEx.hypot(leg.foot.x - hip.x, leg.foot.y - hip.y) /
+        (this.cfg.upperLeg + this.cfg.lowerLeg);
+
+      // At run speed the old trigger waited until the support leg was already
+      // near its limit. Predict where that same hip will be near the end of the
+      // next swing and step before support has to collapse.
+      const swingDuration = MathEx.lerp(
+        this.cfg.swingTime,
+        this.cfg.runSwingTime,
+        speed
+      );
+      const predictedHipX =
+        hip.x + this.vx * swingDuration * this.cfg.stepLookahead;
+      const predictedReach =
+        MathEx.hypot(
+          leg.foot.x - predictedHipX,
+          leg.foot.y - hip.y
+        ) /
+        (this.cfg.upperLeg + this.cfg.lowerLeg);
+      const trigger = MathEx.lerp(
+        this.cfg.stepTrigger,
+        this.cfg.stepTrigger * 0.68,
+        speed
+      );
+
+      if (
+        !this.wasMoving ||
+        trailing > trigger ||
+        reach > this.cfg.stepReachTrigger ||
+        predictedReach > 0.92
+      ) {
         this.startNormalStep(index, direction, speed01);
       }
     } else if (Math.abs(this.vx) < 2) {
@@ -726,10 +937,12 @@ class Player {
       if (current.bottom <= rect.y + 1 || current.top >= rect.y + rect.h - 1) continue;
 
       if (this.vx > 0 && previous.right <= rect.x + 0.5 && current.right > rect.x) {
+        this.considerImpact('wall', this.vx, this.vy);
         this.x = rect.x - this.cfg.bodyW * 0.5;
         this.vx = 0;
         current = this.collisionBox();
       } else if (this.vx < 0 && previous.left >= rect.x + rect.w - 0.5 && current.left < rect.x + rect.w) {
+        this.considerImpact('wall', this.vx, this.vy);
         this.x = rect.x + rect.w + this.cfg.bodyW * 0.5;
         this.vx = 0;
         current = this.collisionBox();
@@ -769,6 +982,7 @@ class Player {
     }
 
     if (ceilingBottom > -Infinity) {
+      this.considerImpact('ceiling', this.vx, this.vy);
       this.y = ceilingBottom + this.cfg.bodyH * 0.5;
       this.vy = 0;
     }
@@ -848,6 +1062,7 @@ class Player {
 
     this.time += dt;
     this.hitFlash = Math.max(0, this.hitFlash - dt);
+    this.updateBalanceRecovery(dt);
     this.resolveBodyPenetration();
     this.updateStatusEffects(dt);
 
