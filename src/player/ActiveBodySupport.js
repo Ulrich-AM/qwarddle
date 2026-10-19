@@ -19,6 +19,11 @@ class ActiveBodySupport {
 
     this.landingAssistTime = 0;
     this.landingAssistY = null;
+
+    // Brief floor-backed continuity prevents a fast procedural stride from
+    // turning one overextended planted foot into a full-body airborne state.
+    this.contactGraceTime = 0;
+    this.lastStableTargetY = player.y;
   }
 
   standingOffset() {
@@ -33,6 +38,8 @@ class ActiveBodySupport {
     this.edgeBias = 0;
     this.landingAssistTime = 0;
     this.landingAssistY = null;
+    this.contactGraceTime = this.cfg.supportContactGrace;
+    this.lastStableTargetY = this.player.y;
     this.evaluate();
   }
 
@@ -41,6 +48,40 @@ class ActiveBodySupport {
       this.landingAssistTime = Math.max(0, this.landingAssistTime - dt);
       if (this.landingAssistTime <= 0) this.landingAssistY = null;
     }
+
+    if (this.contactGraceTime > 0) {
+      this.contactGraceTime = Math.max(0, this.contactGraceTime - dt);
+    }
+  }
+
+  floorContinuitySurface() {
+    const player = this.player;
+    const referenceY = player.footReferenceY();
+    const surface = player.terrain.surfaceYAt?.(player.x, referenceY);
+    if (surface == null) return null;
+    if (Math.abs(surface - referenceY) > this.cfg.supportFloorContinuityTolerance) {
+      return null;
+    }
+    return surface;
+  }
+
+  applyFloorContinuity(surfaceY) {
+    if (surfaceY == null || this.contactGraceTime <= 0) return false;
+
+    const ratio = MathEx.clamp(
+      this.contactGraceTime / Math.max(0.001, this.cfg.supportContactGrace),
+      0,
+      1
+    );
+
+    this.strength = Math.max(
+      this.strength,
+      MathEx.lerp(0.24, this.cfg.supportGraceStrength, ratio)
+    );
+    this.targetY = surfaceY - this.standingOffset();
+    this.centerX = this.player.x;
+    this.edgeBias = 0;
+    return true;
   }
 
   footContact(leg) {
@@ -133,6 +174,27 @@ class ActiveBodySupport {
         1
       );
 
+      // Healthy contacts continually recharge a very short support grace. If a
+      // sprint outruns one planted leg, use the real floor under the torso while
+      // the next procedural step catches up instead of dropping both legs.
+      if (
+        worstReach < 1.02 &&
+        horizontalStrength > 0.16 &&
+        this.strength > this.cfg.supportMinStrength * 1.5
+      ) {
+        this.contactGraceTime = this.cfg.supportContactGrace;
+        this.lastStableTargetY = this.targetY;
+      } else if (this.strength <= this.cfg.supportMinStrength) {
+        this.applyFloorContinuity(this.floorContinuitySurface());
+      }
+
+      return this;
+    }
+
+    // If both feet are between valid contacts for only a few frames, preserve
+    // support only when a real floor is still directly underneath the torso.
+    // Over an actual gap this returns null and gravity takes over immediately.
+    if (this.applyFloorContinuity(this.floorContinuitySurface())) {
       return this;
     }
 
@@ -177,6 +239,7 @@ class ActiveBodySupport {
     this.edgeBias = 0;
     this.landingAssistTime = 0;
     this.landingAssistY = null;
+    this.contactGraceTime = 0;
     this.player.onGround = false;
     this.player.releaseFeetToAir();
   }
@@ -252,6 +315,11 @@ class ActiveBodySupport {
       candidates.reduce((sum, candidate) => sum + candidate.y, 0) /
       candidates.length;
 
+    // A sufficiently violent floor collision becomes a real temporary ragdoll.
+    // Player stores the impact request; Game performs the state handoff after
+    // the normal actor update so movement code does not need to know FighterSlot.
+    if (player.handleLandingImpact?.(impact)) return false;
+
     for (const candidate of candidates) {
       const leg = player.legs[candidate.index];
 
@@ -269,6 +337,8 @@ class ActiveBodySupport {
 
     this.landingAssistY = surfaceY;
     this.landingAssistTime = this.cfg.supportLandingAssist;
+    this.contactGraceTime = this.cfg.supportContactGrace;
+    this.lastStableTargetY = surfaceY - this.standingOffset();
 
     // Remove only part of the fall speed. The torso spring absorbs the rest,
     // so there is no y-position teleport at contact.
@@ -339,43 +409,75 @@ class ActiveBodySupport {
     const player = this.player;
     this.evaluate();
 
+    const speed01 = MathEx.clamp(
+      Math.abs(player.vx) / Math.max(1, this.cfg.runSpeed),
+      0,
+      1.35
+    );
+    const recovery01 = player.balanceRecoveryRatio?.() ?? 0;
+
     const velocityLean =
       MathEx.clamp(
         player.vx / Math.max(1, this.cfg.runSpeed),
-        -1.25,
-        1.25
+        -1.35,
+        1.35
       ) *
       this.cfg.accelLean;
 
+    const normalizedAcceleration = MathEx.clamp(
+      horizontalAcceleration / Math.max(1, this.cfg.reverseAccel),
+      -1,
+      1
+    );
     const accelLean =
-      MathEx.clamp(
-        horizontalAcceleration / Math.max(1, this.cfg.reverseAccel),
-        -1,
-        1
-      ) *
+      normalizedAcceleration *
       this.cfg.accelLean *
-      0.62;
+      0.72;
 
     if (this.strength > this.cfg.supportMinStrength) {
-      const wobble =
-        Math.sin(player.time * 7.1 + player.x * 0.012) *
+      const gaitWobble =
+        Math.sin(player.time * (7.0 + speed01 * 4.2) + player.x * 0.006) *
         this.cfg.bodyWobble *
-        (0.5 + (1 - this.strength));
+        (0.18 + speed01 * 0.82) *
+        (1 + recovery01 * 1.45);
+
+      const swing = player.currentSwingInfo?.();
+      const stepSide = swing ? (swing.leg.index ? 1 : -1) : 0;
+      const stepLean =
+        stepSide *
+        player.stepPulse *
+        this.cfg.bodyStepLean *
+        speed01;
 
       const target = MathEx.clamp(
         velocityLean +
           accelLean +
           this.edgeBias * this.cfg.supportEdgeLean +
-          wobble,
+          gaitWobble +
+          stepLean,
         -this.cfg.bodyAngularMax,
         this.cfg.bodyAngularMax
       );
 
+      const spring =
+        this.cfg.bodyAngularSpring *
+        MathEx.lerp(1, this.cfg.bodyRecoverySpringScale, recovery01);
+      const damping =
+        this.cfg.bodyAngularDamping *
+        MathEx.lerp(1, this.cfg.bodyRecoveryDampingScale, recovery01);
+
       const angularAccel =
-        (target - player.bodyAngle) * this.cfg.bodyAngularSpring -
-        player.bodyAngularVelocity * this.cfg.bodyAngularDamping;
+        (target - player.bodyAngle) * spring -
+        player.bodyAngularVelocity * damping;
 
       player.bodyAngularVelocity += angularAccel * dt;
+
+      // Acceleration changes angular velocity directly, so a hard stop or
+      // reversal visibly throws the torso before the spring catches it.
+      player.bodyAngularVelocity +=
+        normalizedAcceleration *
+        this.cfg.bodyAngularAccelerationKick *
+        dt;
     } else {
       player.bodyAngularVelocity *= Math.exp(
         -this.cfg.bodyAngularAirDamping * dt
