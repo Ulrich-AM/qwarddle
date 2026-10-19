@@ -108,21 +108,27 @@ The main menu includes a lightweight nickname field. It is stored locally in the
 
 ## Active-body locomotion
 
-Standing movement now uses an experimental foot-supported active-body model rather than extending the invisible torso collider down through the legs.
+Normal locomotion now uses an experimental active-body / active-ragdoll hybrid.
 
-- The visible torso uses its real body-sized collision box.
-- Planted feet form the support base.
-- A spring/damper support motor applies vertical stabilization toward the standing height while the feet have credible contact.
-- Two feet provide strong support. One foot provides weaker support.
-- When the torso moves beyond the planted support base, stabilization progressively weakens until gravity wins and the fighter falls.
-- A free foot performs a recovery step instead of instantly snapping to the floor after a one-foot landing.
-- The torso keeps vertical and angular velocity during normal movement. Ragdolls inherit that angular motion, making Slip/death transitions much closer to removing active support rather than switching models.
-- The normal body sprite now uses quantized visible rotation, so its hips/arm root visually follow the same body angle used by the procedural limbs.
-- Walk speed is 270 and run speed is 445. Acceleration/deceleration are deliberately softer than before.
-- Reversing direction has stronger braking than ordinary acceleration.
-- Repeated clean jumps can bhop up to about 1.18x normal run speed. Momentum is preserved in air rather than being immediately clamped away.
+- The torso uses its real body-sized collision box. The old invisible leg-height collider is gone.
+- Planted feet form the support base, but a planted foot is no longer teleported to its floor point every frame.
+- Feet are velocity-carrying points driven toward floor/step targets by spring-damper motors.
+- Swinging feet chase a moving step arc physically instead of being assigned directly to the arc position.
+- Knees are also velocity-carrying spring points. Normal mode therefore already has moving limb state that can be handed directly to ragdoll mode.
+- Ground contacts stay where they were made. If the torso stretches too far from a planted foot, support weakens and the foot releases instead of dragging its floor anchor along.
+- Two feet provide the strongest support; one-foot catches and ledge balance remain possible.
+- Torso support, rotation and vertical bob are spring driven and intentionally softer than the first active-body prototype.
+- Walk speed is 270 and run speed is 445, with acceleration/deceleration based movement and capped bhop momentum.
 
-The active-body system lives in `src/player/ActiveBodySupport.js` so support/ledge physics do not further inflate `Player.js`.
+Ragdoll continuity:
+
+- Ragdolls inherit torso velocity, body angle/angular velocity, knee velocity, foot velocity, elbow velocity and hand velocity.
+- Normal-mode foot contact points are converted to the ragdoll foot-circle centers so there is no one-frame foot-position jump.
+- Ragdoll joint constraints fade in over roughly 0.16 seconds instead of instantly yanking the limbs to exact lengths.
+- Slip and Dagger-ragdoll recovery no longer call `placeAt()`. The normal fighter adopts the current ragdoll pose/velocities and lets the active support motors pull it back toward a controllable stance.
+- Spawn/reset still snap into a valid initial stance intentionally; runtime walking, landing and recovery use the soft motors.
+
+The support model lives in `src/player/ActiveBodySupport.js`, while per-leg physical state remains in `src/player/ProceduralLeg.js`.
 
 ## Architecture checkpoint
 
