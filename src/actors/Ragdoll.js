@@ -1,7 +1,14 @@
 'use strict';
 
 class Ragdoll {
-  constructor({ actor, terrain, lifetime = 4.2, dropWeapon = true, fadeOut = true } = {}) {
+  constructor({
+    actor,
+    terrain,
+    lifetime = 4.2,
+    dropWeapon = true,
+    fadeOut = true,
+    bodyOnly = false
+  } = {}) {
     this.actor = actor;
     this.terrain = terrain;
     this.cfg = actor.cfg;
@@ -11,6 +18,7 @@ class Ragdoll {
     this.fadeStart = Math.max(0, lifetime - 1.35);
     this.dead = false;
     this.fadeOut = fadeOut;
+    this.bodyOnly = !!bodyOnly;
 
     const baseVx = actor.vx || 0;
     const baseVy = actor.vy || 0;
@@ -73,7 +81,9 @@ class Ragdoll {
       this.cfg.lowerLeg
     );
 
-    this.weapon = dropWeapon ? this.createDroppedWeapon(actor) : null;
+    this.weapon = this.bodyOnly
+      ? null
+      : (dropWeapon ? this.createDroppedWeapon(actor) : null);
   }
 
   makePoint(x, y, vx, vy, radius) {
@@ -256,6 +266,8 @@ class Ragdoll {
     this.body.av *= Math.exp(-(bodySubmerged > 0 ? 2.6 : 0.38) * dt);
     this.resolveCircle(this.body, 0.10, 0.68);
 
+    if (this.bodyOnly) return;
+
     const points = [this.elbow, this.hand, this.knee0, this.foot0, this.knee1, this.foot1];
     for (const point of points) {
       this.applyFluidPhysics(point, dt);
@@ -311,10 +323,53 @@ class Ragdoll {
     ctx.restore();
   }
 
+  renderBodyOnly(ctx, alpha = 1) {
+    const actor = this.actor;
+
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.translate(Math.round(this.body.x), Math.round(this.body.y));
+    const angleStep = Math.PI / 64;
+    ctx.rotate(Math.round(this.body.angle / angleStep) * angleStep);
+    ctx.imageSmoothingEnabled = false;
+
+    if (!actor.drawCharacterPart(
+      ctx,
+      actor.characterSprites.body,
+      this.appearance.body,
+      0,
+      0,
+      this.cfg.bodyW * 1.22,
+      this.cfg.bodyH * 1.22
+    )) {
+      ctx.fillStyle = '#202020';
+      ctx.fillRect(
+        -this.cfg.bodyW / 2 - 2,
+        -this.cfg.bodyH / 2 - 2,
+        this.cfg.bodyW + 4,
+        this.cfg.bodyH + 4
+      );
+      ctx.fillStyle = this.appearance.body;
+      ctx.fillRect(
+        -this.cfg.bodyW / 2,
+        -this.cfg.bodyH / 2,
+        this.cfg.bodyW,
+        this.cfg.bodyH
+      );
+    }
+
+    ctx.restore();
+  }
+
   render(ctx) {
     if (this.dead) return;
     const alpha = this.opacity();
     if (alpha <= 0) return;
+
+    if (this.bodyOnly) {
+      this.renderBodyOnly(ctx, alpha);
+      return;
+    }
 
     const hip0 = this.bodyAnchor(-this.cfg.hipInset, this.cfg.bodyH * 0.38);
     const hip1 = this.bodyAnchor(this.cfg.hipInset, this.cfg.bodyH * 0.38);
