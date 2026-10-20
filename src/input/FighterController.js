@@ -9,6 +9,7 @@ class FighterController {
   consumePrimary() { return false; }
   consumeAttack2() { return false; }
   consumeAttack3() { return false; }
+  defenseHeld() { return false; }
   poll() {}
   connected() { return true; }
 
@@ -50,6 +51,10 @@ class KeyboardMouseController extends FighterController {
 
   consumeAttack3() {
     return this.keyboard.consumePressed('special');
+  }
+
+  defenseHeld() {
+    return this.pointer.down(2);
   }
 
   aimWorld(game) {
@@ -184,6 +189,10 @@ class GamepadController extends FighterController {
     return this.consumeButton([5, 3]); // RB or Y
   }
 
+  defenseHeld() {
+    return this.buttonDown(6); // LT
+  }
+
   aimWorld(game, slot) {
     const distance = 620;
     const body = slot.activeBody?.() || slot.actor;
@@ -203,6 +212,7 @@ class NetworkController extends FighterController {
     this.attack1 = false;
     this.attack2 = false;
     this.attack3 = false;
+    this.defense = false;
     this.aimX = 0.5;
     this.aimY = 0.5;
     this.pressed = new Set();
@@ -225,6 +235,7 @@ class NetworkController extends FighterController {
     this.attack1 = next1;
     this.attack2 = next2;
     this.attack3 = next3;
+    this.defense = !!state.defense;
     this.jump = !!state.jump;
     this.run = !!state.run;
     this.moveX = MathEx.clamp(Number(state.moveX) || 0, -1, 1);
@@ -259,6 +270,10 @@ class NetworkController extends FighterController {
     const value = this.pressed.has('attack3');
     this.pressed.delete('attack3');
     return value;
+  }
+
+  defenseHeld() {
+    return this.defense;
   }
 
   aimWorld(game) {
