@@ -736,6 +736,12 @@ class Game {
     actor.updateStatusEffects?.(dt);
     actor.weaponMount.weapon?.update?.(dt, { player:actor });
 
+    // Tuck is fully non-offensive. Consume edge-triggered attacks so inputs made
+    // while tucked cannot fire on the first frame after release.
+    slot.controller.consumePrimary?.();
+    slot.controller.consumeAttack2?.();
+    slot.controller.consumeAttack3?.();
+
     ragdoll.update(dt);
 
     actor.x = ragdoll.body.x;
