@@ -243,11 +243,25 @@ class Game {
     slot.attackRemaining = 0;
     slot.attackData = null;
 
-    const ragdoll = new Ragdoll({
-      actor,
-      terrain:this.terrain,
-      lifetime:this.ragdollLifetime
-    });
+    let ragdoll = null;
+
+    if (slot.defensiveRagdoll) {
+      ragdoll = slot.defensiveRagdoll;
+      ragdoll.age = 0;
+      ragdoll.lifetime = this.ragdollLifetime;
+      ragdoll.fadeStart = Math.max(0, this.ragdollLifetime - 1.35);
+      ragdoll.fadeOut = true;
+      ragdoll.dead = false;
+      slot.defensiveRagdoll = null;
+      actor.defensiveTuck = false;
+      actor.defensivePhysicsBody = null;
+    } else {
+      ragdoll = new Ragdoll({
+        actor,
+        terrain:this.terrain,
+        lifetime:this.ragdollLifetime
+      });
+    }
 
     if (testDeath) {
       ragdoll.body.vy -= 180;
@@ -548,8 +562,18 @@ class Game {
 
     const actor = slot.actor;
     target.takeDamage(data.damage * actor.buffMultiplier('damage'));
-    target.vx += data.aimDirX * data.knockback;
-    target.vy += data.aimDirY * data.knockback * 0.22 - 45;
+
+    if (target.defensivePhysicsBody) {
+      target.defensivePhysicsBody.vx += data.aimDirX * data.knockback;
+      target.defensivePhysicsBody.vy +=
+        data.aimDirY * data.knockback * 0.22 - 45;
+      target.defensivePhysicsBody.av +=
+        data.aimDirX * data.knockback * 0.0018;
+    } else {
+      target.vx += data.aimDirX * data.knockback;
+      target.vy += data.aimDirY * data.knockback * 0.22 - 45;
+    }
+
     target.hitFlash = 0.11;
     data.hitTargets.add(target);
 
@@ -658,11 +682,94 @@ class Game {
     return slot.controller.aimWorld(this, slot);
   }
 
+  startDefensiveTuck(slot) {
+    if (
+      !slot ||
+      slot.ragdoll ||
+      slot.knockdown ||
+      slot.attackRagdoll ||
+      slot.defensiveRagdoll ||
+      slot.actor.dead
+    ) {
+      return false;
+    }
+
+    const actor = slot.actor;
+    const ragdoll = new Ragdoll({
+      actor,
+      terrain:this.terrain,
+      lifetime:3600,
+      dropWeapon:false,
+      fadeOut:false,
+      bodyOnly:true
+    });
+
+    slot.defensiveRagdoll = ragdoll;
+    actor.defensiveTuck = true;
+    actor.defensivePhysicsBody = ragdoll.body;
+    actor.onGround = false;
+    actor.activeBody.release?.();
+    return true;
+  }
+
+  finishDefensiveTuck(slot) {
+    if (!slot?.defensiveRagdoll) return;
+
+    const actor = slot.actor;
+    const ragdoll = slot.defensiveRagdoll;
+
+    actor.defensiveTuck = false;
+    actor.defensivePhysicsBody = null;
+    actor.recoverPhysicalBodyFromRagdoll?.(
+      ragdoll,
+      this.config.defensiveTuckRecoveryVelocity
+    );
+
+    slot.defensiveRagdoll = null;
+  }
+
+  updateDefensiveTuck(slot, dt) {
+    const ragdoll = slot.defensiveRagdoll;
+    if (!ragdoll) return;
+
+    const actor = slot.actor;
+    actor.updateStatusEffects?.(dt);
+    actor.weaponMount.weapon?.update?.(dt, { player:actor });
+
+    ragdoll.update(dt);
+
+    actor.x = ragdoll.body.x;
+    actor.y = ragdoll.body.y;
+    actor.vx = ragdoll.body.vx;
+    actor.vy = ragdoll.body.vy;
+    actor.bodyAngle = ragdoll.body.angle;
+    actor.bodyAngularVelocity = ragdoll.body.av;
+
+    if (actor.health <= 0) {
+      actor.dead = true;
+      return;
+    }
+
+    if (!slot.controller.defenseHeld?.()) {
+      this.finishDefensiveTuck(slot);
+    }
+  }
+
   updateControlledFighter(slot, dt, aimWorld) {
     if (slot.ragdoll || slot.knockdown) return;
 
+    if (slot.defensiveRagdoll) {
+      this.updateDefensiveTuck(slot, dt);
+      return;
+    }
+
     if (slot.attackRagdoll) {
       this.updateAttackRagdoll(slot, dt, aimWorld);
+      return;
+    }
+
+    if (slot.controller.defenseHeld?.()) {
+      this.startDefensiveTuck(slot);
       return;
     }
 
@@ -719,7 +826,11 @@ class Game {
       if (slot.ragdoll) continue;
 
       const actor = slot.actor;
-      const transientBody = slot.knockdown?.body || slot.attackRagdoll?.body || null;
+      const transientBody =
+        slot.knockdown?.body ||
+        slot.attackRagdoll?.body ||
+        slot.defensiveRagdoll?.body ||
+        null;
 
       if (actor.dead || actor.health <= 0) {
         this.killFighter(slot);
@@ -777,7 +888,12 @@ class Game {
     const attack2Y = attack3Y - attackGap;
     const attack1Y = attack2Y - attackGap;
 
-    const blocked = !!(slot.ragdoll || slot.knockdown || slot.attackRagdoll);
+    const blocked = !!(
+      slot.ragdoll ||
+      slot.knockdown ||
+      slot.attackRagdoll ||
+      slot.defensiveRagdoll
+    );
     const weapon = blocked ? null : slot.actor.weaponMount.weapon;
     const readiness = blocked
       ? [0, 0, 0]
@@ -825,8 +941,14 @@ class Game {
       return;
     }
 
+    if (slot.defensiveRagdoll) {
+      slot.defensiveRagdoll.render(ctx);
+      return;
+    }
+
+    // Gameplay cursors are local CSS cursors, not part of the shared canvas.
     slot.actor.render(ctx, false, {
-      showAimPointer:slot.index === 0 || (this.mode === 'lan-host' && slot.index === 1)
+      showAimPointer:false
     });
   }
 
