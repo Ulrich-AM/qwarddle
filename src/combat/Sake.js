@@ -615,8 +615,14 @@ class Sake extends Weapon {
         player.buffMultiplier('damage') *
         player.buffMultiplier('melee');
       target.takeDamage(damage);
-      target.vx += nx * 330;
-      target.vy += ny * 100 - 55;
+      if (target.defensivePhysicsBody) {
+        target.defensivePhysicsBody.vx += nx * 330;
+        target.defensivePhysicsBody.vy += ny * 100 - 55;
+        target.defensivePhysicsBody.av += nx * 0.55;
+      } else {
+        target.vx += nx * 330;
+        target.vy += ny * 100 - 55;
+      }
       game.gainCharge?.(this.chargeOnHit);
       if (target.health <= 0 && 'dead' in target) target.dead = true;
     }
