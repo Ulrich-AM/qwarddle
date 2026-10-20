@@ -70,6 +70,7 @@ class LanRemoteInput {
     this.send = send;
     this.keys = new Set();
     this.mouseDown = false;
+    this.rightMouseDown = false;
     this.aimX = 0.5;
     this.aimY = 0.5;
     this.sequence = 0;
@@ -96,14 +97,19 @@ class LanRemoteInput {
     };
 
     this.onMouseDown = (event) => {
-      if (!this.active || event.button !== 0) return;
-      this.mouseDown = true;
+      if (!this.active) return;
+
+      if (event.button === 0) this.mouseDown = true;
+      if (event.button === 2) this.rightMouseDown = true;
+      if (event.button !== 0 && event.button !== 2) return;
+
       this.updateAim(event.clientX, event.clientY);
       event.preventDefault();
     };
 
     this.onMouseUp = (event) => {
       if (event.button === 0) this.mouseDown = false;
+      if (event.button === 2) this.rightMouseDown = false;
     };
 
     this.onBlur = () => this.clear();
@@ -113,6 +119,7 @@ class LanRemoteInput {
   clear() {
     this.keys.clear();
     this.mouseDown = false;
+    this.rightMouseDown = false;
   }
 
   updateAim(clientX, clientY) {
@@ -150,6 +157,7 @@ class LanRemoteInput {
       attack1:this.mouseDown,
       attack2:this.key('KeyQ'),
       attack3:this.key('KeyE'),
+      defense:this.rightMouseDown,
       aimX:this.aimX,
       aimY:this.aimY
     };
