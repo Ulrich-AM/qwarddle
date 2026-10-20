@@ -1,4 +1,4 @@
-# QWARDDLE v0.0.22
+# QWARDDLE v0.0.23
 
 A local-first 2D fighter prototype built with plain HTML, CSS, JavaScript, and Canvas 2D.
 
@@ -9,6 +9,25 @@ Open `index.html` directly. No npm, bundler, or local server is required.
 MAIN MENU -> SOLO / LOCAL -> SETUP -> CUSTOMIZE -> FIGHT
 
 LOCAL now contains COUCH and LAN. COUCH uses one computer plus a controller. LAN uses two computers on the same network, with separate keyboard/mouse input on each machine. ONLINE remains disabled. SOLO still uses an idle P2 placeholder until the CPU session. While only one map is registered, the map-selection screen is skipped automatically and that arena is used directly.
+
+## v0.0.23
+
+This pass rebuilds COMPLEX around the real current player scale, adds a body-only defensive tuck, and makes gameplay cursors local to each machine.
+
+- COMPLEX is now 2400 x 1400 with a blue-gray sky (`#b8d6e8`), open top, two small floor pits, and a symmetric five-tier climb.
+- Vertical rises are approximately 175, 170, 165, 160, and 155 px. Current jump apex is roughly 210 px, so climbing no longer depends on near-perfect jumps.
+- RMB enters a held defensive tuck. LT performs the same action for couch gamepad P2.
+- While tucked, all limbs and the held weapon disappear and only the square body remains.
+- The square becomes a body-only ragdoll and preserves incoming movement velocity.
+- Movement and all attacks are disabled while tucked.
+- Direct incoming damage is multiplied by 0.60 while tucked. Existing bleed/status effects continue normally.
+- Projectile, Dagger-ragdoll, and Sake-melee knockback are applied directly to the tucked physics body.
+- Releasing RMB restores the physical body pose/velocity and lets the normal procedural limbs reacquire the ground.
+- Attack inputs pressed during tuck are consumed instead of firing on release.
+- Slip cannot create a second ragdoll while the defensive tuck is active.
+- Gameplay aim markers are no longer rendered into the shared game canvas.
+- The host game canvas and LAN client video use the same local white circular cursor with a black outline. Native/CSS cursors are not part of the canvas WebRTC stream, so each LAN player only sees their own cursor.
+- The map creator now defaults to the same blue sky color.
 
 ## v0.0.22
 
@@ -330,7 +349,7 @@ Map rectangles are full solid collision geometry for the physical torso. Procedu
 
 - COMPLEX
 
-COMPLEX is currently the only registered arena while the new map-creator workflow is being tested. Its current test scale is 2500 x 1500, reduced to 0.5x from the original export so the stacked platforms are reachable with the current jump. The map picker is skipped while it is the only entry. More exported arenas can be registered later without changing the game flow code.
+COMPLEX is currently the only registered arena while the new map-creator workflow is being tested. Its current test layout is 2400 x 1400 and has been rebuilt around the current character rather than uniformly scaled. Platform rises are intentionally kept below the current jump apex. The map picker is skipped while it is the only entry. More exported arenas can be registered later without changing the game flow code.
 
 ## Sprite staging areas
 
