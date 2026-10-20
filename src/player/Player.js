@@ -352,10 +352,41 @@ class Player {
     this.bodyAngle = ragdoll.body.angle || 0;
     this.bodyAngularVelocity = (ragdoll.body.av || 0) * velocityScale;
 
-    const ragFeet = [ragdoll.foot0, ragdoll.foot1];
-    const ragKnees = [ragdoll.knee0, ragdoll.knee1];
+    if (ragdoll.bodyOnly) {
+      for (let i = 0; i < this.legs.length; i++) {
+        const leg = this.legs[i];
+        const hip = this.hipFor(i);
+        const footX = hip.x + this.stanceOffset(i) * 0.55;
+        const footY = hip.y + Math.min(
+          this.cfg.airTuckY,
+          (this.cfg.upperLeg + this.cfg.lowerLeg) * 0.58
+        );
+        const knee = this.solveKnee(
+          hip.x,
+          hip.y,
+          footX,
+          footY,
+          -this.facing * this.cfg.kneeBend
+        );
 
-    for (let i = 0; i < this.legs.length; i++) {
+        leg.foot.x = footX;
+        leg.foot.y = footY;
+        leg.foot.vx = this.vx * 0.45;
+        leg.foot.vy = this.vy * 0.30;
+        leg.knee.x = knee.x;
+        leg.knee.y = knee.y;
+        leg.lastFootX = footX;
+        leg.lastFootY = footY;
+        leg.releaseToAir();
+      }
+
+      this.hand.reset(this);
+      this.arm.reset(this, this.hand);
+    } else {
+      const ragFeet = [ragdoll.foot0, ragdoll.foot1];
+      const ragKnees = [ragdoll.knee0, ragdoll.knee1];
+
+      for (let i = 0; i < this.legs.length; i++) {
       const leg = this.legs[i];
       const foot = ragFeet[i];
       const knee = ragKnees[i];
@@ -374,10 +405,10 @@ class Player {
         leg.knee.y = knee.y;
       }
 
-      leg.releaseToAir();
-    }
+        leg.releaseToAir();
+      }
 
-    if (ragdoll.hand) {
+      if (ragdoll.hand) {
       this.hand.x = ragdoll.hand.x;
       this.hand.y = ragdoll.hand.y;
       this.hand.vx = ragdoll.hand.vx * velocityScale;
@@ -389,8 +420,9 @@ class Player {
       this.arm.elbow.y = ragdoll.elbow.y;
       this.arm.elbow.vx = ragdoll.elbow.vx * velocityScale;
       this.arm.elbow.vy = ragdoll.elbow.vy * velocityScale;
-      this.arm.target.x = ragdoll.elbow.x;
-      this.arm.target.y = ragdoll.elbow.y;
+        this.arm.target.x = ragdoll.elbow.x;
+        this.arm.target.y = ragdoll.elbow.y;
+      }
     }
 
     this.resolveBodyPenetration();
