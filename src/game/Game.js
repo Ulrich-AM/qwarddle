@@ -397,7 +397,14 @@ class Game {
   knockDownActor(actor, duration = 0.8) {
     // SLIP is control loss only. The move/hazard must deal any damage itself.
     const slot = this.slotForActor(actor);
-    if (!slot || actor.health <= 0 || slot.ragdoll || slot.knockdown || slot.attackRagdoll) return false;
+    if (
+      !slot ||
+      actor.health <= 0 ||
+      slot.ragdoll ||
+      slot.knockdown ||
+      slot.attackRagdoll ||
+      slot.defensiveRagdoll
+    ) return false;
 
     slot.knockdown = new Ragdoll({
       actor,
