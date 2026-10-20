@@ -79,6 +79,8 @@ class FighterSlot {
     this.attackRemaining = 0;
     this.attackData = null;
 
+    this.defensiveRagdoll = null;
+
     this.gameView = null;
   }
 
@@ -95,10 +97,17 @@ class FighterSlot {
     this.attackRagdoll = null;
     this.attackRemaining = 0;
     this.attackData = null;
+    this.defensiveRagdoll = null;
+    this.actor.defensiveTuck = false;
+    this.actor.defensivePhysicsBody = null;
   }
 
   activeBody() {
-    return this.ragdoll?.body || this.knockdown?.body || this.attackRagdoll?.body || this.actor;
+    return this.ragdoll?.body ||
+      this.knockdown?.body ||
+      this.attackRagdoll?.body ||
+      this.defensiveRagdoll?.body ||
+      this.actor;
   }
 
   isDead() {
@@ -106,6 +115,10 @@ class FighterSlot {
   }
 
   canControl() {
-    return !this.ragdoll && !this.knockdown && !this.attackRagdoll && !this.actor.dead;
+    return !this.ragdoll &&
+      !this.knockdown &&
+      !this.attackRagdoll &&
+      !this.defensiveRagdoll &&
+      !this.actor.dead;
   }
 }
