@@ -27,6 +27,10 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   bhopBoost:1.055,
   bhopMaxSpeedMultiplier:1.18,
 
+  // RMB defensive tuck: body-only ragdoll, no attacks/steering while held.
+  defensiveTuckDamageMultiplier:0.60,
+  defensiveTuckRecoveryVelocity:0.72,
+
   bodyHeight:48,
 
   // Physical torso support. The legs remain procedural and deterministic.
