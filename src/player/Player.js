@@ -61,6 +61,8 @@ class Player {
     this.bleedTime = 0;
     this.bleedDps = 0;
     this.stunTime = 0;
+    this.defensiveTuck = false;
+    this.defensivePhysicsBody = null;
 
     this.legs = [new ProceduralLeg(0), new ProceduralLeg(1)];
     this.activeBody = new ActiveBodySupport(this);
@@ -313,6 +315,8 @@ class Player {
     this.bleedTime = 0;
     this.bleedDps = 0;
     this.stunTime = 0;
+    this.defensiveTuck = false;
+    this.defensivePhysicsBody = null;
 
     for (let i = 0; i < 2; i++) {
       const leg = this.legs[i];
@@ -464,7 +468,13 @@ class Player {
 
   takeDamage(amount) {
     if (this.isInvulnerable()) return false;
-    let remaining = Math.max(0, amount) * this.buffMultiplier('defense');
+    const tuckDefense = this.defensiveTuck
+      ? this.cfg.defensiveTuckDamageMultiplier
+      : 1;
+    let remaining =
+      Math.max(0, amount) *
+      this.buffMultiplier('defense') *
+      tuckDefense;
     if (this.tempHealth > 0) {
       const absorbed = Math.min(this.tempHealth, remaining);
       this.tempHealth -= absorbed;
@@ -491,13 +501,22 @@ class Player {
       const speed = MathEx.hypot(projectile.vx, projectile.vy) || 1;
       const dx = projectile.vx / speed;
       const dy = projectile.vy / speed;
-      this.vx += dx * projectile.knockback;
-      this.vy += dy * projectile.knockback * 0.16 - 55;
-      this.bodyAngularVelocity += dx * projectile.knockback * 0.0024;
-      if (this.onGround && Math.abs(projectile.knockback) > 0) {
-        // This is an intentional loss of support, not a gait hiccup. Clear the
-        // floor-continuity grace so projectile/recoil launches stay airborne.
-        this.activeBody.release();
+
+      if (this.defensivePhysicsBody) {
+        this.defensivePhysicsBody.vx += dx * projectile.knockback;
+        this.defensivePhysicsBody.vy +=
+          dy * projectile.knockback * 0.16 - 55;
+        this.defensivePhysicsBody.av +=
+          dx * projectile.knockback * 0.0024;
+      } else {
+        this.vx += dx * projectile.knockback;
+        this.vy += dy * projectile.knockback * 0.16 - 55;
+        this.bodyAngularVelocity += dx * projectile.knockback * 0.0024;
+        if (this.onGround && Math.abs(projectile.knockback) > 0) {
+          // This is an intentional loss of support, not a gait hiccup. Clear the
+          // floor-continuity grace so projectile/recoil launches stay airborne.
+          this.activeBody.release();
+        }
       }
     }
 
