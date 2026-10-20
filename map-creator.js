@@ -69,7 +69,7 @@
     width:2750,
     height:1225,
     waterY:950,
-    background:'#dfe8eb',
+    background:'#b8d6e8',
     groundColor:'#596057',
     outlineColor:'#202020',
     outlineSize:10,
