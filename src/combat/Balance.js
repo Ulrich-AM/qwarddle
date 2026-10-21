@@ -4,17 +4,17 @@
 // knockback and utility rather than matching melee health damage.
 const CombatBalance = Object.freeze({
   revolver:Object.freeze({
-    primaryDamage:5,
-    chargedDamage:11,
+    primaryDamage:4,
+    chargedDamage:9,
     reloadTempHealth:10,
     reloadDefense:0.85
   }),
 
   wand:Object.freeze({
-    primaryDamage:2,
-    qDamage:1.25,
-    eContactDamage:2,
-    eBurstDamage:1,
+    primaryDamage:1.5,
+    qDamage:1.0,
+    eContactDamage:1.5,
+    eBurstDamage:0.75,
     eBurstCount:12
   }),
 
