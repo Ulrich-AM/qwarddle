@@ -18,9 +18,7 @@ const MapRegistry = Object.freeze({
         { x:1750, y:980 }
       ],
       rectangles:[
-        { x:0, y:0, w:90, h:1200, color:'#405866', material:'default' },
-        { x:2310, y:0, w:90, h:1200, color:'#405866', material:'default' },
-        { x:90, y:1050, w:2220, h:150, color:'#64746e', material:'default' }
+        { x:0, y:1050, w:2400, h:150, color:'#64746e', material:'default' }
       ]
     }
   ],
