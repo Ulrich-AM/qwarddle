@@ -349,7 +349,7 @@ Map rectangles are full solid collision geometry for the physical torso. Procedu
 
 - TEST PLANE
 
-TEST PLANE is the only registered arena for movement and combat tuning. It is a flat 2400 x 1200 world with a wide floor, side containment walls, no platforms, and water placed below the playable world. The pale blue sky is `#8fc4df`.
+TEST PLANE is the only registered arena for movement and combat tuning. It is a flat 2400 x 1200 world with exactly one floor rectangle, no platforms or side walls, and water placed below the playable world. The blue sky is `#8fc4df`.
 
 ## Sprite staging areas
 
