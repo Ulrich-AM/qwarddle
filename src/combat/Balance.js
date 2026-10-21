@@ -1,20 +1,20 @@
 'use strict';
 
-// Central combat tuning. Keep raw damage/modifier values here so multiplayer
-// playtests can be balanced without hunting magic numbers through weapon files.
+// Central combat tuning. Ranged weapons should win through reach, control,
+// knockback and utility rather than matching melee health damage.
 const CombatBalance = Object.freeze({
   revolver:Object.freeze({
-    primaryDamage:10,
-    chargedDamage:20,
+    primaryDamage:5,
+    chargedDamage:11,
     reloadTempHealth:10,
     reloadDefense:0.85
   }),
 
   wand:Object.freeze({
-    primaryDamage:4,
-    qDamage:2.5,
-    eContactDamage:3.5,
-    eBurstDamage:2.25,
+    primaryDamage:2,
+    qDamage:1.25,
+    eContactDamage:2,
+    eBurstDamage:1,
     eBurstCount:12
   }),
 
@@ -27,24 +27,24 @@ const CombatBalance = Object.freeze({
     drunkDamage:1.25,
     drunkMelee:1.20,
 
-    spitDamage:1.0,
-    puddleDamage:4,
-    shardDamage:1.5,
+    spitDamage:0.6,
+    puddleDamage:3,
+    shardDamage:1,
     shardBleedDuration:3,
-    shardBleedDps:1.5,
-    swingDamage:8,
-    gourdDamage:10,
+    shardBleedDps:1,
+    swingDamage:10,
+    gourdDamage:7,
     gourdBleedDuration:3,
-    gourdBleedDps:2
+    gourdBleedDps:1.5
   }),
 
   dagger:Object.freeze({
-    lungeDamage:9,
-    cloakedLungeDamage:13,
-    throwImpactDamage:3,
+    lungeDamage:12,
+    cloakedLungeDamage:17,
+    throwImpactDamage:2,
     bleedDuration:3,
-    bleedDps:2.5,
+    bleedDps:1.8,
     cloakedBleedDuration:6,
-    cloakedBleedDps:3.25
+    cloakedBleedDps:2.25
   })
 });
