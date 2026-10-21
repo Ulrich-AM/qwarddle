@@ -347,9 +347,9 @@ Map rectangles are full solid collision geometry for the physical torso. Procedu
 
 ## Current maps
 
-- COMPLEX
+- TEST PLANE
 
-COMPLEX is currently the only registered arena while the new map-creator workflow is being tested. Its current test layout is 2400 x 1400 and has been rebuilt around the current character rather than uniformly scaled. Platform rises are intentionally kept below the current jump apex. The map picker is skipped while it is the only entry. More exported arenas can be registered later without changing the game flow code.
+TEST PLANE is the only registered arena for movement and combat tuning. It is a flat 2400 x 1200 world with a wide floor, side containment walls, no platforms, and water placed below the playable world. The pale blue sky is `#8fc4df`.
 
 ## Sprite staging areas
 
@@ -372,50 +372,50 @@ The body uses `qward-body.png` plus `qward-body-color.png`. Generated limbs, han
 
 ## Revolver
 
-The revolver remains the high-knockback burst weapon, but raw damage has been reduced for longer matches.
+Revolver is now primarily a knockback/recoil weapon rather than a ranged health shredder.
 
-- Normal shot damage: 10.
-- Charged shot damage: 20.
+- Normal shot damage: 4.
+- Charged shot damage: 9.
 - LMB still uses the weapon spin as its fire cooldown.
 - Q reload grants 10 temporary health and 15% damage reduction for 1 second.
 - E still requires full charge and loads six charged rounds.
-- Recoil and knockback remain intentionally extreme so the weapon keeps its identity without relying on huge health damage.
+- Knockback and recoil remain intentionally much stronger than the raw health damage.
 
 ## Wand
 
-Wand is tuned around persistent space control rather than raw burst damage.
+Wand is a space-control weapon, not a raw DPS weapon.
 
-- LMB damage: 4. The star passes through terrain and fighters, damaging each fighter only once.
-- Q damage: 2.5 per homing star.
-- E contact damage: 3.5.
-- E no longer ricochets. The large star phases through fighters and bursts into twelve smaller stars on its first terrain impact.
-- E burst fragments deal 2.25 damage each.
+- LMB damage: 1.5 with a 0.22 second cooldown. It still passes through terrain and fighters and can damage each fighter once.
+- Q damage: 1.0 per homing star, three stars per cast.
+- E contact damage: 1.5.
+- E bursts into twelve fragments on first terrain impact.
+- E burst fragments deal 0.75 damage each.
+- Its value is rapid fire, phasing, homing and area coverage rather than health damage.
 
 ## Sake
 
-Sake keeps its utility/chaos identity, but its old drunk-state multipliers were too strong for real matches.
+Sake keeps its utility/chaos identity, with melee now paying off more strongly than its ranged options.
 
 - Drink melee buff: +15%.
 - Drink defense buff: 18% damage reduction.
 - Drink regeneration: 6 health over 5 seconds.
-- Drunk state: 30% damage reduction, +25% general damage, +20% melee, while keeping the strong movement/jump boost.
-- Spit damage: 1 per damaging pulse during the sustained 1.5 second spray.
-- Spill puddle damage: 4 plus Slip.
-- Shards: 1.5 direct damage plus 1.5 bleed DPS for 3 seconds.
-- Drunk swing base damage: 8 before current buffs.
-- Gourd throw base damage: 10 plus 2 bleed DPS for 3 seconds.
-- Gourd shards now inherit the thrower's owner identity and cannot damage their owner.
+- Drunk state: 30% damage reduction, +25% general damage, +20% melee.
+- Spit damage: 0.6 per damaging pulse.
+- Spill puddle damage: 3 plus Slip.
+- Shards: 1 direct damage plus 1 bleed DPS for 3 seconds.
+- Drunk swing base damage: 10 before current drunk/buff multipliers.
+- Gourd throw base damage: 7 plus 1.5 bleed DPS for 3 seconds.
 
 ## Dagger
 
-Dagger remains a mobility/burst weapon, with lower damage so Cloak does not compress matches too heavily.
+Dagger is the high-commitment burst weapon. Its melee Lunge is intentionally stronger than its throw.
 
-- LMB Lunge: 9 damage, or 13 while cloaked.
-- Q Throw: 3 impact damage.
-- Normal throw bleed: 2.5 DPS for 3 seconds.
-- Cloaked throw bleed: 3.25 DPS for 6 seconds.
+- LMB Lunge: 12 damage, or 17 while cloaked.
+- Q Throw: 2 impact damage.
+- Normal throw bleed: 1.8 DPS for 3 seconds.
+- Cloaked throw bleed: 2.25 DPS for 6 seconds.
 - E Cloak remains 8 seconds with invulnerability during the first 4 seconds.
-- Held/thrown/stuck/drop visuals and the short offensive-ragdoll Lunge are unchanged.
+- The risky blade-first Lunge is the weapon's main direct-damage payoff.
 
 ## Slip
 
