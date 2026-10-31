@@ -1,4 +1,4 @@
-# QWARDDLE v0.0.23
+# QWARDDLE v0.0.24
 
 A local-first 2D fighter prototype built with plain HTML, CSS, JavaScript, and Canvas 2D.
 
@@ -9,6 +9,20 @@ Open `index.html` directly. No npm, bundler, or local server is required.
 MAIN MENU -> SOLO / LOCAL -> SETUP -> CUSTOMIZE -> FIGHT
 
 LOCAL now contains COUCH and LAN. COUCH uses one computer plus a controller. LAN uses two computers on the same network, with separate keyboard/mouse input on each machine. ONLINE remains disabled. SOLO still uses an idle P2 placeholder until the CPU session. While only one map is registered, the map-selection screen is skipped automatically and that arena is used directly.
+
+## v0.0.24
+
+This pass uses TEST PLANE as the only active arena and tunes sustained ranged damage for longer 100-HP multiplayer fights. The blue sky is `#8fc4df`; the world is 2400 x 1200 with a single flat floor at y=1050.
+
+- Revolver: 2.5 normal damage per shot, 6.5 charged damage, 0.34 s between shots, 0.58 s reload, 270 regular / 690 charged knockback.
+- Wand: 0.9 primary damage with a 0.32 s cooldown; each primary star still passes through terrain and fighters, hitting a fighter once. Q sends three 0.8-damage homing stars every 1.30 s; E still bursts on the first terrain hit.
+- Dagger: Lunge increases to 14 normal damage or 18 while cloaked. The direct melee hit remains the main payoff for committing to close range.
+- Sake's close-range drunk swing remains at 10 base damage before buffs; ranged Sake effects retain their reduced values.
+- The RMB/LT held body-only defensive ragdoll (40% direct damage reduction, no movement or attacks) remains available.
+- Gameplay cursors are local CSS circles with black outlines, not painted into the shared LAN video stream.
+- Key intervals, damage, and projectile knockback parameters are centralized in `src/combat/Balance.js` for further PvP tuning.
+
+These are initial PvP balance targets, not claims of proven competitive balance. Expected sustained hit damage per second, assuming every attack connects and omitting charged special attacks, is about 5.7 for normal Revolver (including reload time), 2.8 for Wand primary plus up to 1.8 from Q, and 4.7 for Dagger Lunge alone. Real hit rates and knockback make these matchup-dependent.
 
 ## v0.0.23
 
@@ -374,9 +388,9 @@ The body uses `qward-body.png` plus `qward-body-color.png`. Generated limbs, han
 
 Revolver is now primarily a knockback/recoil weapon rather than a ranged health shredder.
 
-- Normal shot damage: 4.
-- Charged shot damage: 9.
-- LMB still uses the weapon spin as its fire cooldown.
+- Normal shot damage: 2.5.
+- Charged shot damage: 6.5.
+- LMB uses a 0.34 second weapon spin as its fire cooldown.
 - Q reload grants 10 temporary health and 15% damage reduction for 1 second.
 - E still requires full charge and loads six charged rounds.
 - Knockback and recoil remain intentionally much stronger than the raw health damage.
@@ -385,8 +399,8 @@ Revolver is now primarily a knockback/recoil weapon rather than a ranged health 
 
 Wand is a space-control weapon, not a raw DPS weapon.
 
-- LMB damage: 1.5 with a 0.22 second cooldown. It still passes through terrain and fighters and can damage each fighter once.
-- Q damage: 1.0 per homing star, three stars per cast.
+- LMB damage: 0.9 with a 0.32 second cooldown. It still passes through terrain and fighters and can damage each fighter once.
+- Q damage: 0.8 per homing star, three stars per cast, 1.30 second cooldown.
 - E contact damage: 1.5.
 - E bursts into twelve fragments on first terrain impact.
 - E burst fragments deal 0.75 damage each.
@@ -410,7 +424,7 @@ Sake keeps its utility/chaos identity, with melee now paying off more strongly t
 
 Dagger is the high-commitment burst weapon. Its melee Lunge is intentionally stronger than its throw.
 
-- LMB Lunge: 12 damage, or 17 while cloaked.
+- LMB Lunge: 14 damage, or 18 while cloaked.
 - Q Throw: 2 impact damage.
 - Normal throw bleed: 1.8 DPS for 3 seconds.
 - Cloaked throw bleed: 2.25 DPS for 6 seconds.
