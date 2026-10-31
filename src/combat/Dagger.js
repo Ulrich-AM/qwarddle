@@ -138,7 +138,7 @@ class Dagger extends Weapon {
       muzzleOffset:38
     });
 
-    this.blinkCooldown = 3;
+    this.blinkCooldown = CombatBalance.dagger.lungeCooldown;
     this.throwCooldown = 5;
     this.cloakCooldown = 17;
 
