@@ -126,7 +126,7 @@ class WandBurstStar extends WandStarProjectile {
         vx:Math.cos(angle) * speed,
         vy:Math.sin(angle) * speed,
         damage:CombatBalance.wand.eBurstDamage,
-        knockback:95,
+        knockback:CombatBalance.wand.eBurstKnockback,
         life:2.4,
         size:32,
         color:'#fff3a6',
@@ -157,8 +157,8 @@ class Wand extends Weapon {
       id:'wand',
       name:'WAND',
       damage:CombatBalance.wand.primaryDamage,
-      cooldown:0.22,
-      knockback:110,
+      cooldown:CombatBalance.wand.primaryInterval,
+      knockback:CombatBalance.wand.primaryKnockback,
       recoil:30,
       muzzleOffset:48
     });
@@ -166,7 +166,7 @@ class Wand extends Weapon {
     this.primarySpeed = 720;
     this.smallStarSize = 32;
     this.largeStarSize = 68;
-    this.qCooldown = 1.0;
+    this.qCooldown = CombatBalance.wand.qInterval;
     this.eCooldown = 1.5;
     this.chargeRate = 7;
     this.chargeOnHit = 2;
@@ -249,7 +249,7 @@ class Wand extends Weapon {
         vx:Math.cos(angle) * speed,
         vy:Math.sin(angle) * speed,
         damage:CombatBalance.wand.qDamage,
-        knockback:85,
+        knockback:CombatBalance.wand.qKnockback,
         life:3,
         size:this.smallStarSize,
         color:'#fff3a6',
