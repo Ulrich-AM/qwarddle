@@ -1,21 +1,31 @@
 'use strict';
 
-// Central combat tuning. Ranged weapons should win through reach, control,
-// knockback and utility rather than matching melee health damage.
+// 100-HP flat-arena test balance. Ranged tools win through reach/positioning;
+// close-range hits carry the larger health damage. Values are provisional
+// until live PvP testing, but all key attack intervals live here as well.
 const CombatBalance = Object.freeze({
   revolver:Object.freeze({
-    primaryDamage:4,
-    chargedDamage:9,
+    primaryDamage:2.5,
+    chargedDamage:6.5,
+    shotInterval:0.34,
+    reloadDuration:0.58,
+    primaryKnockback:270,
+    chargedKnockback:690,
     reloadTempHealth:10,
     reloadDefense:0.85
   }),
 
   wand:Object.freeze({
-    primaryDamage:1.5,
-    qDamage:1.0,
+    primaryDamage:0.9,
+    primaryInterval:0.32,
+    primaryKnockback:65,
+    qDamage:0.8,
+    qInterval:1.30,
+    qKnockback:55,
     eContactDamage:1.5,
     eBurstDamage:0.75,
-    eBurstCount:12
+    eBurstCount:12,
+    eBurstKnockback:65
   }),
 
   sake:Object.freeze({
@@ -39,8 +49,9 @@ const CombatBalance = Object.freeze({
   }),
 
   dagger:Object.freeze({
-    lungeDamage:12,
-    cloakedLungeDamage:17,
+    lungeDamage:14,
+    cloakedLungeDamage:18,
+    lungeCooldown:3,
     throwImpactDamage:2,
     bleedDuration:3,
     bleedDps:1.8,
