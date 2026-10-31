@@ -7,7 +7,7 @@ class Revolver extends Weapon {
       name:'REVOLVER',
       damage:CombatBalance.revolver.primaryDamage,
       cooldown:0,
-      knockback:390,
+      knockback:CombatBalance.revolver.primaryKnockback,
       recoil:285,
       muzzleOffset:58
     });
@@ -18,13 +18,13 @@ class Revolver extends Weapon {
     this.chamberCursor = 0;
 
     // Each shot spins the held revolver once. This animation IS the fire cooldown.
-    this.shotSpinDuration = 0.19;
+    this.shotSpinDuration = CombatBalance.revolver.shotInterval;
     this.shotSpinRemaining = 0;
     this.shotSpinAngle = 0;
 
     // Q: quick top-up reload. Preserves whatever is still in the cylinder and
     // appends normal rounds to the end of the firing order.
-    this.reloadDuration = 0.58;
+    this.reloadDuration = CombatBalance.revolver.reloadDuration;
     this.reloadRemaining = 0;
     this.reloadSpinAngle = 0;
     this.reloadTurns = 1;
@@ -41,7 +41,7 @@ class Revolver extends Weapon {
     this.hudAngleTarget = 0;
 
     this.chargedDamage = CombatBalance.revolver.chargedDamage;
-    this.chargedKnockback = 820;
+    this.chargedKnockback = CombatBalance.revolver.chargedKnockback;
     this.chargedHandRecoil = 720;
     this.chargedBodyRecoil = 940;
     this.chargeRate = 5.5;
