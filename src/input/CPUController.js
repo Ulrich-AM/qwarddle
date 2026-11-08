@@ -125,7 +125,7 @@ class CPUController extends FighterController {
   safeMovement(requested) {
     const actor = this.slot?.actor;
     const terrain = this.game?.terrain;
-    if (!actor || !terrain || !requested) return requested;
+    if (!actor || !terrain) return requested;
 
     const interval = this.supportInterval(terrain, actor.x);
     if (!interval) {
@@ -134,6 +134,7 @@ class CPUController extends FighterController {
       return 0;
     }
 
+    if (!requested) return 0;
     const [left, right] = interval;
     const speedTowardEdge = Math.max(0, (actor.vx || 0) * requested);
     const buffer = 110 + speedTowardEdge * 0.38;
