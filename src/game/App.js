@@ -33,6 +33,9 @@ class App {
 
     this.selectedMapId = MapRegistry.list[0]?.id || null;
     this.selectedMode = 'solo';
+    this.cpuDifficulty = 'normal';
+    this.cpuWeapon = 'mushroom';
+    this.cpuSettings = document.getElementById('cpuSettings');
     this.lanRoom = null;
     this.pendingLanJoin = null;
     this.lanPeer = null;
@@ -82,6 +85,18 @@ class App {
       this.selectedMode = 'solo';
       this.showMaps();
     });
+    document.getElementById('vsCpuBtn').addEventListener('click', () => {
+      this.cpuSettings.classList.remove('hidden');
+      document.getElementById('cpuStartBtn').focus();
+    });
+    document.getElementById('cpuStartBtn').addEventListener('click', () => {
+      this.selectedMode = 'cpu';
+      this.cpuDifficulty = document.getElementById('cpuDifficulty').value;
+      const choice = document.getElementById('cpuWeapon').value;
+      this.cpuWeapon = WeaponRegistry.list.some(w => w.id === choice)
+        ? choice : 'mushroom';
+      this.showMaps();
+    });
     document.getElementById('localBtn').addEventListener('click', () => this.showLocal());
     document.getElementById('couchBtn').addEventListener('click', () => {
       this.selectedMode = 'couch';
@@ -104,6 +119,12 @@ class App {
         if (this.selectedMode === 'lan-client') {
           this.stopLanSession();
           this.showLan();
+        } else if (MapRegistry.list.length === 1) {
+          // One map skips selection automatically; Escape must not loop
+          // straight back into the customization screen.
+          if (this.selectedMode === 'couch') this.showLocal();
+          else if (this.selectedMode === 'lan-host') this.showLan();
+          else this.showMode();
         } else {
           this.showMaps();
         }
@@ -176,6 +197,7 @@ class App {
   showMode() {
     this.screen = 'mode';
     this.hideScreens();
+    this.cpuSettings.classList.add('hidden');
     this.modeScreen.classList.remove('hidden');
     this.game.setActive(false);
     this.setDemos(false, false);
@@ -358,13 +380,20 @@ class App {
     this.screen = 'game';
     this.hideScreens();
 
+    this.game.setCpuDifficulty(this.cpuDifficulty);
     this.game.setMode(this.selectedMode);
     this.game.applyMap(this.selectedMapId);
     if (p1Loadout) this.game.applyFighterLoadout(0, p1Loadout);
-    if (p2Loadout) this.game.applyFighterLoadout(1, p2Loadout);
+    if (this.selectedMode === 'cpu') {
+      this.game.applyFighterLoadout(1, { weapon:this.cpuWeapon });
+    } else if (this.selectedMode === 'solo') {
+      this.game.applyFighterLoadout(1, { weapon:'revolver' });
+    } else if (p2Loadout) {
+      this.game.applyFighterLoadout(1, p2Loadout);
+    }
 
     this.game.setNickname(0, this.nickname());
-    if (this.selectedMode === 'couch') this.game.setNickname(1, 'P2');
+    this.game.setNickname(1, this.selectedMode === 'cpu' ? 'CPU' : 'P2');
 
     this.setDemos(false, false);
     this.game.setActive(true);

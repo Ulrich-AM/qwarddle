@@ -18,6 +18,7 @@ class Game {
     this.projectiles = new ProjectileSystem({ terrain:this.terrain });
     this.selectedMapId = MapRegistry.list[0]?.id || null;
     this.mode = 'solo';
+    this.cpuDifficulty = 'normal';
 
     const p1Controller = new KeyboardMouseController({
       keyboard:this.keyboard,
@@ -101,15 +102,24 @@ class Game {
     if (!slot || !controller) return;
     slot.controller = controller;
     slot.actor.input = controller;
+    controller.bind?.(this, slot);
+  }
+
+  setCpuDifficulty(difficulty = 'normal') {
+    this.cpuDifficulty = CPUController.profiles[difficulty] ? difficulty : 'normal';
   }
 
   setMode(mode = 'solo') {
-    this.mode = ['couch','lan-host'].includes(mode) ? mode : 'solo';
+    this.mode = ['couch','lan-host','cpu'].includes(mode) ? mode : 'solo';
 
     if (this.mode === 'couch') {
       this.setFighterController(1, new GamepadController(0));
     } else if (this.mode === 'lan-host') {
       this.setFighterController(1, new NetworkController());
+    } else if (this.mode === 'cpu') {
+      this.setFighterController(1, new CPUController({
+        difficulty:this.cpuDifficulty
+      }));
     } else {
       this.setFighterController(1, new IdleController());
     }
@@ -213,6 +223,7 @@ class Game {
 
     slot.charge = 0;
     slot.clearTransientState();
+    slot.controller.reset?.();
   }
 
   reset() {
@@ -822,7 +833,7 @@ class Game {
 
   update(dt) {
     for (const slot of this.fighters) {
-      slot.controller.poll?.();
+      slot.controller.poll?.(dt);
     }
 
     this.camera.updateFighters(

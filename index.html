@@ -79,9 +79,29 @@
       <h1 data-i18n="ui.mode.title">PLAY</h1>
       <section class="modeGrid">
         <button id="singleBtn" class="modeCard available" data-i18n="ui.mode.solo">SOLO</button>
+        <button id="vsCpuBtn" class="modeCard available" type="button">VS CPU</button>
         <button id="localBtn" class="modeCard available" data-i18n="ui.mode.local">LOCAL</button>
-        <button class="modeCard" disabled data-i18n="ui.mode.online">ONLINE</button>
       </section>
+      <section id="cpuSettings" class="cpuSettings hidden" aria-label="CPU opponent settings">
+        <label>DIFFICULTY
+          <select id="cpuDifficulty">
+            <option value="easy">EASY</option>
+            <option value="normal" selected>NORMAL</option>
+            <option value="hard">HARD</option>
+          </select>
+        </label>
+        <label>CPU WEAPON
+          <select id="cpuWeapon">
+            <option value="mushroom" selected>MUSHROOM</option>
+            <option value="revolver">REVOLVER</option>
+            <option value="wand">WAND</option>
+            <option value="sake">SAKE</option>
+            <option value="dagger">DAGGER</option>
+          </select>
+        </label>
+        <button id="cpuStartBtn" class="continueButton" type="button">FIGHT CPU</button>
+      </section>
+      <p class="screenHint">SOLO: training dummy. VS CPU: an opponent that moves and fights.</p>
     </main>
   </div>
 
@@ -172,6 +192,7 @@
   <script src="src/input/KeyboardInput.js"></script>
   <script src="src/input/PointerInput.js"></script>
   <script src="src/input/FighterController.js"></script>
+  <script src="src/input/CPUController.js"></script>
   <script src="src/net/LanPeer.js"></script>
   <script src="src/world/MapRegistry.js"></script>
   <script src="src/world/Terrain.js"></script>
