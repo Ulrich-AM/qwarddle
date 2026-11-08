@@ -496,3 +496,24 @@ Additional languages can follow the same structure. The built-in English fallbac
 - Raised automatic ragdoll crash thresholds: floor 980 to 1,320, wall 760 to 1,040, ceiling 930 to 1,200. Stumble thresholds also increase to 680 / 650 / 800 respectively.
 - Reduced the contribution of extreme horizontal speed and tilt to floor crash detection. Intentional ragdolls, weapon knockbacks and death effects are unchanged.
 - These thresholds are initial feel adjustments and need playtesting after ordinary jumps, running, wall collisions and high-speed attacks.
+
+
+## Mushroom weapon M1-M3
+
+MUSHROOM is selectable from WEAPONS. The weapon and green hazard use the
+sprites under \`assets/sprites/mushroom/\`. The purple asset is reserved for M4.
+
+- LMB fires four short-range spores (1 damage each, 0.72s interval).
+  Each hit causes 1.2s of dizziness, with occasional 0.32s horizontal
+  movement reversal. Jumping, aiming and attacking are unchanged.
+- Q costs 50 of 100 charge immediately and fires four ballistic seeds.
+  Seeds plant only on the top of solid geometry. The green mushrooms grow
+  for 0.28s, last up to 9s, and on touch deal 8 damage plus 2s dizziness.
+- Up to five green mushrooms can exist per fighter. A consumed mushroom
+  deals damage once, then disappears. Green mushrooms never hit their owner.
+- Dizziness is processed by the Player after reading the controller axis,
+  so keyboard, gamepad and LAN all use the host-authoritative effect.
+  The HUD shows DIZZY or DIZZY / REVERSED. Screen visuals are local
+  to P1 or passed to the remote LAN client separately from the video stream.
+  In couch mode the P2 HUD shows the effect without obscuring P1's view.
+- E remains disabled until Phase M4.
