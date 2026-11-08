@@ -11,6 +11,9 @@ class NauseaWarp {
     this.program = null;
     this.texture = null;
     this.disabled = !source || !canvas;
+    this.contextLost = false;
+    this.downsampleCanvas = null;
+    this.downsampleContext = null;
     this.running = false;
     this.dizzy = 0;
     this.purple = 0;
@@ -27,12 +30,14 @@ class NauseaWarp {
     if (this.canvas) {
       this.canvas.addEventListener('webglcontextlost', (event) => {
         event.preventDefault();
+        this.contextLost = true;
         this.gl = null;
         this.program = null;
         this.texture = null;
         this.canvas.style.display = 'none';
       });
       this.canvas.addEventListener('webglcontextrestored', () => {
+        this.contextLost = false;
         this.gl = null;
         this.program = null;
         this.texture = null;
@@ -67,16 +72,21 @@ class NauseaWarp {
 
   initialize() {
     if (this.gl && this.program) return true;
-    if (this.disabled) return false;
+    if (this.disabled || this.contextLost) return false;
 
-    const gl = this.canvas.getContext('webgl', {
-      alpha:false,
-      antialias:false,
-      premultipliedAlpha:false,
-      depth:false,
-      stencil:false,
-      preserveDrawingBuffer:false
-    });
+    let gl = null;
+    try {
+      gl = this.canvas.getContext('webgl', {
+        alpha:false,
+        antialias:false,
+        premultipliedAlpha:false,
+        depth:false,
+        stencil:false,
+        preserveDrawingBuffer:false
+      });
+    } catch (error) {
+      console.warn('WebGL nausea context is unavailable:', error);
+    }
     if (!gl) {
       this.disabled = true;
       return false;
@@ -176,7 +186,8 @@ class NauseaWarp {
     if (this.source instanceof HTMLVideoElement) {
       if (this.source.readyState < 2 ||
           !this.source.videoWidth || !this.source.videoHeight) return null;
-      const parent = this.canvas.parentElement.getBoundingClientRect();
+      const parent = this.canvas.parentElement?.getBoundingClientRect?.();
+      if (!parent || parent.width <= 0 || parent.height <= 0) return null;
       const ratio = Math.min(
         parent.width / this.source.videoWidth,
         parent.height / this.source.videoHeight
@@ -215,8 +226,32 @@ class NauseaWarp {
     try {
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      // High-DPI Canvas2D sources can be much larger than the overlay itself.
+      // Reuse a 2D downsample buffer to avoid uploading a 4K texture each frame.
+      // WebRTC video uses its original source directly to preserve stream access.
+      let upload = this.source;
+      if (!(this.source instanceof HTMLVideoElement) &&
+          this.source.width > width * 1.35) {
+        if (!this.downsampleCanvas) {
+          this.downsampleCanvas = document.createElement('canvas');
+          this.downsampleContext = this.downsampleCanvas.getContext('2d', {
+            alpha:false
+          });
+        }
+        if (this.downsampleContext) {
+          if (this.downsampleCanvas.width !== width ||
+              this.downsampleCanvas.height !== height) {
+            this.downsampleCanvas.width = width;
+            this.downsampleCanvas.height = height;
+          }
+          this.downsampleContext.imageSmoothingEnabled = false;
+          this.downsampleContext.drawImage(this.source, 0, 0, width, height);
+          upload = this.downsampleCanvas;
+        }
+      }
+
       gl.texImage2D(
-        gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.source
+        gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, upload
       );
       gl.useProgram(this.program);
       const strength = MathEx.clamp(
