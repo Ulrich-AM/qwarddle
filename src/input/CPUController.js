@@ -190,6 +190,8 @@ class CPUController extends FighterController {
     const actor=this.slot?.actor;
     if(!actor || this.defenseTime>0 || this.dashTacticalCooldown>0 ||
        (this.slot.defensiveDashCooldownRemaining||0)>0 ||
+       actor.weaponMount?.weapon?.throwCharging ||
+       actor.weaponMount?.weapon?.windup>0 ||
        !this.canDashToward(direction))return false;
     this.defenseTime=0.20;
     this.dashTacticalCooldown=2.1+this.random()*1.4;
@@ -200,6 +202,28 @@ class CPUController extends FighterController {
     this.moveX=0;this.run=false;
     this.pressed.clear();
     return true;
+  }
+
+  chooseDodgeDirection(defaultDirection) {
+    const actor=this.slot?.actor;
+    if(!actor)return defaultDirection;
+    const threats=(this.game?.hazards||[])
+      .filter(h=>!h.dead && h.owner!==actor &&
+        Number.isFinite(h.x) && Math.abs(h.x-actor.x)<175);
+    if(threats.length){
+      threats.sort((a,b)=>Math.abs(a.x-actor.x)-Math.abs(b.x-actor.x));
+      const away=Math.sign(actor.x-threats[0].x);
+      if(away&&this.canDashToward(away))return away;
+    }
+    const approaching=(this.game?.projectiles?.items||[])
+      .find(p=>!p.dead&&p.owner!==actor&&!p.nonCombat &&
+        Number.isFinite(p.vx)&&Math.abs(p.vx)>70 &&
+        (actor.x-p.x)/p.vx>0&&(actor.x-p.x)/p.vx<.52);
+    if(approaching){
+      const along=Math.sign(approaching.vx);
+      if(along && this.canDashToward(along))return along;
+    }
+    return defaultDirection;
   }
 
   decide(target) {
@@ -237,7 +261,7 @@ class CPUController extends FighterController {
     // Only dash into supported space. Prefer defensive dodges when under
     // threat; use an occasional forward approach dash for short weapons.
     if(danger && this.random()<this.profile.dodgeChance*0.66 &&
-       this.startTuckDash(-toward,-120))return;
+       this.startTuckDash(this.chooseDodgeDirection(-toward),-120))return;
     if(!danger && distance>300 && distance<900 &&
        ['dagger','cleaver','sake'].includes(weapon?.id) &&
        this.random()<this.profile.aggression*0.19 &&
