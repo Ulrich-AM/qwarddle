@@ -11,8 +11,16 @@ class App {
     this.customScreen = document.getElementById('customScreen');
     this.gameCanvas = document.getElementById('game');
     this.lanVideo = document.getElementById('lanVideo');
+    this.dizzyOverlay = document.getElementById('dizzyOverlay');
+    this.lanDizzyOverlay = document.getElementById('lanDizzyOverlay');
 
     this.game = new Game(this.gameCanvas);
+    this.game.onDizzySnapshot = (p1, p2) => {
+      this.updateDizzyOverlay(this.dizzyOverlay, p1);
+      if (this.screen === 'game' && this.selectedMode === 'lan-host') {
+        this.lanPeer?.send?.({ type:'status-effects', dizzy:p2 });
+      }
+    };
     this.menuDemo = new MenuDemo(document.getElementById('menuDemo'), { interactive:true });
     this.customDemo = new MenuDemo(document.getElementById('customDemo'), {
       interactive:false,
@@ -126,7 +134,16 @@ class App {
     return clean || 'QWARD';
   }
 
+  updateDizzyOverlay(element, opacity = 0) {
+    if (!element) return;
+    const amount = MathEx.clamp(Number(opacity) || 0, 0, 0.45);
+    element.style.opacity = String(amount);
+    element.classList.toggle('active', amount > 0);
+  }
+
   hideScreens() {
+    this.updateDizzyOverlay(this.dizzyOverlay, 0);
+    this.updateDizzyOverlay(this.lanDizzyOverlay, 0);
     this.menu.classList.add('hidden');
     this.modeScreen.classList.add('hidden');
     this.localScreen.classList.add('hidden');
@@ -406,6 +423,9 @@ class App {
       nickname:this.nickname(),
       video:this.lanVideo,
       loadout,
+      onStatusEffects:(state) => {
+        this.updateDizzyOverlay(this.lanDizzyOverlay, state?.dizzy);
+      },
       onStatus:(message) => {
         status.textContent = message;
       }
