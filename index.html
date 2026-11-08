@@ -11,6 +11,11 @@
   <canvas id="game" class="inactive"></canvas>
   <canvas id="gameNauseaWarp" class="nauseaWarp" aria-hidden="true"></canvas>
   <div id="dizzyOverlay" class="dizzyOverlay" aria-hidden="true"></div>
+  <div id="cpuMatchHud" class="cpuMatchHud hidden" aria-live="off">
+    <span id="cpuMatchScore">YOU 0 : 0 CPU</span>
+    <span id="cpuMatchInfo">NORMAL · MUSHROOM</span>
+    <button id="cpuRematchBtn" type="button">RESTART</button>
+  </div>
 
 
   <div id="menu" class="screenLayer menuLayer">
@@ -98,6 +103,21 @@
             <option value="wand">WAND</option>
             <option value="sake">SAKE</option>
             <option value="dagger">DAGGER</option>
+          </select>
+        </label>
+        <label>CPU COLOR
+          <select id="cpuAppearance">
+            <option value="rose" selected>ROSE</option>
+            <option value="blue">BLUE</option>
+            <option value="green">GREEN</option>
+            <option value="gray">GRAY</option>
+          </select>
+        </label>
+        <label>CPU START CHARGE
+          <select id="cpuStartCharge">
+            <option value="0" selected>0 (NORMAL)</option>
+            <option value="50">50 (TEST Q)</option>
+            <option value="100">100 (TEST E)</option>
           </select>
         </label>
         <button id="cpuStartBtn" class="continueButton" type="button">FIGHT CPU</button>

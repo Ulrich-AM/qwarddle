@@ -177,3 +177,22 @@
   .modeGrid {grid-template-columns:repeat(3,minmax(0,1fr))}
   .modeCard {font-size:clamp(12px,3vw,20px)}
 }
+
+/* CPU-3 offers two rows of match setup without adding a separate screen. */
+.cpuSettings {grid-template-columns:repeat(2,minmax(0,1fr));}
+.cpuSettings .continueButton {grid-column:1 / -1;justify-self:stretch;width:100%}
+.cpuMatchHud {
+  position:fixed;top:12px;left:50%;transform:translateX(-50%);
+  z-index:7;display:flex;align-items:center;gap:13px;
+  padding:8px 10px;background:rgba(24,23,27,.91);border:2px solid #bd1b2b;
+  color:#fff;font:900 11px Arial,Helvetica,sans-serif;white-space:nowrap;
+  pointer-events:auto;box-shadow:0 3px 0 #151515
+}
+.cpuMatchHud #cpuMatchInfo {font-size:9px;color:#ded3d4}
+.cpuMatchHud button {cursor:pointer;background:#bc1c2c;color:#fff;padding:7px 10px;font-weight:900}
+.cpuMatchHud button:hover,.cpuMatchHud button:focus-visible {background:#e03949}
+@media(max-width:650px) {
+  .cpuMatchHud {top:7px;gap:5px;padding:5px;font-size:9px}
+  .cpuMatchHud #cpuMatchInfo {font-size:8px}
+  .cpuMatchHud button {padding:5px}
+}
