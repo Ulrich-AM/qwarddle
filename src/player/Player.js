@@ -64,6 +64,7 @@ class Player {
     this.dizzyTime = 0;
     this.dizzyInvertTime = 0;
     this.dizzyInvertCountdown = 0;
+    this.purpleSporesTime = 0;
     this.defensiveTuck = false;
     this.defensivePhysicsBody = null;
 
@@ -269,6 +270,7 @@ class Player {
     this.dizzyTime = 0;
     this.dizzyInvertTime = 0;
     this.dizzyInvertCountdown = 0;
+    this.purpleSporesTime = 0;
 
     for (let i = 0; i < 2; i++) {
       const leg = this.legs[i];
@@ -324,6 +326,7 @@ class Player {
     this.dizzyTime = 0;
     this.dizzyInvertTime = 0;
     this.dizzyInvertCountdown = 0;
+    this.purpleSporesTime = 0;
     this.defensiveTuck = false;
     this.defensivePhysicsBody = null;
 
@@ -522,6 +525,19 @@ class Player {
   dizzinessOpacity() {
     if (this.dead || this.dizzyTime <= 0) return 0;
     return this.dizzyInvertTime > 0 ? 0.37 : 0.22;
+  }
+
+  // Purple detonation has its own short-lived screen effect, independent of
+  // dizziness, so the vignette fades after its own timer.
+  applyPurpleSpores(duration = 1.4) {
+    if (this.dead || this.isInvulnerable()) return false;
+    this.purpleSporesTime = Math.max(this.purpleSporesTime, Math.max(0, duration));
+    return this.purpleSporesTime > 0;
+  }
+
+  purpleSporesOpacity() {
+    if (this.dead || this.purpleSporesTime <= 0) return 0;
+    return 0.38 * MathEx.clamp(this.purpleSporesTime / 0.35, 0, 1);
   }
 
   takeDamage(amount) {
@@ -1322,6 +1338,7 @@ class Player {
     }
 
     this.stunTime = Math.max(0, this.stunTime - dt);
+    this.purpleSporesTime = Math.max(0, this.purpleSporesTime - dt);
 
     this.dizzyTime = Math.max(0, this.dizzyTime - dt);
     if (this.dizzyTime > 0) {
