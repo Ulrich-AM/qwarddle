@@ -125,6 +125,7 @@ assert.equal(embedded.dead,true,'recovered blade is removed');
 assert.equal(victim.hemorrhageTime,5,'pulling it out inflicts hemorrhage');
 
 const second=new Cleaver();
+owner.weaponMount.weapon=second;
 const outOfBounds={
   ...terrain,worldWidth:7200,worldHeight:1700,
   circleIntersectsSolid(){return false}
