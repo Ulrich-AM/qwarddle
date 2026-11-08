@@ -627,20 +627,44 @@ Run the standalone behavior tests with
   tuck but does not apply a new dash impulse. The existing 40% damage
   reduction and attack lockout while tucked remain unchanged.
 - When Mushroom applies dizziness, the final Canvas 2D image is sampled by a
-  small WebGL post-process overlay. Two animated sine waves and a mild radial
-  swirl warp actual screen UV coordinates. The shader does not move the
+  Canvas 2D scene-resampling overlay. A breathing zoom, mild scene rotation,
+  and animated sine waves bend the actual game image. The shader does not move the
   camera, world objects, collision geometry, or pointer coordinates.
-- Green dizziness and purple mushroom bursts share the GPU warp with
+- Green dizziness and purple mushroom bursts share the scene warp with
   different intensity/tint parameters; the old CSS overlay now supplies
-  only the color tint and remains a fallback if WebGL is unavailable.
+  only the color tint, which remains as a fallback if canvas resampling fails.
 - In LAN, the local player's effect is applied to the remote video display
   on their own device. The effect is never baked into the shared host
   video. Remote video letterboxing is preserved.
-- WebGL is only initialized and updated while an effect is active; a reused
-  downsample buffer limits texture uploads for high-DPI local canvases.
+- The scene resampler runs only while an effect is active, at up to 40 FPS,
+  with the display resolution capped to limit work on older systems.
 - Run the focused regression checks using
   `node tests/nausea-tuck.test.cjs` from the repository root.
 
 These are initial feel parameters. In-browser testing is still needed to
 evaluate the distortion strength, performance on real GPUs, high-speed
 tuck landings, and client WebRTC video compatibility.
+
+
+## CPU-3: VS CPU match controls
+
+- **PLAY > VS CPU** now offers CPU difficulty, weapon, color (Rose, Blue,
+  Green, Gray), and starting charge.
+- The normal starting charge is 0. Optional 50 or 100 charge is explicitly
+  for ability testing, especially Mushroom Q and E. This initial charge is
+  applied once at match start and on explicit RESTART, not on normal respawns.
+- A compact scoreboard appears at the top of VS CPU gameplay, showing your
+  KOs against the CPU, its difficulty/weapon, and a RESTART button.
+  The score is retained across respawns and reset when the match restarts.
+  Press Escape to return to the main menu.
+- SOLO training remains the idle dummy. COUCH and LAN still use their
+  existing controllers, physics, and navigation.
+- Removed the old repeating diagonal screen decorations from the green and
+  purple nausea overlays. Distortion now resamples the actual rendered scene
+  using Canvas 2D instead of depending on WebGL support. The underlying game
+  canvas, mouse aim, physics and input remain unaffected.
+- The nausea color overlay is a separate fallback, and LAN clients process
+  their received video locally.
+
+Use `node tests/nausea-tuck.test.cjs` to check the screen warp and CPU-3
+match behavior without an installed browser or npm packages.
