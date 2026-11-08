@@ -2,9 +2,8 @@
 
 **Status (2026-11-08):** CPU-0, CPU-1 and CPU-2 are implemented
 in the dedicated `CPUController` and exposed as **VS CPU** under PLAY.
-The existing **SOLO** idle training dummy is still available. CPU-3's
-additional menu/refinement ideas and CPU-4's broader balance testing
-remain future work. This document retains the original architecture
+The existing **SOLO** idle training dummy is still available. CPU-3's match settings, opponent cosmetics, scoreboard and restart
+are now implemented. CPU-4's broader balance testing remains future work. This document retains the original architecture
 plan for reference.
 
 ## Goal
@@ -138,3 +137,16 @@ CPU-4 needs real human playtesting, plus experiments on edge avoidance,
 jump timing, status effects, melee reliability and projectile dodging.
 The current controller does not use a pathfinder or any omniscient
 strategic planner.
+
+
+## CPU-3 implemented
+
+The PLAY menu now exposes CPU color and optional 0/50/100 starting charge
+alongside difficulty and weapon. The CPU continues using the regular
+FighterSlot and controller. A local-only match HUD displays the KO score and
+offers a RESTART action. CPU resets clear decision state. CPU charge test
+presets only apply at the start of a new match, not after a fighter dies.
+
+The previous stripe-style nausea overlay has been removed. A Canvas 2D
+postprocess now warps sampled screen imagery for green and purple effects.
+This does not affect collisions, camera aim, or the LAN host video.
