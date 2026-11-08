@@ -208,6 +208,7 @@ class LanPeer {
     onInput = null,
     onLoadout = null,
     onNickname = null,
+    onStatusEffects = null,
     onStatus = null
   }) {
     this.role = role;
@@ -220,6 +221,7 @@ class LanPeer {
     this.onInput = onInput;
     this.onLoadout = onLoadout;
     this.onNickname = onNickname;
+    this.onStatusEffects = onStatusEffects;
     this.onStatus = onStatus;
 
     this.pc = null;
@@ -353,6 +355,8 @@ class LanPeer {
         if (message.loadout) this.onLoadout?.(message.loadout);
       } else if (message.type === 'loadout') {
         this.onLoadout?.(message.loadout);
+      } else if (message.type === 'status-effects' && this.role === 'client') {
+        this.onStatusEffects?.(message);
       }
     };
   }

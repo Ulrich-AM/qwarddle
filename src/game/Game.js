@@ -72,6 +72,8 @@ class Game {
     this.hazards = [];
     this.statusEmitters = [];
     this.statusParticles = [];
+    this.dizzySnapshotTimer = 0;
+    this.onDizzySnapshot = null;
 
     this.lastTime = performance.now();
     this.accumulator = 0;
@@ -480,6 +482,17 @@ class Game {
     return !!slot && slot.charge >= slot.maxCharge - 0.001;
   }
 
+  hasCharge(slot, amount) {
+    return !!slot && Number.isFinite(amount) && amount > 0 &&
+      slot.charge >= amount - 0.001;
+  }
+
+  consumeCharge(slot, amount) {
+    if (!this.hasCharge(slot, amount)) return false;
+    slot.charge = Math.max(0, slot.charge - amount);
+    return true;
+  }
+
   consumeFullCharge(slot) {
     if (!this.hasFullCharge(slot)) return false;
     slot.charge = 0;
@@ -864,6 +877,16 @@ class Game {
       if (slot.knockdown) this.updateKnockdown(slot, dt);
       if (slot.ragdoll) this.updateDeathRagdoll(slot, dt);
     }
+
+    // Keep LAN status visuals local to each device, outside the shared video.
+    this.dizzySnapshotTimer -= dt;
+    if (this.dizzySnapshotTimer <= 0 && this.onDizzySnapshot) {
+      this.dizzySnapshotTimer = 0.10;
+      this.onDizzySnapshot(
+        this.fighters[0].actor.dizzinessOpacity(),
+        this.fighters[1].actor.dizzinessOpacity()
+      );
+    }
   }
 
   drawBar(ctx, x, y, width, height, ratio, fill, label) {
@@ -930,6 +953,20 @@ class Game {
     } else {
       this.drawBar(ctx, statsX, statY, statW, statH, chargeRatio, '#e5c83b', `${label} charge`);
       this.drawBar(ctx, statsX + statW + statGap, statY, statW, statH, healthRatio, '#d94a4a', `${label} health`);
+    }
+
+    if (slot.actor.dizzyTime > 0 && !slot.ragdoll) {
+      ctx.save();
+      ctx.font = 'bold 12px monospace';
+      ctx.textBaseline = 'bottom';
+      ctx.textAlign = leftAligned ? 'left' : 'right';
+      ctx.fillStyle = slot.actor.dizzyInvertTime > 0 ? '#f7c77c' : '#c8f2bc';
+      ctx.fillText(
+        slot.actor.dizzyInvertTime > 0 ? 'DIZZY / REVERSED' : 'DIZZY',
+        leftAligned ? 22 : this.width - 22,
+        attack1Y - 14
+      );
+      ctx.restore();
     }
   }
 

@@ -1,0 +1,246 @@
+'use strict';
+
+// Mushroom M1-M3: short-range spores, dizziness and planted green hazards.
+// The purple trigger attack is intentionally reserved for M4.
+class MushroomSpore extends Projectile {
+  constructor({ gravity = 180, ...options } = {}) {
+    super({ shape:'circle', outlineColor:'#272622', outlineWidth:2, ...options });
+    this.gravity = gravity;
+    this.initialLife = this.life;
+    // Each spray has four hits. Treat the spores as status/damage particles,
+    // not four separate body-launching collisions.
+    this.noPhysicalHit = true;
+  }
+
+  update(dt) {
+    this.vy += this.gravity * dt;
+    super.update(dt);
+  }
+
+  render(ctx) {
+    ctx.save();
+    ctx.globalAlpha *= Math.min(1, this.life / Math.min(0.25, this.initialLife));
+    super.render(ctx);
+    ctx.restore();
+  }
+}
+
+class MushroomSeed extends MushroomSpore {
+  constructor({ onPlant = null, ...options } = {}) {
+    super({ ...options, gravity:850 });
+    this.onPlant = onPlant;
+    this.nonCombat = true;
+    this.handlesTerrain = true;
+    this.hitRadius = 7;
+  }
+
+  update(dt, context = {}) {
+    const previousY = this.y;
+    super.update(dt);
+    if (this.dead) return;
+
+    // Only top-face contact grows mushrooms. A spore that hits a side or
+    // underside is discarded, never planted inside a wall.
+    for (const rect of context.terrain?.rectangles || []) {
+      const top = rect.y - this.hitRadius;
+      const withinX = this.x >= rect.x + 5 && this.x <= rect.x + rect.w - 5;
+      if (withinX && previousY <= top + 1 && this.y >= top && this.vy > 0) {
+        this.dead = true;
+        this.onPlant?.(this.x, rect.y);
+        return;
+      }
+    }
+
+    if (context.terrain?.circleIntersectsSolid?.(this.x, this.y, this.hitRadius)) {
+      this.dead = true;
+    }
+  }
+}
+
+class GreenMushroom {
+  constructor({ x, y, owner, sprite, damage = 8, duration = 9 } = {}) {
+    Object.assign(this, { x, y, owner, sprite, damage, duration });
+    this.age = 0;
+    this.dead = false;
+    this.width = 42;
+    this.height = 46;
+    this.growTime = 0.28;
+  }
+
+  update(dt, game) {
+    if (this.dead) return;
+    this.age += dt;
+    if (this.age >= this.duration || this.owner?.dead) {
+      this.dead = true;
+      return;
+    }
+    if (this.age < this.growTime) return;
+
+    for (const target of game.getHazardActors()) {
+      if (target === this.owner || target.dead || target.isInvulnerable?.()) continue;
+      const box = target.hitbox?.();
+      if (!box) continue;
+      const left = this.x - this.width * 0.5;
+      const right = this.x + this.width * 0.5;
+      const top = this.y - this.height;
+      if (box.x + box.w * 0.5 < left || box.x - box.w * 0.5 > right ||
+          box.y + box.h * 0.5 < top || box.y - box.h * 0.5 > this.y) continue;
+
+      // Consumed on first valid contact; no overlapping per-frame damage.
+      this.dead = true;
+      target.takeDamage(this.damage);
+      target.hitFlash = Math.max(target.hitFlash || 0, 0.12);
+      target.applyDizziness?.(2.0);
+      if (target.health <= 0) target.dead = true;
+      break;
+    }
+  }
+
+  render(ctx) {
+    const grow = Math.min(1, this.age / this.growTime);
+    const fade = Math.min(1, (this.duration - this.age) / 0.6);
+    const w = Math.round(this.width * (0.3 + grow * 0.7));
+    const h = Math.round(this.height * (0.25 + grow * 0.75));
+    ctx.save();
+    ctx.globalAlpha *= Math.max(0, fade);
+    ctx.imageSmoothingEnabled = false;
+    if (this.sprite?.complete && this.sprite.naturalWidth > 0) {
+      ctx.drawImage(this.sprite, Math.round(this.x - w / 2), Math.round(this.y - h), w, h);
+    } else {
+      ctx.fillStyle = '#232923';
+      ctx.fillRect(Math.round(this.x - w / 2 - 2), Math.round(this.y - h - 2), w + 4, h + 4);
+      ctx.fillStyle = '#49c36e';
+      ctx.fillRect(Math.round(this.x - w / 2), Math.round(this.y - h), w, h);
+    }
+    ctx.restore();
+  }
+}
+
+class Mushroom extends Weapon {
+  constructor() {
+    super({
+      id:'mushroom',
+      name:'MUSHROOM',
+      damage:1,
+      cooldown:0.72,
+      knockback:12,
+      recoil:12,
+      muzzleOffset:42
+    });
+    this.chargeRate = 6;
+    this.chargeOnHit = 1.5;
+    this.qChargeCost = 50;
+    this.qCooldown = 1.6;
+    this.qCooldownRemaining = 0;
+    this.sporesPerSpray = 4;
+    this.seedCount = 4;
+    this.maxMushrooms = 5;
+    this.sprites = {
+      weapon:this.loadSprite('mushroom.png'),
+      green:this.loadSprite('green-mushroom.png')
+    };
+  }
+
+  loadSprite(file) {
+    const image = new Image();
+    image.src = 'assets/sprites/mushroom/' + file;
+    return image;
+  }
+
+  update(dt, context) {
+    super.update(dt, context);
+    this.qCooldownRemaining = Math.max(0, this.qCooldownRemaining - dt);
+  }
+
+  muzzle(mount) {
+    return mount.muzzle(this.muzzleOffset);
+  }
+
+  primary({ mount, projectiles, player, game }) {
+    if (!projectiles || !player || !this.beginUse()) return false;
+    const muzzle = this.muzzle(mount);
+    const angle = Math.atan2(mount.dirY, mount.dirX);
+    const offsets = [-0.22, -0.07, 0.07, 0.22];
+
+    for (const offset of offsets) {
+      const a = angle + offset;
+      const speed = 400 + Math.random() * 35;
+      projectiles.spawn(new MushroomSpore({
+        owner:player,
+        x:muzzle.x, y:muzzle.y,
+        vx:Math.cos(a) * speed,
+        vy:Math.sin(a) * speed,
+        damage:this.damage * player.buffMultiplier('damage'),
+        knockback:this.knockback,
+        life:0.52,
+        width:11, height:11,
+        color:'#f8d58c',
+        onHit:(target) => {
+          if (target?.isInvulnerable?.()) return;
+          target.applyDizziness?.(1.2);
+          game?.gainCharge?.(this.chargeOnHit);
+        }
+      }));
+    }
+    mount.applyRecoil(this.recoil);
+    return true;
+  }
+
+  // Q: requires 50 charge and spends it at launch. Each seed makes one hazard
+  // only after crossing an actual ground top, not after an arbitrary timeout.
+  reload({ mount, projectiles, player, game }) {
+    if (!projectiles || !game?.hasCharge?.(this.qChargeCost) ||
+        this.qCooldownRemaining > 0 || !player) return false;
+    if (!game.consumeCharge(this.qChargeCost)) return false;
+
+    const muzzle = this.muzzle(mount);
+    for (let i = 0; i < this.seedCount; i++) {
+      const spread = i - (this.seedCount - 1) * 0.5;
+      projectiles.spawn(new MushroomSeed({
+        owner:player,
+        x:muzzle.x, y:muzzle.y,
+        vx:mount.dirX * 285 + spread * 92,
+        vy:Math.min(-210, mount.dirY * 200 - 260) - Math.abs(spread) * 32,
+        damage:0, knockback:0,
+        life:3.8, width:14, height:14, color:'#72df82',
+        onPlant:(x, y) => {
+          const hazards = game.game?.hazards || [];
+          const owned = hazards.filter(h => h instanceof GreenMushroom && h.owner === player && !h.dead);
+          if (owned.length >= this.maxMushrooms) owned[0].dead = true;
+          game.addHazard(new GreenMushroom({
+            x, y, owner:player, sprite:this.sprites.green
+          }));
+        }
+      }));
+    }
+    this.qCooldownRemaining = this.qCooldown;
+    mount.applyRecoil(25);
+    return true;
+  }
+
+  // E/purple mushrooms belong to M4.
+  special() { return false; }
+
+  attackReadiness(game) {
+    const primary = MathEx.clamp(1 - this.cooldownRemaining / this.cooldown, 0, 1);
+    const qReady = MathEx.clamp(1 - this.qCooldownRemaining / this.qCooldown, 0, 1);
+    return [primary, game?.hasCharge?.(this.qChargeCost) ? qReady : 0, 0];
+  }
+
+  render(ctx, { mount }) {
+    const p = mount.position();
+    ctx.save();
+    ctx.translate(Math.round(p.x), Math.round(p.y));
+    ctx.rotate(Math.round((mount.angle + Math.PI * 0.5) / (Math.PI / 16)) * (Math.PI / 16));
+    ctx.imageSmoothingEnabled = false;
+    if (this.sprites.weapon.complete && this.sprites.weapon.naturalWidth > 0) {
+      ctx.drawImage(this.sprites.weapon, -29, -48, 58, 58);
+    } else {
+      ctx.fillStyle = '#252525';
+      ctx.fillRect(-8, -34, 16, 49);
+      ctx.fillStyle = '#ef7f3b';
+      ctx.fillRect(-18, -39, 36, 24);
+    }
+    ctx.restore();
+  }
+}

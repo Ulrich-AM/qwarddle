@@ -112,6 +112,27 @@
           "description": "Cloak for 8s. First 4s are invulnerable. 17s cooldown."
         }
       ]
+    },
+    "mushroom": {
+      "name": "MUSHROOM",
+      "description": "Spore spray and green mushrooms that briefly make the opponent dizzy.",
+      "moves": [
+        {
+          "input": "LEFT CLICK",
+          "name": "SPORE SPRAY",
+          "description": "Spray four short-range spores. Each hit deals light damage and briefly causes dizziness with occasional reversed movement."
+        },
+        {
+          "input": "Q",
+          "name": "GREEN MUSHROOMS",
+          "description": "Requires 50 charge and consumes it on use. Launch four seeds that grow into green mushrooms on landing. Touching a mushroom deals more damage and causes dizziness."
+        },
+        {
+          "input": "E",
+          "name": "PURPLE MUSHROOMS",
+          "description": "Not available yet. Planned for Phase M4."
+        }
+      ]
     }
   }
 }
