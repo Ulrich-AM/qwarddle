@@ -42,7 +42,12 @@ class App {
     this.selectedMode = 'solo';
     this.cpuDifficulty = 'normal';
     this.cpuWeapon = 'mushroom';
+    this.cpuAppearance = 'rose';
+    this.cpuStartCharge = 0;
     this.cpuSettings = document.getElementById('cpuSettings');
+    this.cpuMatchHud = document.getElementById('cpuMatchHud');
+    this.cpuMatchScore = document.getElementById('cpuMatchScore');
+    this.cpuMatchInfo = document.getElementById('cpuMatchInfo');
     this.lanRoom = null;
     this.pendingLanJoin = null;
     this.lanPeer = null;
@@ -102,8 +107,20 @@ class App {
       const choice = document.getElementById('cpuWeapon').value;
       this.cpuWeapon = WeaponRegistry.list.some(w => w.id === choice)
         ? choice : 'mushroom';
+      const color = document.getElementById('cpuAppearance').value;
+      this.cpuAppearance = ['rose','blue','green','gray'].includes(color) ? color : 'rose';
+      this.cpuStartCharge = MathEx.clamp(
+        Number(document.getElementById('cpuStartCharge').value) || 0, 0, 100
+      );
       this.showMaps();
     });
+    document.getElementById('cpuRematchBtn').addEventListener('click', () => {
+      if (this.screen === 'game' && this.selectedMode === 'cpu') {
+        this.game.reset();
+        this.updateCpuMatchHud();
+      }
+    });
+    this.game.onCpuScoreChanged = () => this.updateCpuMatchHud();
     document.getElementById('localBtn').addEventListener('click', () => this.showLocal());
     document.getElementById('couchBtn').addEventListener('click', () => {
       this.selectedMode = 'couch';
@@ -176,7 +193,31 @@ class App {
     element.classList.toggle('purple', purpleAmount > 0);
   }
 
+  cpuColorAppearance() {
+    const palette = {
+      rose:{body:'#8c6f78',limb:'#b87b59',arm:'#6d8f98'},
+      blue:{body:'#4775b6',limb:'#6b9bdf',arm:'#345b9a'},
+      green:{body:'#5c9465',limb:'#8cba74',arm:'#417652'},
+      gray:{body:'#888888',limb:'#b6b6b6',arm:'#646464'}
+    }[this.cpuAppearance] || {body:'#8c6f78',limb:'#b87b59',arm:'#6d8f98'};
+    return {
+      body:palette.body,
+      armUpper:palette.arm,armLower:palette.arm,hand:palette.arm,
+      legUpper0:palette.limb,legLower0:palette.limb,foot0:palette.limb,
+      legUpper1:palette.limb,legLower1:palette.limb,foot1:palette.limb
+    };
+  }
+
+  updateCpuMatchHud() {
+    if (!this.cpuMatchHud) return;
+    const counts = this.game.cpuScores || [0,0];
+    this.cpuMatchScore.textContent = `YOU ${counts[0]} : ${counts[1]} CPU`;
+    const difficulty = String(this.cpuDifficulty).toUpperCase();
+    this.cpuMatchInfo.textContent = `${difficulty} · ${this.cpuWeapon.toUpperCase()}`;
+  }
+
   hideScreens() {
+    this.cpuMatchHud?.classList.add('hidden');
     this.updateDizzyOverlay(this.dizzyOverlay, 0);
     this.updateDizzyOverlay(this.lanDizzyOverlay, 0);
     this.gameNauseaWarp.setIntensity(0, 0);
@@ -390,11 +431,15 @@ class App {
     this.hideScreens();
 
     this.game.setCpuDifficulty(this.cpuDifficulty);
+    this.game.setCpuStartCharge(this.cpuStartCharge);
     this.game.setMode(this.selectedMode);
     this.game.applyMap(this.selectedMapId);
     if (p1Loadout) this.game.applyFighterLoadout(0, p1Loadout);
     if (this.selectedMode === 'cpu') {
-      this.game.applyFighterLoadout(1, { weapon:this.cpuWeapon });
+      this.game.applyFighterLoadout(1, {
+        weapon:this.cpuWeapon,
+        appearance:this.cpuColorAppearance()
+      });
     } else if (this.selectedMode === 'solo') {
       this.game.applyFighterLoadout(1, { weapon:'revolver' });
     } else if (p2Loadout) {
@@ -407,6 +452,10 @@ class App {
     this.setDemos(false, false);
     this.game.setActive(true);
     this.game.reset();
+    if (this.selectedMode === 'cpu') {
+      this.updateCpuMatchHud();
+      this.cpuMatchHud.classList.remove('hidden');
+    }
 
     if (this.selectedMode === 'lan-host') {
       this.startLanHost();

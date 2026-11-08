@@ -19,6 +19,9 @@ class Game {
     this.selectedMapId = MapRegistry.list[0]?.id || null;
     this.mode = 'solo';
     this.cpuDifficulty = 'normal';
+    this.cpuStartCharge = 0;
+    this.cpuScores = [0, 0];
+    this.onCpuScoreChanged = null;
 
     const p1Controller = new KeyboardMouseController({
       keyboard:this.keyboard,
@@ -107,6 +110,10 @@ class Game {
 
   setCpuDifficulty(difficulty = 'normal') {
     this.cpuDifficulty = CPUController.profiles[difficulty] ? difficulty : 'normal';
+  }
+
+  setCpuStartCharge(amount = 0) {
+    this.cpuStartCharge = [0,50,100].includes(Number(amount)) ? Number(amount) : 0;
   }
 
   setMode(mode = 'solo') {
@@ -227,12 +234,17 @@ class Game {
   }
 
   reset() {
+    this.cpuScores = [0, 0];
     this.projectiles.clear();
     this.hazards.length = 0;
     this.statusEmitters.length = 0;
     this.statusParticles.length = 0;
 
     for (const slot of this.fighters) this.spawnFighter(slot);
+    if (this.mode === 'cpu') {
+      this.fighters[1].charge = this.cpuStartCharge;
+    }
+    this.onCpuScoreChanged?.();
 
     this.camera.resetGroup(this.fighters.map((slot) => slot.activeBody()));
     this.primarySlot.controller.resetAim?.(this, this.primarySlot.actor);
@@ -248,6 +260,13 @@ class Game {
 
   killFighter(slot, testDeath = false) {
     if (!slot || slot.ragdoll) return;
+
+    // VS CPU score is per match. Respawns retain it, explicit restart clears it.
+    if (this.mode === 'cpu' && !testDeath) {
+      const winnerIndex = slot.index === 0 ? 1 : 0;
+      this.cpuScores[winnerIndex] += 1;
+      this.onCpuScoreChanged?.();
+    }
 
     const actor = slot.actor;
     slot.knockdown = null;

@@ -1,275 +1,167 @@
 'use strict';
 
-// Small WebGL1 screen-space post-process for the 2D Canvas game and the LAN
-// client video. The source game remains Canvas 2D: only this warped copy uses
-// WebGL. Nothing here changes world/collision coordinates or mouse inputs.
+// Canvas2D whole-scene nausea effect. Unlike a tint or a CSS pattern this
+// resamples the rendered frame, so the actual fighter, arena and UI wobble.
+// Works offline and without WebGL. Input and collision coordinates stay fixed.
 class NauseaWarp {
   constructor(source, canvas) {
     this.source = source;
     this.canvas = canvas;
-    this.gl = null;
-    this.program = null;
-    this.texture = null;
+    this.context = null;
     this.disabled = !source || !canvas;
-    this.contextLost = false;
-    this.downsampleCanvas = null;
-    this.downsampleContext = null;
     this.running = false;
     this.dizzy = 0;
     this.purple = 0;
-    this.tick = (time) => {
+    this.lastFrame = -Infinity;
+    this.frameInterval = 1000 / 40;
+    this.tick = (now) => {
       if (this.dizzy <= 0 && this.purple <= 0) {
         this.running = false;
         if (this.canvas) this.canvas.style.display = 'none';
         return;
       }
-      this.renderFrame(time * 0.001);
+      if (now - this.lastFrame >= this.frameInterval) {
+        this.lastFrame = now;
+        this.renderFrame(now * 0.001);
+      }
       requestAnimationFrame(this.tick);
     };
-
-    if (this.canvas) {
-      this.canvas.addEventListener('webglcontextlost', (event) => {
-        event.preventDefault();
-        this.contextLost = true;
-        this.gl = null;
-        this.program = null;
-        this.texture = null;
-        this.canvas.style.display = 'none';
-      });
-      this.canvas.addEventListener('webglcontextrestored', () => {
-        this.contextLost = false;
-        this.gl = null;
-        this.program = null;
-        this.texture = null;
-      });
-    }
   }
 
   setIntensity(dizzy = 0, purple = 0) {
     this.dizzy = MathEx.clamp(Number(dizzy) || 0, 0, 0.5);
     this.purple = MathEx.clamp(Number(purple) || 0, 0, 0.5);
-    if (this.canvas && this.dizzy <= 0 && this.purple <= 0) {
+    if (!this.dizzy && !this.purple && this.canvas) {
       this.canvas.style.display = 'none';
     }
     if (!this.disabled && !this.running && (this.dizzy > 0 || this.purple > 0)) {
       this.running = true;
+      this.lastFrame = -Infinity;
       requestAnimationFrame(this.tick);
     }
   }
 
-  compileShader(gl, type, source) {
-    const shader = gl.createShader(type);
-    if (!shader) throw new Error('WebGL shader allocation failed');
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      const error = gl.getShaderInfoLog(shader);
-      gl.deleteShader(shader);
-      throw new Error('Nausea shader compile: ' + error);
-    }
-    return shader;
-  }
-
-  initialize() {
-    if (this.gl && this.program) return true;
-    if (this.disabled || this.contextLost) return false;
-
-    let gl = null;
-    try {
-      gl = this.canvas.getContext('webgl', {
-        alpha:false,
-        antialias:false,
-        premultipliedAlpha:false,
-        depth:false,
-        stencil:false,
-        preserveDrawingBuffer:false
-      });
-    } catch (error) {
-      console.warn('WebGL nausea context is unavailable:', error);
-    }
-    if (!gl) {
-      this.disabled = true;
-      return false;
-    }
-
-    try {
-      const vertex = this.compileShader(gl, gl.VERTEX_SHADER, [
-        'attribute vec2 aPosition;',
-        'varying vec2 vUV;',
-        'void main(){',
-        '  vUV = aPosition * 0.5 + 0.5;',
-        '  gl_Position = vec4(aPosition, 0.0, 1.0);',
-        '}'
-      ].join('\n'));
-
-      const fragment = this.compileShader(gl, gl.FRAGMENT_SHADER, [
-        'precision mediump float;',
-        'varying vec2 vUV;',
-        'uniform sampler2D uScreen;',
-        'uniform vec2 uResolution;',
-        'uniform float uTime;',
-        'uniform float uStrength;',
-        'uniform float uPurple;',
-        'void main(){',
-        '  vec2 center = vUV - 0.5;',
-        '  float dist = length(center * vec2(uResolution.x / uResolution.y, 1.0));',
-        '  float ripple = sin(dist * 15.0 - uTime * 2.5);',
-        '  float a = ripple * uStrength * (0.009 + uPurple * 0.003);',
-        '  float cs = cos(a);',
-        '  float sn = sin(a);',
-        '  vec2 warped = vec2(center.x * cs - center.y * sn,',
-        '                     center.x * sn + center.y * cs) + 0.5;',
-        '  vec2 wave = vec2(',
-        '    sin(warped.y * 17.0 + uTime * 2.8),',
-        '    sin(warped.x * 13.0 - uTime * 2.3)',
-        '  );',
-        '  float pixels = (3.0 + uPurple * 2.0) + 7.5 * uStrength;',
-        '  warped += wave * pixels * uStrength / uResolution;',
-        '  gl_FragColor = texture2D(uScreen, clamp(warped, 0.001, 0.999));',
-        '}'
-      ].join('\n'));
-
-      const program = gl.createProgram();
-      gl.attachShader(program, vertex);
-      gl.attachShader(program, fragment);
-      gl.linkProgram(program);
-      gl.deleteShader(vertex);
-      gl.deleteShader(fragment);
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        throw new Error('Nausea program link: ' + gl.getProgramInfoLog(program));
-      }
-
-      const buffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]),
-        gl.STATIC_DRAW
-      );
-      gl.useProgram(program);
-      const position = gl.getAttribLocation(program, 'aPosition');
-      gl.enableVertexAttribArray(position);
-      gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-
-      const texture = gl.createTexture();
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-
-      this.gl = gl;
-      this.program = program;
-      this.texture = texture;
-      this.locations = {
-        sampler:gl.getUniformLocation(program, 'uScreen'),
-        resolution:gl.getUniformLocation(program, 'uResolution'),
-        time:gl.getUniformLocation(program, 'uTime'),
-        strength:gl.getUniformLocation(program, 'uStrength'),
-        purple:gl.getUniformLocation(program, 'uPurple')
-      };
-      gl.uniform1i(this.locations.sampler, 0);
-      return true;
-    } catch (error) {
-      console.warn('Nausea warp unavailable:', error);
-      this.disabled = true;
-      this.canvas.style.display = 'none';
-      return false;
-    }
-  }
-
   sourceSize() {
-    // WebRTC remote video has intrinsic video dimensions. Its object-fit:contain
-    // bounds must be used to keep the warped copy aligned with letterboxing.
-    if (this.source instanceof HTMLVideoElement) {
+    // Respect object-fit:contain for the remote LAN video.
+    if (typeof HTMLVideoElement !== 'undefined' &&
+        this.source instanceof HTMLVideoElement) {
       if (this.source.readyState < 2 ||
           !this.source.videoWidth || !this.source.videoHeight) return null;
       const parent = this.canvas.parentElement?.getBoundingClientRect?.();
       if (!parent || parent.width <= 0 || parent.height <= 0) return null;
-      const ratio = Math.min(
-        parent.width / this.source.videoWidth,
-        parent.height / this.source.videoHeight
-      );
-      const width = this.source.videoWidth * ratio;
-      const height = this.source.videoHeight * ratio;
+      const scale = Math.min(parent.width / this.source.videoWidth,
+        parent.height / this.source.videoHeight);
+      const width = this.source.videoWidth * scale;
+      const height = this.source.videoHeight * scale;
       this.canvas.style.left = (parent.width - width) * 0.5 + 'px';
       this.canvas.style.top = (parent.height - height) * 0.5 + 'px';
       this.canvas.style.width = width + 'px';
       this.canvas.style.height = height + 'px';
-      return { width, height };
+      return {
+        width, height,
+        sourceWidth:this.source.videoWidth,
+        sourceHeight:this.source.videoHeight
+      };
     }
 
     if (!this.source.width || !this.source.height) return null;
-    const bounds = this.source.getBoundingClientRect();
-    if (bounds.width <= 0 || bounds.height <= 0) return null;
-    return { width:bounds.width, height:bounds.height };
+    const rect = this.source.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      width:rect.width, height:rect.height,
+      sourceWidth:this.source.width,
+      sourceHeight:this.source.height
+    };
   }
 
-  renderFrame(timeSeconds) {
+  renderFrame(t) {
     if (this.disabled) return false;
     const bounds = this.sourceSize();
-    if (!bounds || !this.initialize()) return false;
-
-    const gl = this.gl;
-    const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
-    const scale = Math.min(1, 2048 / Math.max(bounds.width, bounds.height) / ratio);
-    const width = Math.max(1, Math.round(bounds.width * ratio * scale));
-    const height = Math.max(1, Math.round(bounds.height * ratio * scale));
-    if (this.canvas.width !== width || this.canvas.height !== height) {
-      this.canvas.width = width;
-      this.canvas.height = height;
-      gl.viewport(0, 0, width, height);
+    if (!bounds) return false;
+    if (!this.context) {
+      try {
+        this.context = this.canvas.getContext('2d', {alpha:false});
+      } catch (_) { this.context = null; }
+      if (!this.context) {
+        this.disabled = true;
+        this.canvas.style.display = 'none';
+        return false;
+      }
     }
 
-    try {
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, this.texture);
-      // High-DPI Canvas2D sources can be much larger than the overlay itself.
-      // Reuse a 2D downsample buffer to avoid uploading a 4K texture each frame.
-      // WebRTC video uses its original source directly to preserve stream access.
-      let upload = this.source;
-      if (!(this.source instanceof HTMLVideoElement) &&
-          this.source.width > width * 1.35) {
-        if (!this.downsampleCanvas) {
-          this.downsampleCanvas = document.createElement('canvas');
-          this.downsampleContext = this.downsampleCanvas.getContext('2d', {
-            alpha:false
-          });
-        }
-        if (this.downsampleContext) {
-          if (this.downsampleCanvas.width !== width ||
-              this.downsampleCanvas.height !== height) {
-            this.downsampleCanvas.width = width;
-            this.downsampleCanvas.height = height;
-          }
-          this.downsampleContext.imageSmoothingEnabled = false;
-          this.downsampleContext.drawImage(this.source, 0, 0, width, height);
-          upload = this.downsampleCanvas;
-        }
-      }
+    // Texture-size cap keeps this affordable on ordinary integrated GPUs.
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+    const resolution = Math.min(1, 1440 / (Math.max(bounds.width, bounds.height) * dpr));
+    const w = Math.max(1, Math.round(bounds.width * dpr * resolution));
+    const h = Math.max(1, Math.round(bounds.height * dpr * resolution));
+    if (this.canvas.width !== w || this.canvas.height !== h) {
+      this.canvas.width = w;
+      this.canvas.height = h;
+    }
 
-      gl.texImage2D(
-        gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, upload
-      );
-      gl.useProgram(this.program);
-      const strength = MathEx.clamp(
-        Math.max(this.dizzy / 0.37, this.purple / 0.38 * 0.82),
-        0, 1
-      );
-      gl.uniform2f(this.locations.resolution, width, height);
-      gl.uniform1f(this.locations.time, timeSeconds);
-      gl.uniform1f(this.locations.strength, strength);
-      gl.uniform1f(this.locations.purple, this.purple > 0 ? 1 : 0);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    const ctx = this.context;
+    const strength = MathEx.clamp(
+      Math.max(this.dizzy / 0.37, this.purple / 0.38 * 0.9), 0, 1
+    );
+    if (strength <= 0) {
+      this.canvas.style.display = 'none';
+      return false;
+    }
+
+    const sw = bounds.sourceWidth;
+    const sh = bounds.sourceHeight;
+    // A slowly breathing zoom and gentle rotation make the whole world sway.
+    // Moving horizontal sample bands introduce a smooth liquid warping motion.
+    const zoom = 1.035 + (0.022 + this.purple * 0.025) *
+      Math.sin(t * 2.25 + 0.4) * strength;
+    const angle = (0.012 * Math.sin(t * 1.6) +
+      0.006 * Math.sin(t * 2.75)) * strength;
+    const swayX = Math.sin(t * 2.0) * 9 * strength;
+    const swayY = Math.cos(t * 1.7) * 7 * strength;
+
+    ctx.save();
+    try {
+      ctx.imageSmoothingEnabled = true;
+      ctx.clearRect(0, 0, w, h);
+      ctx.translate(w * 0.5 + swayX, h * 0.5 + swayY);
+      ctx.rotate(angle);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-w * 0.5, -h * 0.5);
+
+      // Base frame fills every pixel even when the bands shift.
+      ctx.drawImage(this.source, 0, 0, sw, sh, -14, -14, w + 28, h + 28);
+
+      // Re-sample into broad smooth strips instead of drawing decorative
+      // lines. Each strip overlaps its neighbour by a pixel to hide seams.
+      const band = 10;
+      const wavePixels = (10 + this.purple * 11) * strength;
+      const sourceStep = sh / h;
+      for (let y = 0; y < h; y += band) {
+        const dh = Math.min(band + 1, h - y);
+        const mid = (y + dh * 0.5) / h;
+        const offset = (
+          Math.sin(mid * 12.0 + t * 2.6) +
+          0.38 * Math.sin(mid * 19.0 - t * 1.9)
+        ) * wavePixels;
+        const sourceY = Math.max(0, Math.min(sh - 1,
+          y * sourceStep + Math.sin(mid * 11.0 + t * 2.2) * 2.4 * strength
+        ));
+        const sourceH = Math.min(sh - sourceY, dh * sourceStep + 1);
+        if (sourceH <= 0) continue;
+        ctx.drawImage(
+          this.source, 0, sourceY, sw, sourceH,
+          -14 + offset, y, w + 28, dh
+        );
+      }
       this.canvas.style.display = 'block';
       return true;
     } catch (error) {
-      console.warn('Nausea screen upload failed; keeping tint fallback:', error);
+      console.warn('Nausea frame copy failed, using color tint instead:', error);
       this.disabled = true;
       this.canvas.style.display = 'none';
       return false;
+    } finally {
+      ctx.restore();
     }
   }
 }
