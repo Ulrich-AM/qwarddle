@@ -61,6 +61,9 @@ class Player {
     this.bleedTime = 0;
     this.bleedDps = 0;
     this.stunTime = 0;
+    this.dizzyTime = 0;
+    this.dizzyInvertTime = 0;
+    this.dizzyInvertCountdown = 0;
     this.defensiveTuck = false;
     this.defensivePhysicsBody = null;
 
@@ -263,6 +266,9 @@ class Player {
     this.balanceRecoveryStrength = 0;
     this.impactCrashCooldown = 0;
     this.pendingImpactRagdoll = null;
+    this.dizzyTime = 0;
+    this.dizzyInvertTime = 0;
+    this.dizzyInvertCountdown = 0;
 
     for (let i = 0; i < 2; i++) {
       const leg = this.legs[i];
@@ -315,6 +321,9 @@ class Player {
     this.bleedTime = 0;
     this.bleedDps = 0;
     this.stunTime = 0;
+    this.dizzyTime = 0;
+    this.dizzyInvertTime = 0;
+    this.dizzyInvertCountdown = 0;
     this.defensiveTuck = false;
     this.defensivePhysicsBody = null;
 
@@ -496,6 +505,23 @@ class Player {
 
   applyStun(duration = 0.5) {
     this.stunTime = Math.max(this.stunTime, duration);
+  }
+
+  // Actor-level status works with keyboard, gamepad and LAN controllers.
+  applyDizziness(duration = 1.2) {
+    if (this.dead || this.isInvulnerable()) return false;
+    const fresh = this.dizzyTime <= 0;
+    this.dizzyTime = Math.max(this.dizzyTime, Math.max(0, duration));
+    if (fresh && this.dizzyTime > 0) {
+      this.dizzyInvertTime = 0;
+      this.dizzyInvertCountdown = 0.25 + Math.random() * 0.35;
+    }
+    return this.dizzyTime > 0;
+  }
+
+  dizzinessOpacity() {
+    if (this.dead || this.dizzyTime <= 0) return 0;
+    return this.dizzyInvertTime > 0 ? 0.37 : 0.22;
   }
 
   takeDamage(amount) {
@@ -1297,6 +1323,19 @@ class Player {
 
     this.stunTime = Math.max(0, this.stunTime - dt);
 
+    this.dizzyTime = Math.max(0, this.dizzyTime - dt);
+    if (this.dizzyTime > 0) {
+      this.dizzyInvertTime = Math.max(0, this.dizzyInvertTime - dt);
+      this.dizzyInvertCountdown -= dt;
+      if (this.dizzyInvertCountdown <= 0) {
+        this.dizzyInvertTime = Math.min(this.dizzyTime, 0.32);
+        this.dizzyInvertCountdown = 0.85 + Math.random() * 0.75;
+      }
+    } else {
+      this.dizzyInvertTime = 0;
+      this.dizzyInvertCountdown = 0;
+    }
+
     if (this.bleedTime > 0) {
       const tick = Math.min(dt, this.bleedTime);
       this.bleedTime = Math.max(0, this.bleedTime - dt);
@@ -1325,7 +1364,8 @@ class Player {
     }
 
     const stunned = this.stunTime > 0;
-    const axis = stunned ? 0 : this.input.axis('left', 'right');
+    const rawAxis = this.input.axis('left', 'right');
+    const axis = stunned ? 0 : rawAxis * (this.dizzyInvertTime > 0 ? -1 : 1);
     const running = !stunned && this.input.down('run');
     const moveMultiplier = this.buffMultiplier('move');
     const maxSpeed = (running ? this.cfg.runSpeed : this.cfg.walkSpeed) * moveMultiplier;
