@@ -13,10 +13,17 @@ class App {
     this.lanVideo = document.getElementById('lanVideo');
     this.dizzyOverlay = document.getElementById('dizzyOverlay');
     this.lanDizzyOverlay = document.getElementById('lanDizzyOverlay');
+    this.gameNauseaWarp = new NauseaWarp(
+      this.gameCanvas, document.getElementById('gameNauseaWarp')
+    );
+    this.lanNauseaWarp = new NauseaWarp(
+      this.lanVideo, document.getElementById('lanNauseaWarp')
+    );
 
     this.game = new Game(this.gameCanvas);
     this.game.onDizzySnapshot = (p1, p2, purple1, purple2) => {
       this.updateDizzyOverlay(this.dizzyOverlay, p1, purple1);
+      this.gameNauseaWarp.setIntensity(p1, purple1);
       if (this.screen === 'game' && this.selectedMode === 'lan-host') {
         this.lanPeer?.send?.({
           type:'status-effects',
@@ -172,6 +179,8 @@ class App {
   hideScreens() {
     this.updateDizzyOverlay(this.dizzyOverlay, 0);
     this.updateDizzyOverlay(this.lanDizzyOverlay, 0);
+    this.gameNauseaWarp.setIntensity(0, 0);
+    this.lanNauseaWarp.setIntensity(0, 0);
     this.menu.classList.add('hidden');
     this.modeScreen.classList.add('hidden');
     this.localScreen.classList.add('hidden');
@@ -461,6 +470,7 @@ class App {
       loadout,
       onStatusEffects:(state) => {
         this.updateDizzyOverlay(this.lanDizzyOverlay, state?.dizzy, state?.purple);
+        this.lanNauseaWarp.setIntensity(state?.dizzy, state?.purple);
       },
       onStatus:(message) => {
         status.textContent = message;

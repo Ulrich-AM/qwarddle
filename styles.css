@@ -170,3 +170,27 @@ canvas,img{image-rendering:pixelated}
 @media(prefers-reduced-motion:reduce) {
   .dizzyOverlay.active.purple {animation:none;transform:none}
 }
+
+
+/* Actual full-screen distortion. Source image comes from the Canvas2D game or
+   WebRTC video and is UV-warped on a transparent-to-input WebGL canvas.
+   Existing green/purple CSS layers only supply color, never scene movement. */
+.nauseaWarp {
+  display:none;
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  z-index:8;
+  pointer-events:none;
+  image-rendering:pixelated;
+}
+.lanNauseaWarp {
+  position:absolute;
+  inset:auto;
+  width:0;
+  height:0;
+  z-index:1;
+}
+.lanDizzyOverlay {z-index:2}
+.lanClientHud {z-index:4}
