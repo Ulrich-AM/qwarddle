@@ -713,7 +713,33 @@ class Game {
     return slot.controller.aimWorld(this, slot);
   }
 
-  startDefensiveTuck(slot) {
+  // Pure velocity calculation, used by both the game and regression tests.
+  // An aim point very close to the torso falls back to current facing.
+  tuckDashVelocity(actor, aimWorld, vx = actor.vx, vy = actor.vy) {
+    let dx = Number(aimWorld?.x) - actor.x;
+    let dy = Number(aimWorld?.y) - actor.y;
+    let length = MathEx.hypot(dx, dy);
+    if (!Number.isFinite(length) || length < 16) {
+      dx = actor.facing || 1;
+      dy = 0;
+      length = MathEx.hypot(dx, dy) || 1;
+    }
+
+    const carry = this.config.defensiveTuckDashMomentumCarry;
+    const impulse = this.config.defensiveTuckDashImpulse;
+    let nextVx = (Number.isFinite(vx) ? vx : 0) * carry + dx / length * impulse;
+    let nextVy = (Number.isFinite(vy) ? vy : 0) * carry + dy / length * impulse;
+
+    const max = this.config.defensiveTuckDashMaxSpeed;
+    const speed = MathEx.hypot(nextVx, nextVy);
+    if (speed > max) {
+      nextVx = nextVx / speed * max;
+      nextVy = nextVy / speed * max;
+    }
+    return { vx:nextVx, vy:nextVy };
+  }
+
+  startDefensiveTuck(slot, aimWorld = null) {
     if (
       !slot ||
       slot.ragdoll ||
@@ -734,6 +760,16 @@ class Game {
       fadeOut:false,
       bodyOnly:true
     });
+
+    // Apply the impulse once at tuck entry. Repeated RMB taps inside the
+    // cooldown can still tuck for defense, but do not grant another dash.
+    if (slot.defensiveDashCooldownRemaining <= 0) {
+      const velocity = this.tuckDashVelocity(actor, aimWorld, ragdoll.body.vx, ragdoll.body.vy);
+      ragdoll.body.vx = velocity.vx;
+      ragdoll.body.vy = velocity.vy;
+      ragdoll.body.av += Math.sign(velocity.vx) * 2.4;
+      slot.defensiveDashCooldownRemaining = this.config.defensiveTuckDashCooldown;
+    }
 
     slot.defensiveRagdoll = ragdoll;
     actor.defensiveTuck = true;
@@ -806,7 +842,7 @@ class Game {
     }
 
     if (slot.controller.defenseHeld?.()) {
-      this.startDefensiveTuck(slot);
+      this.startDefensiveTuck(slot, aimWorld);
       return;
     }
 
@@ -833,6 +869,9 @@ class Game {
 
   update(dt) {
     for (const slot of this.fighters) {
+      slot.defensiveDashCooldownRemaining = Math.max(
+        0, (slot.defensiveDashCooldownRemaining || 0) - dt
+      );
       slot.controller.poll?.(dt);
     }
 

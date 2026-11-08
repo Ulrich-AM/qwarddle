@@ -88,6 +88,7 @@ class FighterSlot {
     this.attackData = null;
 
     this.defensiveRagdoll = null;
+    this.defensiveDashCooldownRemaining = 0;
 
     this.gameView = null;
   }
@@ -106,6 +107,7 @@ class FighterSlot {
     this.attackRemaining = 0;
     this.attackData = null;
     this.defensiveRagdoll = null;
+    this.defensiveDashCooldownRemaining = 0;
     this.actor.defensiveTuck = false;
     this.actor.defensivePhysicsBody = null;
   }
