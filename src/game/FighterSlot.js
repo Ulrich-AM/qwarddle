@@ -16,6 +16,14 @@ class FighterGameView {
     return this.game.hasFullCharge(this.slot);
   }
 
+  hasCharge(amount) {
+    return this.game.hasCharge(this.slot, amount);
+  }
+
+  consumeCharge(amount) {
+    return this.game.consumeCharge(this.slot, amount);
+  }
+
   consumeFullCharge() {
     return this.game.consumeFullCharge(this.slot);
   }
