@@ -1,7 +1,6 @@
 'use strict';
 
-// Mushroom M1-M3: short-range spores, dizziness and planted green hazards.
-// The purple trigger attack is intentionally reserved for M4.
+// Mushroom M1-M4: spores, dizziness, green ground hazards and a synchronized purple burst.
 class MushroomSpore extends Projectile {
   constructor({ gravity = 180, ...options } = {}) {
     super({ shape:'circle', outlineColor:'#272622', outlineWidth:2, ...options });
@@ -109,10 +108,131 @@ class GreenMushroom {
     } else {
       ctx.fillStyle = '#232923';
       ctx.fillRect(Math.round(this.x - w / 2 - 2), Math.round(this.y - h - 2), w + 4, h + 4);
-      ctx.fillStyle = '#49c36e';
+      ctx.fillStyle = this.fallbackColor || '#49c36e';
       ctx.fillRect(Math.round(this.x - w / 2), Math.round(this.y - h), w, h);
     }
     ctx.restore();
+  }
+}
+
+
+/**
+ * Purple mines are inert until an opponent passes over any mature mushroom.
+ * All mines from the same fighter detonate together and immediately disappear.
+ * Damage is applied once per victim, not once per particle, preventing a
+ * four-mushroom burst from being an accidental instant kill.
+ */
+class PurpleMushroom extends GreenMushroom {
+  constructor({ x, y, owner, sprite } = {}) {
+    super({ x, y, owner, sprite, duration:12, damage:0 });
+    this.growTime = 0.38;
+    this.width = 46;
+    this.height = 48;
+    this.triggerWidth = 84;
+    this.triggerHeight = 170;
+    this.burstWidth = 160;
+    this.burstHeight = 205;
+    this.fallbackColor = '#a06bda';
+  }
+
+  inArea(actor, width, height) {
+    const box = actor.hitbox?.();
+    if (!box) return false;
+    const left = box.x - box.w * 0.5;
+    const right = box.x + box.w * 0.5;
+    const bottom = box.y + box.h * 0.5;
+    return right >= this.x - width &&
+      left <= this.x + width &&
+      bottom >= this.y - height &&
+      bottom <= this.y + 8;
+  }
+
+  update(dt, game) {
+    if (this.dead) return;
+    this.age += dt;
+    if (this.age >= this.duration || this.owner?.dead) {
+      this.dead = true;
+      return;
+    }
+    if (this.age < this.growTime) return;
+
+    for (const actor of game.getHazardActors()) {
+      if (!actor || actor === this.owner || actor.dead || actor.isInvulnerable?.()) continue;
+      if (this.inArea(actor, this.triggerWidth, this.triggerHeight)) {
+        this.detonateChain(game);
+        return;
+      }
+    }
+  }
+
+  detonateChain(game) {
+    const active = game.hazards.filter(
+      hazard => hazard instanceof PurpleMushroom &&
+        hazard.owner === this.owner && !hazard.dead
+    );
+    if (!active.length) return false;
+
+    // Atomic disarming also prevents the remaining hazards from triggering on
+    // their update later in the same simulation step.
+    for (const mushroom of active) mushroom.dead = true;
+
+    for (const target of game.getHazardActors()) {
+      if (!target || target === this.owner || target.dead || target.isInvulnerable?.()) continue;
+      const inRange = active.filter(
+        mushroom => mushroom.inArea(target, mushroom.burstWidth, mushroom.burstHeight)
+      );
+      if (!inRange.length) continue;
+
+      // A single nearby mine is dangerous, while clustering several pays off.
+      // The cap keeps four simultaneous explosions survivable at full health.
+      const damage = Math.min(34, 18 + (inRange.length - 1) * 5);
+      target.takeDamage(damage);
+      target.hitFlash = Math.max(target.hitFlash || 0, 0.17);
+      target.applyDizziness?.(0.72);
+      target.applyPurpleSpores?.(1.4);
+      if (target.health <= 0) target.dead = true;
+    }
+
+    for (const mushroom of active) mushroom.spraySpores(game);
+    return true;
+  }
+
+  spraySpores(game) {
+    const count = 14;
+    for (let i = 0; i < count; i++) {
+      const angle = i * Math.PI * 2 / count;
+      const speed = 170 + (i % 4) * 26;
+      const spore = new MushroomSpore({
+        owner:this.owner,
+        x:this.x, y:this.y - 22,
+        vx:Math.cos(angle) * speed,
+        vy:Math.sin(angle) * speed - 65,
+        width:11 + (i % 3) * 2,
+        height:11 + (i % 3) * 2,
+        life:0.72 + (i % 3) * 0.09,
+        gravity:145,
+        damage:0,
+        knockback:0,
+        color:i % 3 ? '#b66ced' : '#ead0fa'
+      });
+      // The burst damage was resolved above. Particles are visual only.
+      spore.nonCombat = true;
+      spore.ignoresTerrain = true;
+      game.projectiles.spawn(spore);
+    }
+  }
+
+  render(ctx) {
+    if (this.age >= this.growTime && !this.dead) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(170, 88, 220, 0.45)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(this.x, this.y - 4, 18 + Math.sin(this.age * 5) * 3, 5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    super.render(ctx);
   }
 }
 
@@ -132,12 +252,17 @@ class Mushroom extends Weapon {
     this.qChargeCost = 50;
     this.qCooldown = 1.6;
     this.qCooldownRemaining = 0;
+    this.eCooldown = 3.0;
+    this.eCooldownRemaining = 0;
+    this.purpleSeedCount = 4;
+    this.maxPurpleMushrooms = 4;
     this.sporesPerSpray = 4;
     this.seedCount = 4;
     this.maxMushrooms = 5;
     this.sprites = {
       weapon:this.loadSprite('mushroom.png'),
-      green:this.loadSprite('green-mushroom.png')
+      green:this.loadSprite('green-mushroom.png'),
+      purple:this.loadSprite('purple-mushroom.png')
     };
   }
 
@@ -150,6 +275,7 @@ class Mushroom extends Weapon {
   update(dt, context) {
     super.update(dt, context);
     this.qCooldownRemaining = Math.max(0, this.qCooldownRemaining - dt);
+    this.eCooldownRemaining = Math.max(0, this.eCooldownRemaining - dt);
   }
 
   muzzle(mount) {
@@ -218,13 +344,53 @@ class Mushroom extends Weapon {
     return true;
   }
 
-  // E/purple mushrooms belong to M4.
-  special() { return false; }
+  // E: spend the entire meter to plant synchronized purple mines.
+  // Passing above any mature mine makes all mines from this owner burst.
+  special({ mount, projectiles, player, game }) {
+    if (!projectiles || !player || player.dead || !game?.hasFullCharge?.() ||
+        this.eCooldownRemaining > 0) return false;
+    if (!game.consumeFullCharge()) return false;
+
+    const muzzle = this.muzzle(mount);
+    for (let i = 0; i < this.purpleSeedCount; i++) {
+      const spread = i - (this.purpleSeedCount - 1) * 0.5;
+      projectiles.spawn(new MushroomSeed({
+        owner:player,
+        x:muzzle.x, y:muzzle.y,
+        vx:mount.dirX * 265 + spread * 106,
+        vy:Math.min(-230, mount.dirY * 190 - 295) - Math.abs(spread) * 38,
+        damage:0,
+        knockback:0,
+        life:4.0, width:15, height:15, color:'#b66ced',
+        onPlant:(x, y) => {
+          if (player.dead) return;
+          const hazards = game.game?.hazards || [];
+          const owned = hazards.filter(
+            h => h instanceof PurpleMushroom && h.owner === player && !h.dead
+          );
+          while (owned.length >= this.maxPurpleMushrooms) {
+            owned.shift().dead = true;
+          }
+          game.addHazard(new PurpleMushroom({
+            x, y, owner:player, sprite:this.sprites.purple
+          }));
+        }
+      }));
+    }
+    this.eCooldownRemaining = this.eCooldown;
+    mount.applyRecoil(32);
+    return true;
+  }
 
   attackReadiness(game) {
     const primary = MathEx.clamp(1 - this.cooldownRemaining / this.cooldown, 0, 1);
     const qReady = MathEx.clamp(1 - this.qCooldownRemaining / this.qCooldown, 0, 1);
-    return [primary, game?.hasCharge?.(this.qChargeCost) ? qReady : 0, 0];
+    const eReady = MathEx.clamp(1 - this.eCooldownRemaining / this.eCooldown, 0, 1);
+    return [
+      primary,
+      game?.hasCharge?.(this.qChargeCost) ? qReady : 0,
+      game?.hasFullCharge?.() ? eReady : 0
+    ];
   }
 
   render(ctx, { mount }) {
