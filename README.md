@@ -613,3 +613,34 @@ fallible practice opponent, not a perfect or cheating AI.
 
 Run the standalone behavior tests with
 `node tests/cpu-controller.test.cjs` (no npm packages required).
+
+
+## Mouse-directed RMB tuck dash and WebGL nausea warp
+
+- **Hold right mouse button** to enter the existing body-only defensive
+  ragdoll. At entry, the torso receives a directional impulse toward the
+  current mouse position. This works from the ground or midair. Existing
+  velocity contributes 40% momentum, with a total launch speed capped at
+  1,120 world units/second. Release RMB to recover the normal fighter.
+- The dash happens only once at tuck entry and has a 0.95-second cooldown.
+  Pressing RMB again before the cooldown expires still permits a defensive
+  tuck but does not apply a new dash impulse. The existing 40% damage
+  reduction and attack lockout while tucked remain unchanged.
+- When Mushroom applies dizziness, the final Canvas 2D image is sampled by a
+  small WebGL post-process overlay. Two animated sine waves and a mild radial
+  swirl warp actual screen UV coordinates. The shader does not move the
+  camera, world objects, collision geometry, or pointer coordinates.
+- Green dizziness and purple mushroom bursts share the GPU warp with
+  different intensity/tint parameters; the old CSS overlay now supplies
+  only the color tint and remains a fallback if WebGL is unavailable.
+- In LAN, the local player's effect is applied to the remote video display
+  on their own device. The effect is never baked into the shared host
+  video. Remote video letterboxing is preserved.
+- WebGL is only initialized and updated while an effect is active; a reused
+  downsample buffer limits texture uploads for high-DPI local canvases.
+- Run the focused regression checks using
+  `node tests/nausea-tuck.test.cjs` from the repository root.
+
+These are initial feel parameters. In-browser testing is still needed to
+evaluate the distortion strength, performance on real GPUs, high-speed
+tuck landings, and client WebRTC video compatibility.

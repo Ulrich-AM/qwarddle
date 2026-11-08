@@ -27,9 +27,14 @@ const DEFAULT_GAME_CONFIG = Object.freeze({
   bhopBoost:1.055,
   bhopMaxSpeedMultiplier:1.18,
 
-  // RMB defensive tuck: body-only ragdoll, no attacks/steering while held.
+  // RMB tuck: a one-shot mouse-directed impulse, then unsteered body-only
+  // ragdoll. Damage reduction remains in effect while held.
   defensiveTuckDamageMultiplier:0.60,
   defensiveTuckRecoveryVelocity:0.72,
+  defensiveTuckDashImpulse:930,
+  defensiveTuckDashMaxSpeed:1120,
+  defensiveTuckDashMomentumCarry:0.40,
+  defensiveTuckDashCooldown:0.95,
 
   bodyHeight:48,
 
