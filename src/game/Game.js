@@ -542,7 +542,8 @@ class Game {
     dirY = 0,
     speed = 790,
     damage = 15,
-    knockback = 320
+    knockback = 320,
+    onHit = null
   } = {}) {
     if (!slot || !weapon || !slot.canControl()) return false;
 
@@ -573,6 +574,7 @@ class Game {
       aimDirX:dirX,
       aimDirY:dirY,
       hitTargets:new Set(),
+      onHit,
       trailTimer:0
     };
 
@@ -626,6 +628,7 @@ class Game {
 
     target.hitFlash = 0.11;
     data.hitTargets.add(target);
+    data.onHit?.(target);
 
     if (target.health <= 0) target.dead = true;
     return true;
@@ -1007,6 +1010,14 @@ class Game {
       : (weapon?.attackReadiness?.(slot.gameView) || [1, 1, 1]);
 
     const label = slot.nickname || slot.id.toUpperCase();
+    if (slot.actor.hemorrhageTime > 0) {
+      ctx.save();
+      ctx.textAlign = leftAligned ? 'left' : 'right';
+      ctx.font = 'bold 11px monospace';
+      ctx.fillStyle = '#e65a5a';
+      ctx.fillText('HEMORRHAGE', leftAligned ? 22 : this.width - 22, attack1Y - 30);
+      ctx.restore();
+    }
     this.drawBar(ctx, attackX, attack1Y, attackW, attackH, readiness[0] ?? 0, '#f2f2f2', `${label} attack1`);
     this.drawBar(ctx, attackX, attack2Y, attackW, attackH, readiness[1] ?? 0, '#f2f2f2', `${label} attack2`);
     this.drawBar(ctx, attackX, attack3Y, attackW, attackH, readiness[2] ?? 0, '#f2f2f2', `${label} attack3`);
