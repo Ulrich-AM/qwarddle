@@ -183,7 +183,7 @@
 .cpuSettings .continueButton {grid-column:1 / -1;justify-self:stretch;width:100%}
 .cpuMatchHud {
   position:fixed;top:12px;left:50%;transform:translateX(-50%);
-  z-index:7;display:flex;align-items:center;gap:13px;
+  z-index:12;display:flex;align-items:center;gap:13px;
   padding:8px 10px;background:rgba(24,23,27,.91);border:2px solid #bd1b2b;
   color:#fff;font:900 11px Arial,Helvetica,sans-serif;white-space:nowrap;
   pointer-events:auto;box-shadow:0 3px 0 #151515
