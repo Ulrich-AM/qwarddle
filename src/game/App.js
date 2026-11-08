@@ -119,6 +119,12 @@ class App {
         if (this.selectedMode === 'lan-client') {
           this.stopLanSession();
           this.showLan();
+        } else if (MapRegistry.list.length === 1) {
+          // One map skips selection automatically; Escape must not loop
+          // straight back into the customization screen.
+          if (this.selectedMode === 'couch') this.showLocal();
+          else if (this.selectedMode === 'lan-host') this.showLan();
+          else this.showMode();
         } else {
           this.showMaps();
         }
