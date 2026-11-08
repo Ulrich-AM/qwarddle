@@ -574,3 +574,42 @@ spore emission and owner immunity.
 
 The separate `docs/VS_CPU_PLAN.md` contains the planned CPU controller
 design and milestones. No VS CPU runtime implementation is included in M4.
+
+
+## VS CPU: CPU-0 to CPU-2 playtest mode
+
+Use **PLAY > VS CPU** on the main menu. Choose **Easy / Normal / Hard**,
+select a CPU weapon, and press **FIGHT CPU**. The default enemy weapon is
+**MUSHROOM** so you can experience short green dizziness, control reversal,
+and the purple spore vignette without a second human.
+
+Customize your own fighter as usual. Your selected CPU is P2, has standard
+100 health, starts with 0 charge, and obeys the same weapon cooldowns,
+damage, physics and attack pipeline as a human player. CPU respawns use the
+same world spawns and reset its decision state. The original **SOLO** mode
+remains a non-attacking training dummy; COUCH and LAN are unchanged.
+
+The CPU controller uses a small decision-state system (approach, hold,
+retreat, evade), delayed opponent observations, imperfect aim, finite
+decision intervals and predicted shoreline avoidance. It uses existing
+projectile/hazard positions to attempt ordinary jump evasions and has
+weapon-specific tactics for Revolver, Wand, Dagger, Sake and Mushroom.
+
+### Playtesting Mushroom dizziness
+
+1. Start VS CPU with CPU WEAPON = MUSHROOM and DIFFICULTY = NORMAL.
+2. Move within approximately 200 world units of the CPU and allow it to
+   spray you. A hit applies a subtle green overlay and occasionally
+   reverses your left/right controls for a fraction of a second.
+3. Let the CPU accumulate charge naturally. When it has at least 50,
+   it can launch green mushrooms. At full charge it can create purple
+   mushrooms; crossing one causes the linked purple burst and vignette.
+4. After testing, compare EASY and HARD to see different reaction times
+   and aim errors. Press Escape to return to the main menu.
+
+CPU behavior is provisional. It may occasionally misjudge jump timing,
+waste abilities, or struggle near a ledge. This is intended to be a
+fallible practice opponent, not a perfect or cheating AI.
+
+Run the standalone behavior tests with
+\`node tests/cpu-controller.test.cjs\` (no npm packages required).
