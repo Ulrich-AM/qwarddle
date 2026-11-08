@@ -147,3 +147,26 @@ canvas,img{image-rendering:pixelated}
 @media(prefers-reduced-motion:reduce) {
   .dizzyOverlay.active {animation:none;transform:none}
 }
+
+
+/* M4 purple-burst exposure. Independent of the light green dizziness tint. */
+.dizzyOverlay.purple {
+  background:
+    radial-gradient(ellipse at center,
+      rgba(178,105,227,.28) 0%,
+      rgba(158,68,219,.38) 44%,
+      rgba(87,27,135,.92) 100%),
+    repeating-linear-gradient(112deg,
+      rgba(235,194,255,.18) 0 12px,
+      transparent 12px 82px);
+}
+.dizzyOverlay.active.purple {
+  animation:mushroom-purple-pulse 1.8s ease-in-out infinite alternate;
+}
+@keyframes mushroom-purple-pulse {
+  0% {transform:scale(1.02) translate(-.25%,.2%);filter:hue-rotate(-5deg)}
+  100% {transform:scale(1.045) translate(.25%,-.2%);filter:hue-rotate(6deg)}
+}
+@media(prefers-reduced-motion:reduce) {
+  .dizzyOverlay.active.purple {animation:none;transform:none}
+}
