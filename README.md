@@ -478,3 +478,12 @@ Additional languages can follow the same structure. The built-in English fallbac
 - E: attack 3
 - R: ragdoll death test, then revive
 - Esc: back
+
+
+## Unreleased menu and arena appearance pass
+
+- The test plane is widened from 2,400 to 7,200 world units so the left and right edges no longer dominate the fight camera. It remains a single continuous solid rectangle without extra platforms.
+- The water threshold is raised from y=1,600 to y=1,270. A map-specific translucent water overlay makes the submerged ground visible without changing the floor collision surface.
+- The game sky now uses optional `skyTop`, `skyMiddle` and `skyBottom` colors, drawn as a screen-space vertical gradient. Maps without these values keep their existing single-color backgrounds.
+- The main menu now has a red, white and black arcade treatment, direct SOLO/COUCH/LAN entry points and the same interactive real-player preview. The new styles are isolated in `menu-theme.css`.
+- This pass does not change weapon balance, fighter physics, host-authoritative LAN, or the map JSON contract used by older maps.

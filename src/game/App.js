@@ -54,6 +54,18 @@ class App {
     this.screen = 'menu';
 
     document.getElementById('playBtn').addEventListener('click', () => this.showMode());
+    document.getElementById('menuHomeBtn').addEventListener('click', () => this.showMenu());
+    document.getElementById('menuQuickPlayBtn').addEventListener('click', () => this.showMode());
+    document.getElementById('menuLocalBtn').addEventListener('click', () => this.showLocal());
+    document.getElementById('menuSoloBtn').addEventListener('click', () => {
+      this.selectedMode = 'solo';
+      this.showMaps();
+    });
+    document.getElementById('menuCouchBtn').addEventListener('click', () => {
+      this.selectedMode = 'couch';
+      this.showMaps();
+    });
+    document.getElementById('menuLanBtn').addEventListener('click', () => this.showLan());
     document.getElementById('singleBtn').addEventListener('click', () => {
       this.selectedMode = 'solo';
       this.showMaps();

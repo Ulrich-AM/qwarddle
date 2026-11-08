@@ -968,7 +968,17 @@ class Game {
   render() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.width, this.height);
-    ctx.fillStyle = this.terrain.map?.background || '#242a30';
+    const map = this.terrain.map;
+    // Sky is screen-space so the gradient remains consistent as the camera pans.
+    if (map?.skyTop && map?.skyBottom) {
+      const sky = ctx.createLinearGradient(0, 0, 0, this.height);
+      sky.addColorStop(0, map.skyTop);
+      sky.addColorStop(0.58, map.skyMiddle || map.skyTop);
+      sky.addColorStop(1, map.skyBottom);
+      ctx.fillStyle = sky;
+    } else {
+      ctx.fillStyle = map?.background || '#242a30';
+    }
     ctx.fillRect(0, 0, this.width, this.height);
 
     this.camera.begin(ctx);

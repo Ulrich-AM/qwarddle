@@ -45,7 +45,15 @@ class MapSelectionScreen {
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
-    ctx.fillStyle = map.background || '#242a30';
+    if (map.skyTop && map.skyBottom) {
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, map.skyTop);
+      sky.addColorStop(0.58, map.skyMiddle || map.skyTop);
+      sky.addColorStop(1, map.skyBottom);
+      ctx.fillStyle = sky;
+    } else {
+      ctx.fillStyle = map.background || '#242a30';
+    }
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const sx = canvas.width / map.width;
@@ -78,6 +86,14 @@ class MapSelectionScreen {
         Math.max(1, Math.round(rect.w * scale)),
         Math.max(1, Math.round(rect.h * scale))
       );
+    }
+
+    if (map.waterOverlay && Number.isFinite(map.waterY)) {
+      const surface = Math.round(oy + map.waterY * scale);
+      ctx.fillStyle = 'rgba(47, 136, 178, 0.42)';
+      ctx.fillRect(0, surface, canvas.width, canvas.height - surface);
+      ctx.fillStyle = 'rgba(224, 248, 255, 0.75)';
+      ctx.fillRect(0, surface, canvas.width, 2);
     }
   }
 }

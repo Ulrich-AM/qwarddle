@@ -179,7 +179,14 @@ class MenuDemo {
   render() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.width, this.height);
-    ctx.fillStyle = '#474747';
+    if (this.stationaryShowcase) {
+      ctx.fillStyle = '#474747';
+    } else {
+      const sky = ctx.createLinearGradient(0, 0, 0, this.height);
+      sky.addColorStop(0, '#83c2e7');
+      sky.addColorStop(1, '#e8f4fa');
+      ctx.fillStyle = sky;
+    }
     ctx.fillRect(0, 0, this.width, this.height);
 
     const fitScale = Math.min(this.width / this.logicalWidth, this.height / this.logicalHeight);
@@ -191,8 +198,12 @@ class MenuDemo {
     ctx.save();
     ctx.translate(ox, oy);
     ctx.scale(scale, scale);
-    ctx.fillStyle = '#3d3d3d';
+    ctx.fillStyle = this.stationaryShowcase ? '#3d3d3d' : '#304858';
     ctx.fillRect(0, this.terrain.floor, this.logicalWidth, this.logicalHeight - this.terrain.floor);
+    if (!this.stationaryShowcase) {
+      ctx.fillStyle = '#b31626';
+      ctx.fillRect(0, this.terrain.floor, this.logicalWidth, 5);
+    }
     this.player.render(ctx, false, { showAimPointer:false });
     ctx.restore();
   }
