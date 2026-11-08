@@ -125,3 +125,25 @@ canvas,img{image-rendering:pixelated}
   .lanShell{overflow:auto}
   .localChoiceGrid{grid-template-columns:1fr}
 }
+
+/* Client-only Mushroom nausea. Never baked into the host LAN video stream. */
+.dizzyOverlay {
+  position:fixed;inset:0;z-index:9;pointer-events:none;opacity:0;
+  background:
+    radial-gradient(ellipse at 50% 50%,transparent 36%,rgba(79,150,105,.48) 105%),
+    repeating-linear-gradient(117deg,rgba(170,108,198,.15) 0 14px,transparent 14px 85px);
+  filter:hue-rotate(0deg);
+  transform:scale(1.02);
+  will-change:transform,filter;
+}
+.dizzyOverlay.active {animation:mushroom-dizzy 2.4s ease-in-out infinite alternate}
+@keyframes mushroom-dizzy {
+  0% {transform:scale(1.02) translate(-0.35%,0.3%);filter:hue-rotate(-10deg)}
+  50% {transform:scale(1.04) translate(0.35%,-0.3%);filter:hue-rotate(8deg)}
+  100% {transform:scale(1.02) translate(-0.2%,0.2%);filter:hue-rotate(-6deg)}
+}
+.lanDizzyOverlay {position:absolute;z-index:1}
+.lanClientHud {z-index:2}
+@media(prefers-reduced-motion:reduce) {
+  .dizzyOverlay.active {animation:none;transform:none}
+}
