@@ -13,7 +13,10 @@ const math={
   expLerp:(a,b,k,dt)=>b+(a-b)*Math.exp(-k*dt)
 };
 class FakeImage {constructor(){this.complete=true;this.naturalWidth=24;this.naturalHeight=24}}
-const context=vm.createContext({Math,MathEx:math,Image:FakeImage,console});
+// Keep the 12.5% melee proc deterministic in this mechanics test.
+const seededMath=Object.create(Math);
+seededMath.random=()=>0.5;
+const context=vm.createContext({Math:seededMath,MathEx:math,Image:FakeImage,console});
 const load=(file)=>vm.runInContext(
   fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file}
 );
@@ -110,6 +113,7 @@ projectiles[0].onHit(victim);
 assert.equal(hazards.length,1);
 victim.x=115;
 owner.x=-650;
+victim.hemorrhageTime=0; // Isolate the embedded blade's 1 HP/s tick.
 const embedded=hazards[0];
 embedded.update(2.1,game);
 assert.equal(embedded.x,127,'embedded blade follows opponent');
