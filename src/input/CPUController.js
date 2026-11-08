@@ -185,13 +185,18 @@ class CPUController extends FighterController {
     };
 
     const danger = this.threatNear();
+    const unsupported = !this.supportInterval(this.game.terrain, actor.x);
     const retreat = distance < plan.near;
     const approach = distance > plan.preferred + 36;
-    this.state = danger ? 'evade' :
+    this.state = unsupported ? 'recover' : danger ? 'evade' :
       retreat ? 'retreat' : approach ? 'approach' : 'hold';
 
     this.moveX = this.state === 'approach' ? toward :
       this.state === 'retreat' ? -toward : 0;
+    if (this.state === 'recover') {
+      this.moveX = this.safeMovement(0);
+      this.run = false;
+    }
     if (this.state === 'evade') {
       this.moveX = -toward;
       if (this.random() < this.profile.dodgeChance &&
