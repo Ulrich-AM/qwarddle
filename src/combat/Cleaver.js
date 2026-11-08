@@ -291,12 +291,14 @@ class Cleaver extends Weapon {
       this.swingDirection*Math.sin(progress*Math.PI)*1.35:0;
     const winding=this.windup>0? -0.55*Math.sin((1-this.windup/this.balance.dashWindup)*Math.PI):0;
     ctx.save();ctx.translate(p.x,p.y);
-    ctx.rotate(mount.angle +Math.PI*.5+swingAngle+winding);
+    // Cleaver sprite points to the right, with its brown handle near the
+    // left edge. Pivot around that handle instead of rotating it like a dagger.
+    ctx.rotate(mount.angle+swingAngle+winding);
     ctx.imageSmoothingEnabled=false;
     if(this.sprite.complete&&this.sprite.naturalWidth>0){
       const scale=82/Math.max(this.sprite.naturalWidth,this.sprite.naturalHeight);
       const w=this.sprite.naturalWidth*scale,h=this.sprite.naturalHeight*scale;
-      ctx.drawImage(this.sprite,-w*.5,-h,w,h);
+      ctx.drawImage(this.sprite,-w*.20,-h*.74,w,h);
     }else{
       ctx.fillStyle='#171717';ctx.fillRect(-8,-70,16,70);
       ctx.fillStyle='#cbd0d4';ctx.fillRect(-11,-67,22,48);
@@ -306,12 +308,12 @@ class Cleaver extends Weapon {
   renderRagdoll(ctx,ragdoll,data){
     if(!ragdoll||!data)return;
     ctx.save();ctx.translate(ragdoll.hand.x,ragdoll.hand.y);
-    ctx.rotate(Math.atan2(data.aimDirY,data.aimDirX)+Math.PI*.5);
+    ctx.rotate(Math.atan2(data.aimDirY,data.aimDirX));
     ctx.imageSmoothingEnabled=false;
     if(this.sprite.complete&&this.sprite.naturalWidth>0){
       const scale=82/Math.max(this.sprite.naturalWidth,this.sprite.naturalHeight);
       const w=this.sprite.naturalWidth*scale,h=this.sprite.naturalHeight*scale;
-      ctx.drawImage(this.sprite,-w*.5,-h,w,h);
+      ctx.drawImage(this.sprite,-w*.20,-h*.74,w,h);
     }
     ctx.restore();
   }
