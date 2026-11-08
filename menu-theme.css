@@ -148,3 +148,9 @@
 @media(prefers-reduced-motion:reduce){
   .menuTile,.menuHeroAction,.modeCard{transition:none}
 }
+
+/* Minimal copy pass: keep the Toribash-inspired structure, not the slogans. */
+#menu .menuHeroCopy h1{font-size:clamp(40px,4.4vw,65px);letter-spacing:-2.5px;overflow-wrap:anywhere}
+#menu .menuHeroDescription{margin:15px 0 23px}
+#menu .menuSubtitle:empty{display:none}
+#menu .menuNavTag:empty{display:none}

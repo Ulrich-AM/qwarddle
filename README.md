@@ -363,7 +363,7 @@ Map rectangles are full solid collision geometry for the physical torso. Procedu
 
 - TEST PLANE
 
-TEST PLANE is the only registered arena for movement and combat tuning. It is a flat 7,200 x 1,700 world with exactly one wide floor rectangle, no platforms or side walls, and water beginning at y=1,270 beneath the walkable surface. The sky is a light-blue vertical gradient.
+TEST PLANE is the only registered arena for movement and combat tuning. It is a flat 7,200 x 1,700 world with one finite floor rectangle from x=500 to x=6,700, no platforms or side walls, and open water beyond either edge at y=1,270. The sky is a light-blue vertical gradient.
 
 ## Sprite staging areas
 
@@ -482,8 +482,17 @@ Additional languages can follow the same structure. The built-in English fallbac
 
 ## Unreleased menu and arena appearance pass
 
-- The test plane is widened from 2,400 to 7,200 world units so the left and right edges no longer dominate the fight camera. It remains a single continuous solid rectangle without extra platforms.
+- The test plane is widened from 2,400 to 7,200 world units so the left and right edges no longer dominate the fight camera. The single ground rectangle now begins at x=500 and ends at x=6,700, leaving open water at either end.
 - The water threshold is raised from y=1,600 to y=1,270. A map-specific translucent water overlay makes the submerged ground visible without changing the floor collision surface.
 - The game sky now uses optional `skyTop`, `skyMiddle` and `skyBottom` colors, drawn as a screen-space vertical gradient. Maps without these values keep their existing single-color backgrounds.
 - The main menu now has a red, white and black arcade treatment, direct SOLO/COUCH/LAN entry points and the same interactive real-player preview. The new styles are isolated in `menu-theme.css`.
 - This pass does not change weapon balance, fighter physics, host-authoritative LAN, or the map JSON contract used by older maps.
+
+
+## Menu copy, shoreline and impact tuning
+
+- Removed the promotional taglines and reduced the main menu to direct game mode instructions.
+- TEST PLANE is bounded by real shore edges at x=500 and x=6,700. Ground collision ends there; water remains beneath both sides of the arena, and the default spawns stay on solid ground.
+- Raised automatic ragdoll crash thresholds: floor 980 to 1,320, wall 760 to 1,040, ceiling 930 to 1,200. Stumble thresholds also increase to 680 / 650 / 800 respectively.
+- Reduced the contribution of extreme horizontal speed and tilt to floor crash detection. Intentional ragdolls, weapon knockbacks and death effects are unchanged.
+- These thresholds are initial feel adjustments and need playtesting after ordinary jumps, running, wall collisions and high-speed attacks.

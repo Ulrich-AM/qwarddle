@@ -6,7 +6,7 @@ const MapRegistry = Object.freeze({
       version:1,
       id:'test-plane',
       name:'TEST PLANE',
-      // A wide uninterrupted training field, with water much closer beneath it.
+      // A wide training field that ends in open water on both sides.
       width:7200,
       height:1700,
       waterY:1270,
@@ -23,7 +23,7 @@ const MapRegistry = Object.freeze({
         { x:4350, y:980 }
       ],
       rectangles:[
-        { x:0, y:1050, w:7200, h:650, color:'#64746e', material:'default' }
+        { x:500, y:1050, w:6200, h:650, color:'#64746e', material:'default' }
       ]
     }
   ],
