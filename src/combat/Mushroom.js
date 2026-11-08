@@ -7,6 +7,9 @@ class MushroomSpore extends Projectile {
     super({ shape:'circle', outlineColor:'#272622', outlineWidth:2, ...options });
     this.gravity = gravity;
     this.initialLife = this.life;
+    // Each spray has four hits. Treat the spores as status/damage particles,
+    // not four separate body-launching collisions.
+    this.noPhysicalHit = true;
   }
 
   update(dt) {
