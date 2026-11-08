@@ -65,6 +65,7 @@ class GreenMushroom {
   }
 
   update(dt, game) {
+    if (this.dead) return;
     this.age += dt;
     if (this.age >= this.duration || this.owner?.dead) {
       this.dead = true;
