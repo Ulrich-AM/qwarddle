@@ -21,6 +21,11 @@ const WeaponRegistry = Object.freeze({
       id:'dagger',
       sprite:'assets/sprites/dagger/dagger.png',
       languageKey:'weapons.dagger'
+    },
+    {
+      id:'mushroom',
+      sprite:'assets/sprites/mushroom/mushroom.png',
+      languageKey:'weapons.mushroom'
     }
   ],
   create(id) {
@@ -28,6 +33,7 @@ const WeaponRegistry = Object.freeze({
     if (id === 'wand') return new Wand();
     if (id === 'sake') return new Sake();
     if (id === 'dagger') return new Dagger();
+    if (id === 'mushroom') return new Mushroom();
     return null;
   }
 });
