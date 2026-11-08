@@ -517,3 +517,49 @@ sprites under `assets/sprites/mushroom/`. The purple asset is reserved for M4.
   to P1 or passed to the remote LAN client separately from the video stream.
   In couch mode the P2 HUD shows the effect without obscuring P1's view.
 - E remains disabled until Phase M4.
+
+
+## Mushroom M4: purple synchronized detonation
+
+- E requires the full 100-point charge meter and consumes all charge at launch.
+  It has an additional 3-second ability cooldown and launches four purple
+  seeds, which plant only on actual top-facing solid terrain.
+- Purple mushrooms grow for 0.38 seconds and persist for up to 12 seconds.
+  Once an opponent walks or jumps over any mature mushroom, all of that
+  fighter's active purple mushrooms detonate together and immediately vanish.
+- Every detonating mushroom releases 14 visible purple spores in a circular
+  spray. Damage is resolved once per target per synchronized burst:
+  18 at one mushroom, increasing by 5 per additional nearby mushroom,
+  capped at 34. The particles themselves are visual, not extra damage hits.
+- Affected opponents receive 0.72 seconds of dizziness, including the
+  existing occasional movement reversal, and a separate 1.4-second purple
+  screen tint/vignette. The tint fades before its timer expires.
+- The same local-only overlay architecture used for green dizziness handles
+  the purple effect on a LAN client's device. Shared couch fights show a
+  PURPLE SPORES label on the affected fighter's HUD instead of tinting
+  the whole shared screen. Protected fighters and the owner are not affected.
+- Existing LMB and Q Mushroom behaviors and all other weapons are unchanged.
+
+## Planned: VS CPU mode (design only, not implemented)
+
+The existing SOLO mode currently gives P2 an IdleController placeholder.
+A future CPUController should implement the same controller contract and
+produce ordinary movement, jump, aim and attack inputs, rather than directly
+teleporting or damaging fighters. The game remains host-authoritative.
+
+Suggested implementation phases:
+
+1. CPU-0: a standalone CPUController with configurable response delay,
+   decision tick, difficulty settings, target selection, and deterministic
+   evaluation hooks. Keep this disconnected from gameplay until tested.
+2. CPU-1: movement and positioning with desired range, turnarounds,
+   shoreline avoidance, basic jumping and recovery from missed steps.
+3. CPU-2: weapon-aware actions for the existing weapons, limited aim accuracy,
+   cooldown/charge discipline, and threat detection, including Mushroom hazards.
+4. CPU-3: evaluate match outcome and balance. Add CPU selection to the PLAY
+   screen while preserving SOLO training as the non-attacking dummy mode.
+
+The CPU should obey regular controls, knockbacks, cooldowns, line of sight,
+and reaction delay. A basic state machine (approach, hold, retreat, evade,
+recover) is preferred over an expensive planner. Initial tuning should
+target playable, fallible behavior rather than perfect accuracy.
