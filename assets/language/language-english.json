@@ -130,7 +130,7 @@
         {
           "input": "E",
           "name": "PURPLE MUSHROOMS",
-          "description": "Not available yet. Planned for Phase M4."
+          "description": "Requires full charge and consumes it. Four seeds grow into purple mushrooms. Moving above any one detonates all of your purple mushrooms, spraying spores, dealing heavy nearby damage and causing brief dizziness and a purple screen vignette. All disappear after bursting."
         }
       ]
     }
