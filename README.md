@@ -612,4 +612,4 @@ waste abilities, or struggle near a ledge. This is intended to be a
 fallible practice opponent, not a perfect or cheating AI.
 
 Run the standalone behavior tests with
-\`node tests/cpu-controller.test.cjs\` (no npm packages required).
+`node tests/cpu-controller.test.cjs` (no npm packages required).
