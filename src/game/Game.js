@@ -884,7 +884,9 @@ class Game {
       this.dizzySnapshotTimer = 0.10;
       this.onDizzySnapshot(
         this.fighters[0].actor.dizzinessOpacity(),
-        this.fighters[1].actor.dizzinessOpacity()
+        this.fighters[1].actor.dizzinessOpacity(),
+        this.fighters[0].actor.purpleSporesOpacity(),
+        this.fighters[1].actor.purpleSporesOpacity()
       );
     }
   }
@@ -955,14 +957,17 @@ class Game {
       this.drawBar(ctx, statsX + statW + statGap, statY, statW, statH, healthRatio, '#d94a4a', `${label} health`);
     }
 
-    if (slot.actor.dizzyTime > 0 && !slot.ragdoll) {
+    if ((slot.actor.dizzyTime > 0 || slot.actor.purpleSporesTime > 0) && !slot.ragdoll) {
       ctx.save();
       ctx.font = 'bold 12px monospace';
       ctx.textBaseline = 'bottom';
       ctx.textAlign = leftAligned ? 'left' : 'right';
-      ctx.fillStyle = slot.actor.dizzyInvertTime > 0 ? '#f7c77c' : '#c8f2bc';
+      const purple = slot.actor.purpleSporesTime > 0;
+      ctx.fillStyle = purple ? '#d9a3fa'
+        : slot.actor.dizzyInvertTime > 0 ? '#f7c77c' : '#c8f2bc';
       ctx.fillText(
-        slot.actor.dizzyInvertTime > 0 ? 'DIZZY / REVERSED' : 'DIZZY',
+        purple ? 'PURPLE SPORES'
+          : slot.actor.dizzyInvertTime > 0 ? 'DIZZY / REVERSED' : 'DIZZY',
         leftAligned ? 22 : this.width - 22,
         attack1Y - 14
       );
