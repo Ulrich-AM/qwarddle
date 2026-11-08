@@ -9,6 +9,7 @@ class FighterController {
   consumePrimary() { return false; }
   consumeAttack2() { return false; }
   consumeAttack3() { return false; }
+  specialHeld() { return false; }
   defenseHeld() { return false; }
   poll() {}
   connected() { return true; }
@@ -52,6 +53,8 @@ class KeyboardMouseController extends FighterController {
   consumeAttack3() {
     return this.keyboard.consumePressed('special');
   }
+
+  specialHeld() { return this.keyboard.down('special'); }
 
   defenseHeld() {
     return this.pointer.down(2);
@@ -189,6 +192,8 @@ class GamepadController extends FighterController {
     return this.consumeButton([5, 3]); // RB or Y
   }
 
+  specialHeld() { return this.buttonDown(5) || this.buttonDown(3); }
+
   defenseHeld() {
     return this.buttonDown(6); // LT
   }
@@ -271,6 +276,8 @@ class NetworkController extends FighterController {
     this.pressed.delete('attack3');
     return value;
   }
+
+  specialHeld() { return this.attack3; }
 
   defenseHeld() {
     return this.defense;

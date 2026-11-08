@@ -133,6 +133,27 @@
           "description": "Requires full charge and consumes it. Four seeds grow into purple mushrooms. Moving above any one detonates all of your purple mushrooms, spraying spores, dealing heavy nearby damage and causing brief dizziness and a purple screen vignette. All disappear after bursting."
         }
       ]
+    },
+    "cleaver": {
+      "name": "CLEAVER",
+      "description": "Heavy two-hit melee weapon with a wound-up cleave and recoverable charged throw. Hemorrhage lasts 5 seconds, increases damage taken by 20%, and deals 1 HP per second.",
+      "moves": [
+        {
+          "input": "LEFT CLICK",
+          "name": "UPWARD / DOWNWARD SLASH",
+          "description": "Alternate upward and downward sweeps. Each hit has a 12.5% chance to cause Hemorrhage."
+        },
+        {
+          "input": "Q",
+          "name": "WIND-UP CLEAVE",
+          "description": "Wind up for 0.7 seconds, then rush toward the cursor and cleave. Knocks the opponent back and guarantees Hemorrhage. Leaves a dark red trail."
+        },
+        {
+          "input": "HOLD E / RELEASE",
+          "name": "CHARGED CLEAVER THROW",
+          "description": "Hold E to charge range and damage. Throw a gravity-affected cleaver. It embeds in a target or surface, damages an embedded target over time, and must be picked up to attack again. Pulling it out of an opponent causes Hemorrhage."
+        }
+      ]
     }
   }
 }

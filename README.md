@@ -668,3 +668,45 @@ tuck landings, and client WebRTC video compatibility.
 
 Use `node tests/nausea-tuck.test.cjs` to check the screen warp and CPU-3
 match behavior without an installed browser or npm packages.
+
+
+## Cleaver weapon and Hemorrhage
+
+CLEAVER is selectable in the weapon customization menu. Its sprite is
+`assets/sprites/cleaver/cleaver.png`. The following are first-pass tuning
+values that can be adjusted after playtesting:
+
+- **LMB:** Alternate upward and downward blade sweeps. Each connects once
+  during its animation, deals 13 damage and has an independent 12.5%
+  chance to inflict Hemorrhage. 0.56-second attack interval.
+- **Q:** Wind up for 0.70 seconds and rush toward the cursor using the same
+  physically interruptible ragdoll dash pipeline as Dagger. A connecting
+  cleave deals 17 damage, throws the opponent back, guarantees Hemorrhage,
+  and creates a dark red motion trail. 6-second cooldown.
+- **Hold E, release to throw:** Charge for up to 1.15 seconds. Base throw
+  damage is 9 and increases to 20 at full charge; projectile speed rises
+  from 620 to 1120 units/second. Gravity bends its trajectory.
+- **Retrieval:** A hit on an opponent embeds the thrown Cleaver into the
+  opponent. The blade follows them and deals 1 damage per second while
+  lodged. Picking it up by approaching within about 72 world units pulls
+  it out, refreshes Hemorrhage, and returns it to the owner's hand.
+  A ground hit similarly leaves a recoverable blade. An unreachable throw
+  outside the world is repositioned onto reachable ground for pickup.
+  The owner cannot use Cleaver attacks while the blade is missing.
+- **Hemorrhage:** Increases all normal incoming damage by 20%, and separately
+  removes 1 HP per second for 5 seconds. Reapplication refreshes duration
+  without stacking the 20% damage multiplier. An affected fighter's
+  combat HUD displays HEMORRHAGE. The status is shared across weapons and
+  respects existing temporary HP, defense buffs, and invulnerability.
+
+## CPU tactical tuck dash
+
+VS CPU can now use the regular RMB defensive tuck to dash. It considers
+approaching projectiles and hazards, dodges toward supported ground, and
+sometimes closes distance with short-range weapons. It checks the landing
+location against the actual terrain before committing and respects the same
+dash cooldown, physical body, defensive damage reduction and recovery rules
+as a human player. Cleaver-equipped CPUs can use all three Cleaver actions,
+hold and release E, and retrieve their thrown blade.
+
+Offline targeted checks: `node tests/cleaver-cpu-dash.test.cjs`.

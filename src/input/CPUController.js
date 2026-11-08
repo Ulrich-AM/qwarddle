@@ -55,6 +55,10 @@ class CPUController extends FighterController {
     this.specialBias = this.random() < 0.74;
     this.actionCooldown = 0;
     this.dodgeCooldown = 0;
+    this.dashTacticalCooldown = 0;
+    this.defenseTime = 0;
+    this.specialHoldRemaining = 0;
+    this.dashAim = null;
     this.lastDecision = null;
   }
 
@@ -71,7 +75,8 @@ class CPUController extends FighterController {
   consumePrimary() { return this.takeAction('primary'); }
   consumeAttack2() { return this.takeAction('attack2'); }
   consumeAttack3() { return this.takeAction('attack3'); }
-  defenseHeld() { return false; }
+  defenseHeld() { return this.defenseTime > 0; }
+  specialHeld() { return this.specialHoldRemaining > 0; }
 
   takeAction(action) {
     const hit = this.pressed.has(action);
@@ -80,6 +85,7 @@ class CPUController extends FighterController {
   }
 
   aimWorld(game = this.game, slot = this.slot) {
+    if (this.defenseTime > 0 && this.dashAim) return {...this.dashAim};
     if (this.aimPoint) return { ...this.aimPoint };
     const foe = game?.getOpponentSlot?.(slot)?.actor;
     return foe ? { x:foe.x, y:foe.y - 8 } :
@@ -111,7 +117,8 @@ class CPUController extends FighterController {
       wand:{ preferred:400, near:210, far:780 },
       dagger:{ preferred:125, near:80, far:520 },
       sake:{ preferred:195, near:110, far:350 },
-      mushroom:{ preferred:160, near:105, far:235 }
+      mushroom:{ preferred:160, near:105, far:235 },
+      cleaver:{ preferred:102, near:60, far:520 }
     };
     return profiles[weapon?.id] || profiles.revolver;
   }
@@ -169,6 +176,56 @@ class CPUController extends FighterController {
     return false;
   }
 
+  canDashToward(direction) {
+    const actor=this.slot?.actor;
+    const terrain=this.game?.terrain;
+    const interval=this.supportInterval(terrain,actor?.x);
+    if(!actor||!terrain||!interval||!direction)return false;
+    const landing=actor.x+direction*345;
+    return landing>interval[0]+160 && landing<interval[1]-160 &&
+      terrain.hasGroundAt?.(landing)===true;
+  }
+
+  startTuckDash(direction, elevation = -35) {
+    const actor=this.slot?.actor;
+    if(!actor || this.defenseTime>0 || this.dashTacticalCooldown>0 ||
+       (this.slot.defensiveDashCooldownRemaining||0)>0 ||
+       actor.weaponMount?.weapon?.throwCharging ||
+       actor.weaponMount?.weapon?.windup>0 ||
+       !this.canDashToward(direction))return false;
+    this.defenseTime=0.20;
+    this.dashTacticalCooldown=2.1+this.random()*1.4;
+    this.dashAim={
+      x:actor.x+direction*500,
+      y:actor.y+elevation
+    };
+    this.moveX=0;this.run=false;
+    this.pressed.clear();
+    return true;
+  }
+
+  chooseDodgeDirection(defaultDirection) {
+    const actor=this.slot?.actor;
+    if(!actor)return defaultDirection;
+    const threats=(this.game?.hazards||[])
+      .filter(h=>!h.dead && h.owner!==actor &&
+        Number.isFinite(h.x) && Math.abs(h.x-actor.x)<175);
+    if(threats.length){
+      threats.sort((a,b)=>Math.abs(a.x-actor.x)-Math.abs(b.x-actor.x));
+      const away=Math.sign(actor.x-threats[0].x);
+      if(away&&this.canDashToward(away))return away;
+    }
+    const approaching=(this.game?.projectiles?.items||[])
+      .find(p=>!p.dead&&p.owner!==actor&&!p.nonCombat &&
+        Number.isFinite(p.vx)&&Math.abs(p.vx)>70 &&
+        (actor.x-p.x)/p.vx>0&&(actor.x-p.x)/p.vx<.52);
+    if(approaching){
+      const along=Math.sign(approaching.vx);
+      if(along && this.canDashToward(along))return along;
+    }
+    return defaultDirection;
+  }
+
   decide(target) {
     const actor = this.slot.actor;
     const weapon = actor.weaponMount?.weapon;
@@ -185,6 +242,31 @@ class CPUController extends FighterController {
     };
 
     const danger = this.threatNear();
+
+    // An unarmed Cleaver AI must retrieve the real thrown blade rather than
+    // acting as though it still has it in the hand.
+    if (weapon?.id === 'cleaver' && weapon.disarmed) {
+      const pickup=(this.game.hazards||[]).find(h=>h.weapon===weapon&&!h.dead) ||
+        (this.game.projectiles?.items||[]).find(p=>p.weapon===weapon&&!p.dead);
+      const pickupX=pickup?.x;
+      if(Number.isFinite(pickupX)) {
+        this.state='retrieve';
+        this.moveX=this.safeMovement(Math.sign(pickupX-actor.x));
+        this.run=Math.abs(pickupX-actor.x)>125;
+        this.lastDecision={time:this.time,state:this.state,distance,weapon:weapon.id};
+        return;
+      }
+    }
+
+    // Only dash into supported space. Prefer defensive dodges when under
+    // threat; use an occasional forward approach dash for short weapons.
+    if(danger && this.random()<this.profile.dodgeChance*0.66 &&
+       this.startTuckDash(this.chooseDodgeDirection(-toward),-120))return;
+    if(!danger && distance>300 && distance<900 &&
+       ['dagger','cleaver','sake'].includes(weapon?.id) &&
+       this.random()<this.profile.aggression*0.19 &&
+       this.startTuckDash(toward,-32))return;
+
     const unsupported = !this.supportInterval(this.game.terrain, actor.x);
     const retreat = distance < plan.near;
     const approach = distance > plan.preferred + 36;
@@ -257,6 +339,15 @@ class CPUController extends FighterController {
             this.random() < 0.48) this.pressed.add('attack2');
         if (available[2] >= 0.98 && distance < 330 &&
             this.random() < 0.26) this.pressed.add('attack3');
+      } else if (id === 'cleaver') {
+        if (available[0] >= .98 && distance < 165) this.pressed.add('primary');
+        if (available[1] >= .98 && distance>=145 && distance<650 &&
+            this.random()<.52) this.pressed.add('attack2');
+        if (available[2] >= .98 && distance>175 && distance<730 &&
+            this.random()<.40) {
+          this.pressed.add('attack3');
+          this.specialHoldRemaining=.45+this.random()*.70;
+        }
       } else if (id === 'sake') {
         if (available[0] >= 0.98 &&
             (distance < 480 || weapon.drunkMeter < 5)) {
@@ -280,12 +371,24 @@ class CPUController extends FighterController {
     this.decisionTimer -= dt;
     this.jumpTimer = Math.max(0, this.jumpTimer - dt);
     this.dodgeCooldown = Math.max(0, this.dodgeCooldown - dt);
+    this.dashTacticalCooldown = Math.max(0, this.dashTacticalCooldown - dt);
+    this.defenseTime = Math.max(0, this.defenseTime - dt);
+    this.specialHoldRemaining=Math.max(0,this.specialHoldRemaining-dt);
+    if (this.defenseTime<=0) this.dashAim=null;
     // Consume-once buttons must never survive a respawn or a knockdown frame.
     this.pressed.clear();
 
     if (!this.game || !this.slot || !this.slot.canControl?.()) {
       this.moveX = 0;
       this.run = false;
+      if(this.slot?.isDead?.()) {
+        this.defenseTime=0;this.specialHoldRemaining=0;this.dashAim=null;
+      }
+      return;
+    }
+
+    if(this.defenseTime>0) {
+      this.moveX=0;this.run=false;
       return;
     }
 

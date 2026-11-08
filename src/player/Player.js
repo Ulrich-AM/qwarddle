@@ -60,6 +60,7 @@ class Player {
     this.buffs = new Map();
     this.bleedTime = 0;
     this.bleedDps = 0;
+    this.hemorrhageTime = 0;
     this.stunTime = 0;
     this.dizzyTime = 0;
     this.dizzyInvertTime = 0;
@@ -322,6 +323,7 @@ class Player {
     this.buffs.clear();
     this.bleedTime = 0;
     this.bleedDps = 0;
+    this.hemorrhageTime = 0;
     this.stunTime = 0;
     this.dizzyTime = 0;
     this.dizzyInvertTime = 0;
@@ -506,6 +508,14 @@ class Player {
     this.bleedDps = Math.max(this.bleedDps, dps);
   }
 
+  // Hemorrhage never stacks its 20% vulnerability: repeat hits only refresh
+  // the timer. Its own 1 HP/sec is direct health loss, not amplified damage.
+  applyHemorrhage(duration = 5) {
+    if (this.dead || this.isInvulnerable()) return false;
+    this.hemorrhageTime = Math.max(this.hemorrhageTime, Math.max(0, duration));
+    return this.hemorrhageTime > 0;
+  }
+
   applyStun(duration = 0.5) {
     this.stunTime = Math.max(this.stunTime, duration);
   }
@@ -548,7 +558,8 @@ class Player {
     let remaining =
       Math.max(0, amount) *
       this.buffMultiplier('defense') *
-      tuckDefense;
+      tuckDefense *
+      (this.hemorrhageTime > 0 ? 1.2 : 1);
     if (this.tempHealth > 0) {
       const absorbed = Math.min(this.tempHealth, remaining);
       this.tempHealth -= absorbed;
@@ -1338,6 +1349,13 @@ class Player {
     }
 
     this.stunTime = Math.max(0, this.stunTime - dt);
+    if (this.hemorrhageTime > 0) {
+      const tick = Math.min(dt, this.hemorrhageTime);
+      this.hemorrhageTime = Math.max(0, this.hemorrhageTime - dt);
+      // Do not multiply this DoT by the 20% vulnerability or other buffs.
+      this.health = Math.max(0, this.health - tick);
+      if (this.health <= 0) this.dead = true;
+    }
     this.purpleSporesTime = Math.max(0, this.purpleSporesTime - dt);
 
     this.dizzyTime = Math.max(0, this.dizzyTime - dt);

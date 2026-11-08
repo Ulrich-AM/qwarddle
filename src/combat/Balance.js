@@ -48,6 +48,27 @@ const CombatBalance = Object.freeze({
     gourdBleedDps:1.5
   }),
 
+  cleaver:Object.freeze({
+    slashDamage:13,
+    slashCooldown:0.56,
+    slashHemorrhageChance:0.125,
+    slashRange:104,
+    slashArc:1.10,
+    dashWindup:0.70,
+    dashDuration:0.44,
+    dashSpeed:990,
+    dashDamage:17,
+    dashKnockback:430,
+    dashCooldown:6.0,
+    throwBaseSpeed:620,
+    throwBonusSpeed:500,
+    throwBaseDamage:9,
+    throwBonusDamage:11,
+    throwMaxCharge:1.15,
+    throwGravity:810,
+    throwExpiry:16,
+    hemorrhageDuration:5
+  }),
   dagger:Object.freeze({
     lungeDamage:14,
     cloakedLungeDamage:18,
