@@ -501,7 +501,7 @@ Additional languages can follow the same structure. The built-in English fallbac
 ## Mushroom weapon M1-M3
 
 MUSHROOM is selectable from WEAPONS. The weapon and green hazard use the
-sprites under \`assets/sprites/mushroom/\`. The purple asset is reserved for M4.
+sprites under `assets/sprites/mushroom/`. The purple asset is reserved for M4.
 
 - LMB fires four short-range spores (1 damage each, 0.72s interval).
   Each hit causes 1.2s of dizziness, with occasional 0.32s horizontal
