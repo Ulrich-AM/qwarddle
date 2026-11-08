@@ -181,7 +181,7 @@ class Cleaver extends Weapon {
   primary({mount,player,game}){
     if(this.disarmed||this.windup>0||this.throwCharging||this.swingRemaining>0||
        this.swingCooldown>0||!player||!game)return false;
-    this.swingDirection=this.swingNumber%2===0?1:-1;
+    this.swingDirection=this.swingNumber%2===0?-1:1;
     this.swingNumber++;
     this.swingRemaining=this.swingDuration;
     this.swingConnected=false;
