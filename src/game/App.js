@@ -15,10 +15,14 @@ class App {
     this.lanDizzyOverlay = document.getElementById('lanDizzyOverlay');
 
     this.game = new Game(this.gameCanvas);
-    this.game.onDizzySnapshot = (p1, p2) => {
-      this.updateDizzyOverlay(this.dizzyOverlay, p1);
+    this.game.onDizzySnapshot = (p1, p2, purple1, purple2) => {
+      this.updateDizzyOverlay(this.dizzyOverlay, p1, purple1);
       if (this.screen === 'game' && this.selectedMode === 'lan-host') {
-        this.lanPeer?.send?.({ type:'status-effects', dizzy:p2 });
+        this.lanPeer?.send?.({
+          type:'status-effects',
+          dizzy:p2,
+          purple:purple2
+        });
       }
     };
     this.menuDemo = new MenuDemo(document.getElementById('menuDemo'), { interactive:true });
@@ -134,11 +138,14 @@ class App {
     return clean || 'QWARD';
   }
 
-  updateDizzyOverlay(element, opacity = 0) {
+  updateDizzyOverlay(element, opacity = 0, purple = 0) {
     if (!element) return;
-    const amount = MathEx.clamp(Number(opacity) || 0, 0, 0.45);
+    const dizzyAmount = MathEx.clamp(Number(opacity) || 0, 0, 0.45);
+    const purpleAmount = MathEx.clamp(Number(purple) || 0, 0, 0.45);
+    const amount = Math.max(dizzyAmount, purpleAmount);
     element.style.opacity = String(amount);
     element.classList.toggle('active', amount > 0);
+    element.classList.toggle('purple', purpleAmount > 0);
   }
 
   hideScreens() {
@@ -424,7 +431,7 @@ class App {
       video:this.lanVideo,
       loadout,
       onStatusEffects:(state) => {
-        this.updateDizzyOverlay(this.lanDizzyOverlay, state?.dizzy);
+        this.updateDizzyOverlay(this.lanDizzyOverlay, state?.dizzy, state?.purple);
       },
       onStatus:(message) => {
         status.textContent = message;
