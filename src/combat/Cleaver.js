@@ -106,7 +106,10 @@ class FlyingCleaver extends Projectile {
       this.lodge(null,this.x,Number.isFinite(floor)?floor-18:this.y);
       return;
     }
-    if(this.life<=0 || this.y>(t?.waterY??Infinity)+50){
+    if(this.life<=0 ||
+       this.y>(t?.waterY??Infinity)+50 ||
+       this.x < -45 || this.x > (t?.worldWidth??Infinity)+45 ||
+       this.y < -80 || this.y > (t?.worldHeight??Infinity)+45){
       // Keep thrown weapons recoverable even if they miss the arena.
       const groundX=t?.clampGroundX?.(this.x,95)??this.owner.x;
       const floor=t?.groundYAt?.(groundX);
