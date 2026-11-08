@@ -29,6 +29,11 @@ class EmbeddedCleaver {
   }
   update(dt,game) {
     if(this.dead)return;
+    if(!this.owner || this.owner.dead ||
+       this.owner.weaponMount?.weapon!==this.weapon) {
+      this.dead=true;
+      return;
+    }
     this.age+=dt;
     if(this.target?.dead || this.target?.health<=0) {
       this.x=this.target.x+this.offsetX;
@@ -94,7 +99,11 @@ class FlyingCleaver extends Projectile {
     }));
   }
   update(dt,{terrain}={}) {
-    const previousX=this.x,previousY=this.y;
+    if(!this.owner || this.owner.dead ||
+       this.owner.weaponMount?.weapon!==this.weapon){
+      this.dead=true;
+      return;
+    }
     this.vy+=this.gravity*dt;
     super.update(dt);
     this.spin+=dt*12;
