@@ -563,3 +563,14 @@ The CPU should obey regular controls, knockbacks, cooldowns, line of sight,
 and reaction delay. A basic state machine (approach, hold, retreat, evade,
 recover) is preferred over an expensive planner. Initial tuning should
 target playable, fallible behavior rather than perfect accuracy.
+
+### Repeatable Mushroom M4 test
+
+From the repository root, run `node tests/mushroom-m4.test.cjs`.
+This test requires Node.js but does not require npm, any installed package,
+or a network connection. It covers full-charge gating, purple seed growth,
+synchronized detonation, one-time capped damage, immune targets, visual
+spore emission and owner immunity.
+
+The separate `docs/VS_CPU_PLAN.md` contains the planned CPU controller
+design and milestones. No VS CPU runtime implementation is included in M4.
