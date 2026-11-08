@@ -1,6 +1,11 @@
-# VS CPU: design proposal
+# VS CPU: design and implementation status
 
-**Status:** Planning only. No CPU implementation in the Mushroom M4 branch.
+**Status (2026-11-08):** CPU-0, CPU-1 and CPU-2 are implemented
+in the dedicated `CPUController` and exposed as **VS CPU** under PLAY.
+The existing **SOLO** idle training dummy is still available. CPU-3's
+additional menu/refinement ideas and CPU-4's broader balance testing
+remain future work. This document retains the original architecture
+plan for reference.
 
 ## Goal
 
@@ -101,3 +106,35 @@ These are provisional tuning targets, not implemented gameplay values.
 - All weapon actions respect cooldowns, charge and attack readiness.
 - It remains fallible at every difficulty.
 - SOLO, COUCH and LAN behave exactly as before.
+
+
+## Implemented in CPU-0 to CPU-2
+
+- \`src/input/CPUController.js\` implements all movement, jump, aim and
+  attack inputs through the \`FighterController\` interface. A seeded
+  pseudo-random generator makes isolated decisions reproducible.
+- The game binds the CPU controller to fighter P2 only in \`mode='cpu'\`.
+  Player/WeaponMount/Game systems remain authoritative. A respawn resets
+  the controller's internal movement and decision state.
+- A delayed-position observer and decision cadence emulate imperfect
+  reaction time, while aim noise scales with difficulty.
+- The controller checks the current ground interval and projected
+  stopping distance to avoid walking off TEST PLANE. It also attempts
+  jumps when it detects hostile hazards and approaching projectiles.
+- The state machine covers approach, hold, retreat and evade. It uses
+  simple weapon-specific preferred ranges and action readiness values.
+- CPU weapon selection defaults to Mushroom for single-player testing
+  of dizziness and purple/green hazard effects. All five implemented
+  weapons are selectable, using the normal charge and ability API.
+- A compact VS CPU selector with weapon/difficulty options is part of
+  the PLAY menu. It is deliberately accessible before the broader
+  CPU-3 menu design pass because single-player playtesting is the
+  immediate goal.
+
+## Remaining improvements
+
+CPU-3 may add more advanced loadout selection and better HUD indication.
+CPU-4 needs real human playtesting, plus experiments on edge avoidance,
+jump timing, status effects, melee reliability and projectile dodging.
+The current controller does not use a pathfinder or any omniscient
+strategic planner.
