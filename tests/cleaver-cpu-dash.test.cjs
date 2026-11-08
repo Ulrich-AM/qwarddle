@@ -89,7 +89,7 @@ assert.equal(victim.health,48,'first swing hits once');
 assert.equal(weapon.primary({mount,player:owner,game}),false);
 tick(.27);
 assert.equal(weapon.primary({mount,player:owner,game}),true);
-assert.equal(weapon.swingDirection,-1);
+assert.equal(weapon.swingDirection,1);
 tick(.31);
 assert.equal(victim.health,35,'second swing alternates and hits');
 tick(.30);
