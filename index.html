@@ -9,6 +9,7 @@
 </head>
 <body>
   <canvas id="game" class="inactive"></canvas>
+  <div id="dizzyOverlay" class="dizzyOverlay" aria-hidden="true"></div>
 
 
   <div id="menu" class="screenLayer menuLayer">
@@ -125,6 +126,7 @@
 
   <div id="lanClientScreen" class="screenLayer hidden lanClientLayer">
     <video id="lanVideo" class="lanVideo" autoplay playsinline muted></video>
+    <div id="lanDizzyOverlay" class="dizzyOverlay lanDizzyOverlay" aria-hidden="true"></div>
     <div class="lanClientHud">
       <span id="lanClientStatus">CONNECTING...</span>
       <span>WASD + MOUSE / LMB / RMB / Q / E</span>
@@ -186,6 +188,7 @@
   <script src="src/combat/Wand.js"></script>
   <script src="src/combat/Sake.js"></script>
   <script src="src/combat/Dagger.js"></script>
+  <script src="src/combat/Mushroom.js"></script>
   <script src="src/combat/WeaponRegistry.js"></script>
   <script src="src/player/Player.js"></script>
   <script src="src/actors/Ragdoll.js"></script>
