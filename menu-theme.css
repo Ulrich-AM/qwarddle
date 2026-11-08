@@ -1,0 +1,150 @@
+/* QWARDDLE arcade menu theme: layout and presentation only.
+   The original screen, canvas, and simulation architecture remains intact. */
+#menu, #modeScreen, #localScreen, #lanScreen, #mapScreen, #customScreen {
+  background:#f3f2ee;
+  color:#202023;
+}
+#menu { overflow-y:auto; }
+.menuLayer { isolation:isolate; }
+.menuLayer::before {
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.82;
+  background:
+    radial-gradient(circle at 97% 16%,#aa1420 0 11px,transparent 12px),
+    radial-gradient(circle at 95% 19%,#aa1420 0 4px,transparent 5px),
+    radial-gradient(circle at 98% 24%,#aa1420 0 6px,transparent 7px),
+    radial-gradient(circle at 2% 72%,#aa1420 0 8px,transparent 9px),
+    radial-gradient(circle at 3% 68%,#aa1420 0 3px,transparent 4px),
+    radial-gradient(ellipse at 94% 10%,#c6393d 0 20%,transparent 21%);
+}
+.menuShell {
+  position:relative;z-index:1;
+  width:min(1220px,calc(100% - 64px));min-height:100%;margin:0 auto;
+  padding:22px 0 14px;display:grid;grid-template-rows:auto 45px minmax(285px,1fr) auto auto;gap:12px;
+}
+.menuMasthead {display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:78px}
+.menuIdentity{display:flex;align-items:center;gap:14px;min-width:0}
+.menuMark{
+  display:flex;align-items:center;justify-content:center;flex:0 0 66px;height:66px;
+  color:#111;border:7px solid #151515;border-radius:50%;
+  font-size:43px;font-weight:1000;font-style:italic;letter-spacing:-5px;line-height:1;
+  transform:rotate(-9deg);
+}
+.menuMark span{font-size:20px;color:#bd1727;align-self:flex-start;margin-top:11px;margin-left:-3px;letter-spacing:0}
+#menu .menuTitle{color:#161619;font:italic 1000 clamp(36px,4.1vw,64px)/.9 Arial,Helvetica,sans-serif;letter-spacing:-3.3px;transform:skewX(-6deg);white-space:nowrap;text-shadow:2px 3px 0 #d8d7d1}
+.menuSubtitle{font-size:9px;font-weight:900;letter-spacing:2.3px;margin-top:8px;color:#991524}
+#menu .nicknameField{width:222px;flex-shrink:0;color:#292929;font-weight:900;font-size:10px;letter-spacing:1.1px}
+#menu .nicknameField input {
+  height:40px;color:#202020;background:#fff;border:2px solid #191919;
+  outline:0;box-shadow:4px 4px 0 #be1c2c;
+  padding:0 12px;font-size:15px;font-weight:800;
+}
+#menu .nicknameField input:focus{outline:2px solid #ba1d2b;outline-offset:3px}
+.menuNav{height:45px;display:flex;align-items:stretch;gap:3px;padding:4px 9px;background:#171719;border-radius:8px;overflow:hidden}
+.menuNavItem{padding:0 22px;background:transparent;color:#fff;font-size:19px;font-style:italic;font-weight:1000;letter-spacing:-.4px;cursor:pointer;transform:skewX(-9deg);transition:background .12s,color .12s}
+.menuNavItem:hover,.menuNavItem:focus-visible{background:#84202a}
+.menuNavItem.active{background:#bd1c29;color:#fff}
+.menuNavTag{margin-left:auto;align-self:center;color:#bbb;font-size:9px;font-weight:900;letter-spacing:1.5px;white-space:nowrap;padding-right:12px}
+.menuHero{display:grid;grid-template-columns:.94fr 1.06fr;gap:13px;min-height:285px;min-width:0}
+.menuHeroCopy{
+  position:relative;overflow:hidden;padding:clamp(18px,2.8vw,38px);
+  border-left:10px solid #be1829;background:linear-gradient(135deg,#fff 0%,#f9f8f4 72%,#e9e6e0 100%);
+  display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
+  box-shadow:inset 0 0 0 2px #e5e2dc;
+}
+.menuHeroCopy::after{
+  content:"";position:absolute;pointer-events:none;width:210px;height:300px;
+  top:-80px;right:-90px;transform:rotate(28deg);
+  background:repeating-linear-gradient(90deg,transparent 0 22px,rgba(182,21,39,.075) 22px 38px);
+}
+.menuEyebrow{display:flex;align-items:center;gap:9px;margin:0 0 8px;font-size:10px;font-weight:1000;letter-spacing:2.2px;color:#a61425}
+.menuEyebrowDot{height:8px;width:8px;background:#bc1c29;transform:rotate(45deg)}
+.menuHeroCopy h1{position:relative;margin:0;font-size:clamp(43px,5.1vw,75px);font-style:italic;font-weight:1000;line-height:.94;letter-spacing:-3.5px;transform:skewX(-4deg);color:#181818}
+.menuHeroCopy h1 span{color:#b51829}
+.menuHeroDescription{position:relative;max-width:350px;margin:15px 0 19px;color:#4a4544;font-size:13px;font-weight:600;line-height:1.5}
+.menuHeroAction{min-height:49px;position:relative;display:flex;align-items:center;justify-content:space-between;gap:30px;padding:0 18px;background:#1b1b1d;color:#fff;font-size:17px;font-style:italic;font-weight:1000;cursor:pointer;box-shadow:5px 5px 0 #c21b2e;transition:transform .12s,box-shadow .12s}
+.menuHeroAction span{font-size:30px;font-style:normal;font-weight:400;line-height:.7}
+.menuHeroAction:hover{transform:translate(2px,2px);box-shadow:3px 3px 0 #c21b2e}
+.menuHeroAction:focus-visible{outline:3px solid #c21b2e;outline-offset:4px}
+#menu .demoPanel{
+  position:relative;min-width:0;min-height:260px;height:auto;overflow:hidden;
+  background:#a9d6eb;border:8px solid #bd1b2b;box-shadow:inset 0 0 0 3px #151515;
+}
+#menu .demoPanel canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+.demoTop,.demoBottom{position:absolute;left:0;right:0;z-index:2;pointer-events:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 15px;font-size:10px;font-weight:1000;letter-spacing:1px}
+.demoTop{top:0;color:#172c3a;background:linear-gradient(#f1f9fdcc,transparent)}
+.demoLive{color:#b71b2a}
+.demoBottom{bottom:0;color:#fff;background:#ad1927f0;min-height:34px}
+.menuTiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.menuTile{
+  min-width:0;min-height:142px;position:relative;overflow:hidden;
+  padding:16px 20px;display:flex;align-items:flex-start;flex-direction:column;text-align:left;
+  border-top:5px solid #181719;background:linear-gradient(130deg,#bf1d2e,#9c1623);
+  color:#fff;cursor:pointer;box-shadow:0 5px 0 #d7d4d0;transition:transform .13s,filter .13s;
+}
+.menuTile:nth-child(2){background:linear-gradient(135deg,#aa1829,#7f101c)}
+.menuTile:nth-child(3){background:linear-gradient(135deg,#cc2432,#a91827)}
+.menuTile::after{content:"";position:absolute;width:120px;height:190px;right:-70px;top:-50px;background:#ffffff13;transform:rotate(27deg);pointer-events:none}
+.menuTile:hover{transform:translateY(-4px);filter:brightness(1.1)}
+.menuTile:focus-visible{outline:3px solid #171719;outline-offset:3px}
+.menuTileIndex{font-size:10px;letter-spacing:1.7px;font-weight:900;opacity:.8}
+.menuTileTitle{margin:13px 0 3px;font:italic 1000 clamp(27px,3vw,40px)/.95 Arial,Helvetica,sans-serif;letter-spacing:-1px;transform:skewX(-5deg)}
+.menuTileDescription{font-size:11px;line-height:1.4;max-width:235px;font-weight:600;opacity:.94}
+.menuTileArrow{position:absolute;right:17px;bottom:11px;font-size:28px;font-weight:700;opacity:.8}
+.menuFooter{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#5f5857;font-size:9px;font-weight:900;letter-spacing:1.5px}
+
+/* Keep the rest of the game setup screens visually related to the menu. */
+#modeScreen,#localScreen,#mapScreen,#lanScreen,#customScreen{background-image:linear-gradient(155deg,#fff 0%,#f0efea 70%,#e8e4de 100%);overflow-y:auto}
+.simpleScreen h1,.customTop h1,.setupTop h1{font-style:italic;letter-spacing:-2px}
+.modeCard,.customTab,.mapCard,.itemCard,.weaponTile{transition:background .12s,transform .12s}
+.modeCard{background:#232124;color:#f8f6f3;border-top:6px solid #a81a29}
+.modeCard.available{background:#a81827;color:#fff}
+.modeCard.available:hover{background:#d02735;color:#fff;transform:translateY(-3px)}
+.modeCard:disabled{background:#d5d2cd;color:#85817c;border-top-color:#aaa5a0}
+.continueButton,.bigButton,.lanJoinBtn{background:#b51b2b;color:#fff}
+.continueButton:hover,.bigButton:hover,.lanJoinBtn:hover{background:#d12a38;color:#fff}
+.lanPanel{background:#28262a;color:#fff;border-top:5px solid #b51b2b}
+.lanRoom{background:#3c383b}
+.lanRoom:hover{background:#50484a}
+.lanRoomList{scrollbar-color:#b31a2a #333}
+.screenHint{color:#585252}
+.mapCard{background:#e3dfd9;color:#171719}
+.mapCard:hover{background:#d9d2ca}
+.mapCard.selected{background:#efd6d8;outline:4px solid #b51b2b}
+.customTab{background:#e0dcd7;color:#1e1e1e}
+.customTab.active,.customTab:hover{background:#b51b2b;color:#fff}
+.weaponTile{background:#ddd8d1}
+.weaponTile.selected{outline:3px solid #b51b2b}
+.weaponTile:hover{background:#f0dfdc}
+.itemCard{background:#ded9d2;color:#282525}
+.itemCard.selected{background:#b51b2b;color:#fff}
+.customPreview{border:6px solid #b51b2b}
+.nicknameField input:focus-visible,.continueButton:focus-visible,.bigButton:focus-visible,.modeCard:focus-visible{outline:3px solid #171719;outline-offset:2px}
+@media(max-width:900px){
+  .menuShell{width:calc(100% - 36px);padding:18px 0 14px;grid-template-rows:auto 45px minmax(270px,1fr) auto auto}
+  .menuNavTag{display:none}
+  .menuHeroCopy{padding:22px}
+  .menuHeroCopy h1{font-size:clamp(40px,6vw,62px)}
+  .menuTile{padding:14px;min-height:145px}
+}
+@media(max-width:690px){
+  .menuShell{display:flex;flex-direction:column;min-height:100%;gap:12px;padding:18px 0}
+  .menuMasthead{align-items:flex-start;flex-wrap:wrap;gap:14px}
+  .menuMark{width:54px;height:54px;flex-basis:54px;font-size:34px;border-width:6px}
+  #menu .menuTitle{font-size:clamp(32px,9vw,49px)}
+  .menuSubtitle{font-size:8px;letter-spacing:1.2px}
+  #menu .nicknameField{width:100%;max-width:340px}
+  .menuHero{display:flex;flex-direction:column;gap:12px}
+  .menuHeroCopy{min-height:310px}
+  .menuHeroCopy h1{font-size:clamp(52px,12vw,72px)}
+  #menu .demoPanel{height:290px;min-height:290px}
+  .menuTiles{grid-template-columns:1fr;gap:9px}
+  .menuTile{min-height:119px;padding:12px 18px}
+  .menuTileTitle{font-size:32px;margin:8px 0 3px}
+  .menuFooter{flex-wrap:wrap}
+}
+@media(max-height:680px) and (min-width:691px){
+  .menuShell{min-height:680px}
+}
+@media(prefers-reduced-motion:reduce){
+  .menuTile,.menuHeroAction,.modeCard{transition:none}
+}

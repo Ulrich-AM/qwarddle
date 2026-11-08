@@ -12,7 +12,7 @@ LOCAL now contains COUCH and LAN. COUCH uses one computer plus a controller. LAN
 
 ## v0.0.24
 
-This pass uses TEST PLANE as the only active arena and tunes sustained ranged damage for longer 100-HP multiplayer fights. The blue sky is `#8fc4df`; the world is 2400 x 1200 with a single flat floor at y=1050.
+The v0.0.24 flat-PvP pass introduced TEST PLANE with a 2,400 x 1,200 arena and `#8fc4df` sky. The unreleased appearance pass described below expands this map and replaces its flat sky color.
 
 - Revolver: 2.5 normal damage per shot, 6.5 charged damage, 0.34 s between shots, 0.58 s reload, 270 regular / 690 charged knockback.
 - Wand: 0.9 primary damage with a 0.32 s cooldown; each primary star still passes through terrain and fighters, hitting a fighter once. Q sends three 0.8-damage homing stars every 1.30 s; E still bursts on the first terrain hit.
@@ -363,7 +363,7 @@ Map rectangles are full solid collision geometry for the physical torso. Procedu
 
 - TEST PLANE
 
-TEST PLANE is the only registered arena for movement and combat tuning. It is a flat 2400 x 1200 world with exactly one floor rectangle, no platforms or side walls, and water placed below the playable world. The blue sky is `#8fc4df`.
+TEST PLANE is the only registered arena for movement and combat tuning. It is a flat 7,200 x 1,700 world with exactly one wide floor rectangle, no platforms or side walls, and water beginning at y=1,270 beneath the walkable surface. The sky is a light-blue vertical gradient.
 
 ## Sprite staging areas
 
@@ -478,3 +478,12 @@ Additional languages can follow the same structure. The built-in English fallbac
 - E: attack 3
 - R: ragdoll death test, then revive
 - Esc: back
+
+
+## Unreleased menu and arena appearance pass
+
+- The test plane is widened from 2,400 to 7,200 world units so the left and right edges no longer dominate the fight camera. It remains a single continuous solid rectangle without extra platforms.
+- The water threshold is raised from y=1,600 to y=1,270. A map-specific translucent water overlay makes the submerged ground visible without changing the floor collision surface.
+- The game sky now uses optional `skyTop`, `skyMiddle` and `skyBottom` colors, drawn as a screen-space vertical gradient. Maps without these values keep their existing single-color backgrounds.
+- The main menu now has a red, white and black arcade treatment, direct SOLO/COUCH/LAN entry points and the same interactive real-player preview. The new styles are isolated in `menu-theme.css`.
+- This pass does not change weapon balance, fighter physics, host-authoritative LAN, or the map JSON contract used by older maps.

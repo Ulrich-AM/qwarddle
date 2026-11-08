@@ -204,5 +204,19 @@ class Terrain {
       ctx.fillStyle = rect.color || fillColor;
       ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
     }
+
+    // Optional foreground water tint. The water is beneath the playable
+    // surface and does not change solid collisions or the kill threshold.
+    if (this.map?.waterOverlay) {
+      const water = ctx.createLinearGradient(0, this.waterY, 0, this.waterY + 560);
+      water.addColorStop(0, 'rgba(88, 164, 197, 0.40)');
+      water.addColorStop(1, 'rgba(22, 91, 140, 0.65)');
+      ctx.fillStyle = water;
+      ctx.fillRect(-huge, this.waterY, huge * 2, huge);
+      ctx.fillStyle = 'rgba(222, 246, 255, 0.75)';
+      ctx.fillRect(-huge, this.waterY, huge * 2, 5);
+      ctx.fillStyle = 'rgba(28, 84, 124, 0.22)';
+      ctx.fillRect(-huge, this.waterY + 16, huge * 2, 3);
+    }
   }
 }

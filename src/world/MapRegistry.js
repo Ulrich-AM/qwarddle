@@ -6,19 +6,24 @@ const MapRegistry = Object.freeze({
       version:1,
       id:'test-plane',
       name:'TEST PLANE',
-      width:2400,
-      height:1200,
-      waterY:1600,
-      background:'#8fc4df',
+      // A wide uninterrupted training field, with water much closer beneath it.
+      width:7200,
+      height:1700,
+      waterY:1270,
+      waterOverlay:true,
+      background:'#a8d9ee',
+      skyTop:'#70b7df',
+      skyMiddle:'#b2dff2',
+      skyBottom:'#f1f9fc',
       groundColor:'#64746e',
       outlineColor:'#202020',
       outlineSize:6,
       spawns:[
-        { x:650, y:980 },
-        { x:1750, y:980 }
+        { x:2850, y:980 },
+        { x:4350, y:980 }
       ],
       rectangles:[
-        { x:0, y:1050, w:2400, h:150, color:'#64746e', material:'default' }
+        { x:0, y:1050, w:7200, h:650, color:'#64746e', material:'default' }
       ]
     }
   ],
